@@ -1,11 +1,12 @@
-import { StrictMode, useMemo, useState, type ReactNode } from "react"
+import { StrictMode, useMemo, useState } from "react"
 import { createRoot } from "react-dom/client"
+import { Input, Label, Switch, TextField } from "react-aria-components"
 import { VideoPlayer } from "@vplayer/react"
 import "@vplayer/react/player.css"
 import "./playground.css"
 
-const SAMPLE_VIDEO = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-const SAMPLE_POSTER = "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80"
+const SAMPLE_VIDEO = "https://cdn.jsdelivr.net/npm/big-buck-bunny-1080p@0.0.6/video.mp4"
+const SAMPLE_POSTER = "https://cdn.jsdelivr.net/npm/big-buck-bunny-1080p@0.0.6/poster.jpg"
 
 function App() {
   const [src, setSrc] = useState(SAMPLE_VIDEO)
@@ -18,7 +19,7 @@ function App() {
   const [accent, setAccent] = useState("oklch(0.75 0.12 78)")
   const [eventLog, setEventLog] = useState<string[]>([])
 
-  const qualityList = useMemo(() => qualities ? ["Auto", "1080p", "720p", "480p"] : [], [qualities])
+  const qualityList = useMemo(() => (qualities ? ["Auto", "1080p", "720p", "480p"] : []), [qualities])
 
   const log = (event: string) => {
     const now = new Date()
@@ -44,7 +45,7 @@ function App() {
           Playground
         </div>
 
-        <div className="stage-card" style={{ ["--vplayer-accent" as string]: accent, ["--vplayer-radius" as string]: rounded ? "18px" : "4px" }}>
+        <div className="stage-card" style={{ ["--vplayer-accent" as string]: accent, ["--vplayer-radius" as string]: rounded ? "18px" : "4px" } as React.CSSProperties}>
           <VideoPlayer
             src={src}
             poster={showPoster ? poster : undefined}
@@ -64,29 +65,54 @@ function App() {
       <section className="controls-section">
         <div className="controls-grid">
           <Panel title="Sources">
-            <label>
-              Video URL
-              <input value={src} onChange={(e) => setSrc(e.target.value)} spellCheck={false} />
-            </label>
-            <label>
-              Poster URL
-              <input value={poster} onChange={(e) => setPoster(e.target.value)} spellCheck={false} />
-            </label>
+            <TextField value={src} onChange={setSrc} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <Label className="rac-label">Video URL</Label>
+              <Input className="rac-input" />
+            </TextField>
+            <TextField value={poster} onChange={setPoster} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <Label className="rac-label">Poster URL</Label>
+              <Input className="rac-input" />
+            </TextField>
           </Panel>
 
           <Panel title="Configuration">
-            <Toggle label="Autoplay" checked={autoPlay} onChange={setAutoPlay} />
-            <Toggle label="Poster visible" checked={showPoster} onChange={setShowPoster} />
-            <Toggle label="Quality menu" checked={qualities} onChange={setQualities} />
-            <Toggle label="Thumbnail previews" checked={thumbnails} onChange={setThumbnails} />
-            <Toggle label="Rounded frame" checked={rounded} onChange={setRounded} />
-            <label>
-              Accent color
+            <Switch isSelected={autoPlay} onChange={setAutoPlay} className="config-row">
+              <span>Autoplay</span>
+              <div className="switch-track">
+                <span className="switch-knob" />
+              </div>
+            </Switch>
+            <Switch isSelected={showPoster} onChange={setShowPoster} className="config-row">
+              <span>Poster visible</span>
+              <div className="switch-track">
+                <span className="switch-knob" />
+              </div>
+            </Switch>
+            <Switch isSelected={qualities} onChange={setQualities} className="config-row">
+              <span>Quality menu</span>
+              <div className="switch-track">
+                <span className="switch-knob" />
+              </div>
+            </Switch>
+            <Switch isSelected={thumbnails} onChange={setThumbnails} className="config-row">
+              <span>Thumbnail previews</span>
+              <div className="switch-track">
+                <span className="switch-knob" />
+              </div>
+            </Switch>
+            <Switch isSelected={rounded} onChange={setRounded} className="config-row">
+              <span>Rounded frame</span>
+              <div className="switch-track">
+                <span className="switch-knob" />
+              </div>
+            </Switch>
+            <TextField value={accent} onChange={setAccent} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <Label className="rac-label">Accent color</Label>
               <div className="accent-row">
                 <span className="accent-swatch" style={{ background: accent }} />
-                <input value={accent} onChange={(e) => setAccent(e.target.value)} spellCheck={false} />
+                <Input className="rac-input" />
               </div>
-            </label>
+            </TextField>
           </Panel>
 
           <Panel title="Event Log">
@@ -95,9 +121,9 @@ function App() {
                 <span className="event-log-empty">No events yet — play the video</span>
               ) : (
                 eventLog.map((entry) => {
-                  const idx = entry.indexOf("  ")
-                  const time = idx > 0 ? entry.slice(0, idx) : ""
-                  const event = idx > 0 ? entry.slice(idx + 2) : entry
+                  const sep = entry.indexOf("  ")
+                  const time = sep > 0 ? entry.slice(0, sep) : ""
+                  const event = sep > 0 ? entry.slice(sep + 2) : entry
                   return (
                     <span key={entry} className="event-log-entry">
                       {time && <span className="event-log-entry-time">{time}</span>}
@@ -114,30 +140,12 @@ function App() {
   )
 }
 
-/* ─── Panel ─── */
-function Panel({ title, children }: { title: string; children: ReactNode }) {
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="config-panel">
       <h2>{title}</h2>
       {children}
     </div>
-  )
-}
-
-/* ─── Custom Toggle Switch ─── */
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <label className="toggle-row">
-      <span>{label}</span>
-      <div
-        className="toggle-switch"
-        data-on={checked}
-        onClick={(e) => { e.preventDefault(); onChange(!checked) }}
-      >
-        <div className="toggle-switch-knob" />
-      </div>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-    </label>
   )
 }
 

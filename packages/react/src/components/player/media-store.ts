@@ -20,5 +20,17 @@ export function createMediaStore(props: PlayerProps) {
     qualities: props.qualities ?? [],
     thumbnailCues: [],
     controlsVisible: true,
+    // Plugin-registered dynamic items
+    controls: [],
+    settings: [],
+    layers: [],
+    notification: null,
+    flip: 'normal',
+    aspectRatio: 'default',
+    error: null,
+    contextMenuItems: [],
+    contextMenuEnabled: true,
+    isLooping: false,
+    infoPanelVisible: false,
   })
 }

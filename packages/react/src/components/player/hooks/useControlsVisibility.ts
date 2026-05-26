@@ -25,7 +25,6 @@ export function useControlsVisibility(mediaStore: Store<MediaState>) {
     () => ({
       onMouseMove: showControls,
       onMouseEnter: showControls,
-      onKeyDown: showControls,
     }),
     [showControls],
   )

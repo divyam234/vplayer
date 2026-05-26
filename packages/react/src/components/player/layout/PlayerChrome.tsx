@@ -12,6 +12,15 @@ import {
   VolumeControl,
 } from '../controls'
 import { useMediaState, usePlayerContext } from '../context'
+import { ScreenshotButton } from '../components/ScreenshotButton'
+import {
+  NotificationOverlay,
+  PluginControlsCenter,
+  PluginControlsLeft,
+  PluginControlsRight,
+  PluginControlsTop,
+  PluginLayers,
+} from '../plugin-renderer'
 
 export const ControlsBar: FC<{ children?: ReactNode }> = ({ children }) => {
   const controlsVisible = useMediaState('controlsVisible')
@@ -28,19 +37,34 @@ export const Spacer: FC = () => <div className="vplayer__spacer" />
 export const PlayerChrome: FC = () => {
   const { slots } = usePlayerContext()
   return (
-    <ControlsBar>
-      {slots.seekBar ?? <SeekBar />}
-      <Toolbar aria-label="Playback controls" className="vplayer__controls-row">
-        {slots.playButton ?? <PlayButton />}
-        <SkipButton seconds={-10} />
-        <SkipButton seconds={10} />
-        {slots.volumeControl ?? <VolumeControl />}
-        <Spacer />
-        {slots.timeDisplay ?? <TimeDisplay />}
-        {slots.settingsButton ?? <SettingsTrigger />}
-        {slots.pipButton ?? <PiPButton />}
-        {slots.fullscreenButton ?? <FullscreenButton />}
-      </Toolbar>
-    </ControlsBar>
+    <>
+      {/* Top-zone plugin controls (e.g. progress bar additions) */}
+      <PluginControlsTop />
+
+      <ControlsBar>
+        {slots.seekBar ?? <SeekBar />}
+        <Toolbar aria-label="Playback controls" className="vplayer__controls-row">
+          {/* Plugin left controls before built-ins */}
+          <PluginControlsCenter />
+          {slots.playButton ?? <PlayButton />}
+          <SkipButton seconds={-10} />
+          <SkipButton seconds={10} />
+          <PluginControlsLeft />
+          {slots.volumeControl ?? <VolumeControl />}
+          <Spacer />
+          {slots.timeDisplay ?? <TimeDisplay />}
+          <ScreenshotButton />
+          {slots.settingsButton ?? <SettingsTrigger />}
+          <PluginControlsRight />
+          {slots.pipButton ?? <PiPButton />}
+          {slots.fullscreenButton ?? <FullscreenButton />}
+        </Toolbar>
+      </ControlsBar>
+
+      {/* Plugin layers (overlays, extra UI) */}
+      <PluginLayers />
+      {/* Notification overlay */}
+      <NotificationOverlay />
+    </>
   )
 }

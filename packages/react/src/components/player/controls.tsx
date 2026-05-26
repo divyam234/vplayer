@@ -235,12 +235,16 @@ export const SettingsTrigger: FC = () => {
   const activeQuality = useMediaState('activeQuality')
   const subtitleTracks = useMediaState('subtitleTracks')
   const activeSubtitle = useMediaState('activeSubtitle')
+  const flip = useMediaState('flip')
+  const aspectRatio = useMediaState('aspectRatio')
   const [isOpen, setIsOpen] = useState(false)
-  const [view, setView] = useState<'main' | 'speed' | 'quality' | 'subtitles'>('main')
+  const [view, setView] = useState<'main' | 'speed' | 'quality' | 'subtitles' | 'flip' | 'aspectRatio'>('main')
   const speeds = [0.5, 1, 1.25, 1.5, 2]
   const BackIcon = icons.chevronLeft
   const CheckIcon = icons.check
   const SettingsIcon = icons.settings
+  const FlipIcon = icons.flip
+  const AspectRatioIcon = icons.aspectRatio
 
   return (
     <MenuTrigger isOpen={isOpen} onOpenChange={(open) => { setIsOpen(open); if (open) setView('main') }}>
@@ -252,6 +256,8 @@ export const SettingsTrigger: FC = () => {
               <MenuItem onAction={() => setView('speed')} className="vplayer__menu-item"><span className="vplayer__menu-label">{labels.speed}</span><span className="vplayer__menu-value">{playbackRate}x</span></MenuItem>
               {qualities.length > 0 && <MenuItem onAction={() => setView('quality')} className="vplayer__menu-item"><span className="vplayer__menu-label">{labels.quality}</span><span className="vplayer__menu-value">{activeQuality}</span></MenuItem>}
               {subtitleTracks.length > 0 && <MenuItem onAction={() => setView('subtitles')} className="vplayer__menu-item"><span className="vplayer__menu-label">{labels.subtitles}</span><span className="vplayer__menu-value vplayer__menu-value--truncate">{activeSubtitle?.label ?? labels.off}</span></MenuItem>}
+              <MenuItem onAction={() => setView('flip')} className="vplayer__menu-item"><FlipIcon size={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.flip}</span><span className="vplayer__menu-value">{labels.flipNormal}</span></MenuItem>
+              <MenuItem onAction={() => setView('aspectRatio')} className="vplayer__menu-item"><AspectRatioIcon size={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.aspectRatio}</span><span className="vplayer__menu-value">{labels.aspectRatioDefault}</span></MenuItem>
             </>
           ) : view === 'speed' ? (
             <>
@@ -262,6 +268,30 @@ export const SettingsTrigger: FC = () => {
             <>
               <MenuItem onAction={() => setView('main')} className="vplayer__menu-item"><BackIcon size={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.quality}</span></MenuItem>
               {qualities.map((q) => <MenuItem key={q} onAction={() => { remote.setActiveQuality(q); setIsOpen(false) }} className="vplayer__menu-item"><span className={activeQuality === q ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>{q}</span>{activeQuality === q && <CheckIcon size={14} className="vplayer__menu-check" />}</MenuItem>)}
+            </>
+          ) : view === 'flip' ? (
+            <>
+              <MenuItem onAction={() => setView('main')} className="vplayer__menu-item"><BackIcon size={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.flip}</span></MenuItem>
+              {(['normal', 'horizontal', 'vertical'] as const).map((val) => (
+                <MenuItem key={val} onAction={() => { remote.setFlip(val); setIsOpen(false) }} className="vplayer__menu-item">
+                  <span className={flip === val ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>
+                    {val === 'normal' ? labels.flipNormal : val === 'horizontal' ? labels.flipHorizontal : labels.flipVertical}
+                  </span>
+                  {flip === val && <CheckIcon size={14} className="vplayer__menu-check" />}
+                </MenuItem>
+              ))}
+            </>
+          ) : view === 'aspectRatio' ? (
+            <>
+              <MenuItem onAction={() => setView('main')} className="vplayer__menu-item"><BackIcon size={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.aspectRatio}</span></MenuItem>
+              {(['default', '16:9', '4:3', 'fill'] as const).map((val) => (
+                <MenuItem key={val} onAction={() => { remote.setAspectRatio(val); setIsOpen(false) }} className="vplayer__menu-item">
+                  <span className={aspectRatio === val ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>
+                    {val === 'default' ? labels.aspectRatioDefault : val === '16:9' ? labels.aspectRatio16 : val === '4:3' ? labels.aspectRatio4 : labels.aspectRatioFill}
+                  </span>
+                  {aspectRatio === val && <CheckIcon size={14} className="vplayer__menu-check" />}
+                </MenuItem>
+              ))}
             </>
           ) : (
             <>

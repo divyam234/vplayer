@@ -200,4 +200,135 @@
   .vplayer__ended-title { @apply text-lg font-medium; color: color-mix(in srgb, white 85%, transparent); }
   .vplayer__ended-button { @apply flex items-center gap-2 rounded-full px-6 py-2 text-sm transition-all; color: var(--vplayer-fg); background: color-mix(in srgb, white 12%, transparent); border: 1px solid var(--vplayer-control-border); }
   .vplayer__ended-button:hover { background: color-mix(in srgb, white 20%, transparent); }
+
+  .vplayer__notice { @apply pointer-events-none absolute left-1/2 top-1/4 z-50 -translate-x-1/2 -translate-y-1/2; }
+  .vplayer__notice-inner { @apply rounded-lg px-4 py-2 text-sm shadow-lg; background: var(--vplayer-tooltip-bg); border: 1px solid var(--vplayer-tooltip-border); color: var(--vplayer-tooltip-fg); }
+
+  /* ── Mini Progress Bar ─────────────────────────────────────── */
+  .vplayer__mini-progress {
+    @apply pointer-events-none absolute bottom-0 left-0 right-0 z-30 h-[3px] transition-opacity duration-300;
+  }
+  .vplayer__mini-progress-buffered {
+    @apply absolute inset-0 rounded-full;
+    background: color-mix(in srgb, white 23%, transparent);
+  }
+  .vplayer__mini-progress-played {
+    @apply absolute inset-0 rounded-full;
+    background: var(--vplayer-accent);
+  }
+
+  /* ── Error Overlay ──────────────────────────────────────────── */
+  .vplayer__error-overlay {
+    @apply absolute inset-0 z-30 flex items-center justify-center;
+    background: color-mix(in srgb, black 60%, transparent);
+  }
+  .vplayer__error-overlay-content {
+    @apply flex flex-col items-center gap-3 px-6 text-center;
+  }
+  .vplayer__error-overlay-message {
+    @apply text-sm font-medium;
+    color: color-mix(in srgb, white 90%, transparent);
+  }
+  .vplayer__error-overlay-detail {
+    @apply max-w-xs text-xs;
+    color: color-mix(in srgb, white 60%, transparent);
+  }
+  .vplayer__error-overlay-retry {
+    @apply mt-2 rounded-full px-5 py-1.5 text-sm text-white transition-colors hover:bg-white/20;
+    background: color-mix(in srgb, white 12%, transparent);
+    border: 1px solid color-mix(in srgb, white 14%, transparent);
+  }
+
+  /* ── Auto Resume Overlay ────────────────────────────────────── */
+  .vplayer__auto-resume-overlay {
+    @apply absolute inset-0 z-30 flex items-center justify-center;
+    background: color-mix(in srgb, black 60%, transparent);
+  }
+  .vplayer__auto-resume-content {
+    @apply flex flex-col items-center gap-4 rounded-xl px-8 py-6 shadow-2xl;
+    background: color-mix(in srgb, black 90%, transparent);
+    border: 1px solid color-mix(in srgb, white 14%, transparent);
+  }
+  .vplayer__auto-resume-text {
+    @apply text-sm;
+    color: color-mix(in srgb, white 80%, transparent);
+  }
+  .vplayer__auto-resume-actions {
+    @apply flex items-center gap-3;
+  }
+  .vplayer__auto-resume-btn {
+    @apply rounded-full px-5 py-1.5 text-sm text-white transition-colors;
+  }
+  .vplayer__auto-resume-btn--primary {
+    background: color-mix(in srgb, white 12%, transparent);
+    border: 1px solid color-mix(in srgb, white 14%, transparent);
+  }
+  .vplayer__auto-resume-btn--primary:hover {
+    background: color-mix(in srgb, white 20%, transparent);
+  }
+  .vplayer__auto-resume-btn:not(.vplayer__auto-resume-btn--primary) {
+    color: color-mix(in srgb, white 60%, transparent);
+  }
+  .vplayer__auto-resume-btn:not(.vplayer__auto-resume-btn--primary):hover {
+    color: var(--vplayer-fg);
+  }
+
+  /* ── Context Menu ────────────────────────────────────────────── */
+  .vplayer__contextmenu {
+    @apply fixed z-[9999] min-w-40 rounded-lg border p-1.5 shadow-2xl outline-none;
+    background: color-mix(in srgb, black 90%, transparent);
+    border-color: var(--vplayer-control-border);
+    backdrop-filter: blur(18px);
+  }
+  .vplayer__contextmenu-item {
+    @apply flex w-full items-center rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors;
+    color: color-mix(in srgb, white 80%, transparent);
+  }
+  .vplayer__contextmenu-item:hover,
+  .vplayer__contextmenu-item[data-focused] {
+    background: color-mix(in srgb, white 10%, transparent);
+  }
+  .vplayer__contextmenu-separator {
+    @apply my-1 border-t;
+    border-color: var(--vplayer-control-border);
+  }
+
+  /* ── Info Panel ──────────────────────────────────────────────── */
+  .vplayer__info-panel {
+    @apply absolute top-2 right-2 z-50 rounded-md px-3 py-2 text-xs font-mono leading-relaxed pointer-events-none;
+    background: color-mix(in srgb, black 70%, transparent);
+    color: color-mix(in srgb, white 85%, transparent);
+  }
+
+  /* ── Flip Setting ────────────────────────────────────────────── */
+  .vplayer__flip-setting {
+    @apply flex flex-col gap-1 p-2;
+  }
+  .vplayer__flip-option {
+    @apply flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors;
+    color: color-mix(in srgb, white 80%, transparent);
+    cursor: pointer;
+  }
+  .vplayer__flip-option:hover {
+    background: color-mix(in srgb, white 10%, transparent);
+  }
+  .vplayer__flip-option--active {
+    color: var(--vplayer-fg);
+  }
+
+  /* ── Aspect Ratio Setting ───────────────────────────────────── */
+  .vplayer__aspect-ratio-setting {
+    @apply flex flex-col gap-1 p-2;
+  }
+  .vplayer__aspect-ratio-option {
+    @apply flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors;
+    color: color-mix(in srgb, white 80%, transparent);
+    cursor: pointer;
+  }
+  .vplayer__aspect-ratio-option:hover {
+    background: color-mix(in srgb, white 10%, transparent);
+  }
+  .vplayer__aspect-ratio-option--active {
+    color: var(--vplayer-fg);
+  }
 }

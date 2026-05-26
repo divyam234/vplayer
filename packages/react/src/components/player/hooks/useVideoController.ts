@@ -1,7 +1,47 @@
 import { useCallback, useMemo, useRef } from 'react'
 import { defaultPlayerIcons, defaultPlayerLabels } from '../defaults'
 import { createMediaStore } from '../media-store'
-import type { PlayerContextValue, PlayerProps } from '../types'
+import type { AspectRatioState, FlipState } from '../plugin-api'
+import type { PlayerProps } from '../types'
+
+export interface VideoControllerResult {
+  containerRef: React.RefObject<HTMLDivElement | null>
+  videoRef: React.RefObject<HTMLVideoElement | null>
+  mediaStore: ReturnType<typeof createMediaStore>
+  rootProps: {
+    ref: React.RefObject<HTMLDivElement | null>
+    tabIndex: number
+    onDoubleClick: () => void
+  }
+  videoProps: {
+    ref: React.RefObject<HTMLVideoElement | null>
+    className: string
+    poster?: string
+    autoPlay?: boolean
+    preload: 'metadata'
+    playsInline: boolean
+    onClick: () => void
+    onPlay: () => void
+    onPause: () => void
+    onEnded: () => void
+    onTimeUpdate: () => void
+    onLoadedMetadata: () => void
+    onProgress: () => void
+    onWaiting: () => void
+    onCanPlay: () => void
+  }
+  labels: ReturnType<typeof buildLabels>
+  icons: ReturnType<typeof buildIcons>
+  slots: PlayerProps['slots']
+}
+
+function buildLabels(props: PlayerProps) {
+  return { ...defaultPlayerLabels, ...props.labels }
+}
+
+function buildIcons(props: PlayerProps) {
+  return { ...defaultPlayerIcons, ...props.icons }
+}
 
 export function useVideoController(props: PlayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -85,6 +125,63 @@ export function useVideoController(props: PlayerProps) {
     }
   }, [])
 
+  const takeScreenshot = useCallback(() => {
+    const video = videoRef.current
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) return
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.drawImage(video, 0, 0)
+    canvas.toBlob((blob) => {
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `vplayer-screenshot-${Date.now()}.png`
+      a.click()
+      URL.revokeObjectURL(url)
+    }, 'image/png')
+  }, [videoRef])
+
+  const setFlip = useCallback((flip: FlipState) => {
+    const video = videoRef.current
+    if (!video) return
+    let transform = ''
+    if (flip === 'horizontal') transform = 'scaleX(-1)'
+    if (flip === 'vertical') transform = 'scaleY(-1)'
+    if (flip === 'normal') transform = ''
+    video.style.transform = transform
+    mediaStore.setState((prev) => ({ ...prev, flip }))
+  }, [mediaStore, videoRef])
+
+  const setAspectRatio = useCallback((ratio: AspectRatioState) => {
+    const video = videoRef.current
+    if (!video) return
+    let objectFit = 'contain'
+    if (ratio === 'fill') objectFit = 'fill'
+    if (ratio === '16:9' || ratio === '4:3') {
+      objectFit = 'contain'
+      video.style.aspectRatio = ratio
+    } else {
+      video.style.aspectRatio = ''
+    }
+    video.style.objectFit = objectFit
+    mediaStore.setState((prev) => ({ ...prev, aspectRatio: ratio }))
+  }, [mediaStore, videoRef])
+
+  const toggleLoop = useCallback(() => {
+    const video = videoRef.current
+    if (!video) return
+    video.loop = !video.loop
+    mediaStore.setState((prev) => ({ ...prev, isLooping: video.loop }))
+  }, [mediaStore, videoRef])
+
+  const toggleInfoPanel = useCallback(() => {
+    mediaStore.setState((prev) => ({ ...prev, infoPanelVisible: !prev.infoPanelVisible }))
+  }, [mediaStore])
+
   const setActiveSubtitle = useCallback(
     (track: (typeof mediaStore.state)['activeSubtitle']) => {
       mediaStore.setState((prev) => ({ ...prev, activeSubtitle: track }))
@@ -99,34 +196,12 @@ export function useVideoController(props: PlayerProps) {
     [mediaStore],
   )
 
-  const contextValue: PlayerContextValue = useMemo(
+  const labels = useMemo(() => buildLabels(props), [props.labels])
+  const icons = useMemo(() => buildIcons(props), [props.icons])
+  const slots = props.slots ?? {}
+
+  const mediaRemote = useMemo(
     () => ({
-      containerRef,
-      videoRef,
-      labels: { ...defaultPlayerLabels, ...props.labels },
-      icons: { ...defaultPlayerIcons, ...props.icons },
-      slots: props.slots ?? {},
-      mediaStore,
-      mediaRemote: {
-        play,
-        pause,
-        togglePlay,
-        seek,
-        skip,
-        setVolume,
-        toggleMute,
-        setPlaybackRate,
-        toggleFullscreen,
-        togglePiP,
-        setActiveSubtitle,
-        setActiveQuality,
-      },
-    }),
-    [
-      props.labels,
-      props.icons,
-      props.slots,
-      mediaStore,
       play,
       pause,
       togglePlay,
@@ -139,6 +214,18 @@ export function useVideoController(props: PlayerProps) {
       togglePiP,
       setActiveSubtitle,
       setActiveQuality,
+      takeScreenshot,
+      setFlip,
+      setAspectRatio,
+      toggleLoop,
+      toggleInfoPanel,
+    }),
+    [
+      play, pause, togglePlay, seek, skip,
+      setVolume, toggleMute, setPlaybackRate,
+      toggleFullscreen, togglePiP, takeScreenshot,
+      setFlip, setAspectRatio, toggleLoop, toggleInfoPanel,
+      setActiveSubtitle, setActiveQuality,
     ],
   )
 
@@ -175,8 +262,17 @@ export function useVideoController(props: PlayerProps) {
       },
       onWaiting: () => mediaStore.setState((prev) => ({ ...prev, isBuffering: true })),
       onCanPlay: () => mediaStore.setState((prev) => ({ ...prev, isBuffering: false })),
+      onError: () => {
+        const video = videoRef.current
+        const message = video?.error?.message ?? 'Video playback error'
+        mediaStore.setState((prev) => ({
+          ...prev,
+          error: { message, reconnectAttempt: (prev.error?.reconnectAttempt ?? 0) },
+        }))
+        props.onError?.(message)
+      },
     }),
-    [mediaStore, props.onEnded, props.onTimeUpdate],
+    [mediaStore, props.onEnded, props.onTimeUpdate, props.onError],
   )
 
   const rootProps = useMemo(
@@ -202,5 +298,15 @@ export function useVideoController(props: PlayerProps) {
     [props.poster, props.autoPlay, togglePlay, videoHandlers],
   )
 
-  return { contextValue, mediaStore, rootProps, videoProps }
+  return {
+    containerRef,
+    videoRef,
+    mediaStore,
+    mediaRemote,
+    labels,
+    icons,
+    slots,
+    rootProps,
+    videoProps,
+  }
 }
