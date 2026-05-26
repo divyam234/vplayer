@@ -26,6 +26,17 @@
         "vite": "^8.0.0",
       },
     },
+    "packages/core": {
+      "name": "@vplayer/core",
+      "version": "0.0.0",
+      "dependencies": {
+        "@tanstack/store": "^0.8.0",
+      },
+      "devDependencies": {
+        "typescript": "^6.0.2",
+        "vite": "^8.0.0",
+      },
+    },
     "packages/react": {
       "name": "@vplayer/react",
       "version": "0.0.0",
@@ -33,6 +44,7 @@
         "@react-aria/interactions": "^3.25.6",
         "@tanstack/react-store": "^0.8.0",
         "@tanstack/store": "^0.8.0",
+        "@vplayer/core": "workspace:*",
         "clsx": "^2.1.1",
         "lucide-react": "^1.16.0",
         "react-aria": "^3.48.0",
@@ -195,6 +207,8 @@
     "@types/react-dom": ["@types/react-dom@19.2.3", "", { "peerDependencies": { "@types/react": "^19.2.0" } }, "sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ=="],
 
     "@vitejs/plugin-react": ["@vitejs/plugin-react@6.0.2", "", { "dependencies": { "@rolldown/pluginutils": "^1.0.0" }, "peerDependencies": { "@rolldown/plugin-babel": "^0.1.7 || ^0.2.0", "babel-plugin-react-compiler": "^1.0.0", "vite": "^8.0.0" }, "optionalPeers": ["@rolldown/plugin-babel", "babel-plugin-react-compiler"] }, "sha512-DlSMqo4WhThw4vB8Mpn0Woe9J+Jfq1geJ61AKW0QEgLzGMNwtIMdxbDUzLxcun8W7NbJO0e2Jg/Nxm3cCSVzzg=="],
+
+    "@vplayer/core": ["@vplayer/core@workspace:packages/core"],
 
     "@vplayer/demo": ["@vplayer/demo@workspace:apps/demo"],
 

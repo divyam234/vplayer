@@ -1,33 +1,22 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useStore } from '@tanstack/react-store'
 import clsx from 'clsx'
 import { UNSAFE_PortalProvider } from 'react-aria'
 import { PlayerContext } from './context'
-import { useControlsVisibility } from './hooks/useControlsVisibility'
-import { useFullscreenState } from './hooks/useFullscreenState'
-import { useMediaPropsSync } from './hooks/useMediaPropsSync'
-import {
-  type PlayerSystems,
-  createPlayerSystems,
-  registerDefaultHotkeys,
-  usePlayerPlugins,
-  useStorageSync,
-} from './hooks/usePlayerPlugins'
-import { useThumbnailCues } from './hooks/useThumbnailCues'
-import { useVideoController } from './hooks/useVideoController'
-import { useMobileGestures } from './hooks/useMobileGestures'
-import { useErrorHandler } from './hooks/useErrorHandler'
-import { useAutoPlayback } from './hooks/useAutoPlayback'
-import { DefaultVideoLayout } from './layout/DefaultVideoLayout'
+import { useControlsVisibility } from './hooks/use-controls-visibility'
+import { useVideoController } from './hooks/use-video-controller'
+import { useMobileGestures } from './hooks/use-mobile-gestures'
+import { DefaultVideoLayout } from './layout/default-video-layout'
 import { TopGradient } from './overlays'
-import { MiniProgressBar } from './components/MiniProgressBar'
-import { ErrorOverlay } from './components/ErrorOverlay'
-import { ContextMenu } from './components/ContextMenu'
-import { InfoPanel } from './components/InfoPanel'
-import { AutoResumeOverlay } from './components/AutoResumeOverlay'
-import type { MediaRemote, PlayerProps, PlayerContextValue } from './types'
+import { MiniProgressBar } from './components/mini-progress-bar'
+import { ErrorOverlay } from './components/error-overlay'
+import { ContextMenu } from './components/context-menu'
+import { InfoPanel } from './components/info-panel'
+import { AutoResumeOverlay } from './components/auto-resume-overlay'
+import type { PlayerProps, PlayerContextValue } from './types'
+import type { MediaRemote } from '@vplayer/core'
 
 export function VideoPlayer({
   src,
@@ -57,29 +46,28 @@ export function VideoPlayer({
     onError: _onError,
   })
 
-  useMediaPropsSync({ subtitles, qualities }, state.mediaStore)
-  useFullscreenState(state.mediaStore)
-  useThumbnailCues(thumbnails, state.mediaStore)
-  const controls = useControlsVisibility(state.mediaStore)
-  const controlsVisible = useStore(state.mediaStore, (media) => media.controlsVisible)
+  const { player } = state
 
-  // ── Plugin infrastructure ──────────────────────────────────
-  const systemsRef = useRef<PlayerSystems | null>(null)
-  if (!systemsRef.current) {
-    systemsRef.current = createPlayerSystems(lang, translations)
-  }
-  const systems = systemsRef.current
-
-  // Persist preferences
-  useStorageSync(state.mediaStore, systems.storage)
-
-  // Register default hotkeys
+  // Sync reactive props to core (handles subtitle/quality changes)
   useEffect(() => {
-    const unsubs = registerDefaultHotkeys(systems.hotkeys, state.mediaRemote, state.mediaStore)
-    return () => { for (const u of unsubs) u() }
-  }, [systems.hotkeys, state.mediaRemote, state.mediaStore])
+    player.updateOptions({ subtitles, qualities })
+  }, [subtitles, qualities, player])
 
-  // Handle keyboard events through hotkey registry + show controls
+  // Sync thumbnails to core
+  useEffect(() => {
+    player.setThumbnails(thumbnails)
+  }, [thumbnails, player])
+
+  // Initialize plugins — delegates to core's initPlugins()
+  useEffect(() => {
+    return player.initPlugins(pluginInputs ?? [])
+  }, [pluginInputs, player])
+
+  // Controls auto-hide (UI concern, stays in React)
+  const controls = useControlsVisibility(player.store)
+  const controlsVisible = useStore(player.store, (media) => media.controlsVisible)
+
+  // Keyboard events through core's hotkey registry
   const onKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (
       event.target instanceof HTMLInputElement ||
@@ -87,48 +75,45 @@ export function VideoPlayer({
       (event.target as HTMLElement).isContentEditable
     ) return
     controls.showControls()
-    systems.hotkeys.handleKeyDown(event as unknown as KeyboardEvent)
-  }, [systems.hotkeys, controls])
+    player.hotkeys.handleKeyDown(event as unknown as KeyboardEvent)
+  }, [player.hotkeys, controls])
 
-  // Build the full context value
+  // Build context value
   const enhancedCtx: PlayerContextValue = useMemo(() => ({
     containerRef: state.containerRef,
     videoRef: state.videoRef,
     labels: state.labels,
     icons: state.icons,
     slots: state.slots,
-    mediaStore: state.mediaStore,
-    mediaRemote: state.mediaRemote,
-    events: systems.events,
-    storage: systems.storage,
-    i18n: systems.i18n,
-    hotkeys: systems.hotkeys,
-  }), [state, systems])
-
-  // Initialize plugins
-  usePlayerPlugins(pluginInputs, state.mediaStore, state.mediaRemote, systems, enhancedCtx)
+    mediaStore: player.store,
+    mediaRemote: player.remote,
+    events: player.events,
+    storage: player.storage,
+    i18n: player.i18n,
+    hotkeys: player.hotkeys,
+  }), [state, player])
 
   return (
     <PlayerContext.Provider value={enhancedCtx}>
-      <PlayerInner
+      <PlayerShell
         rootProps={state.rootProps}
         src={src}
         controls={controls}
         controlsVisible={controlsVisible}
         className={className}
         containerRef={state.containerRef}
-        mediaRemote={state.mediaRemote}
+        mediaRemote={player.remote}
         videoProps={state.videoProps}
         onKeyDown={onKeyDown}
       >
         {children}
-      </PlayerInner>
+      </PlayerShell>
     </PlayerContext.Provider>
   )
 }
 
 // ── Inner component that mounts inside PlayerContext.Provider ──
-interface PlayerInnerProps {
+interface PlayerShellProps {
   rootProps: Record<string, any>
   src: string
   controls: ReturnType<typeof useControlsVisibility>
@@ -141,7 +126,7 @@ interface PlayerInnerProps {
   children?: React.ReactNode
 }
 
-function PlayerInner({
+function PlayerShell({
   rootProps,
   src,
   controls,
@@ -152,14 +137,12 @@ function PlayerInner({
   videoProps,
   onKeyDown,
   children,
-}: PlayerInnerProps) {
+}: PlayerShellProps) {
   const gestures = useMobileGestures()
-  useErrorHandler()
-  useAutoPlayback()
 
   const onTouchStartHandler = (e: React.TouchEvent) => {
     controls.showControls()
-    gestures.onTouchStart(e)
+    gestures.onTouchStart(e as unknown as TouchEvent)
   }
 
   return (
@@ -169,8 +152,8 @@ function PlayerInner({
       onMouseMove={controls.rootHandlers.onMouseMove}
       onMouseEnter={controls.rootHandlers.onMouseEnter}
       onTouchStart={onTouchStartHandler}
-      onTouchMove={gestures.onTouchMove}
-      onTouchEnd={gestures.onTouchEnd}
+      onTouchMove={(e) => gestures.onTouchMove(e as unknown as TouchEvent)}
+      onTouchEnd={(e) => gestures.onTouchEnd(e as unknown as TouchEvent)}
       className={clsx('vplayer', !controlsVisible && 'vplayer--controls-hidden', className)}
     >
       <UNSAFE_PortalProvider

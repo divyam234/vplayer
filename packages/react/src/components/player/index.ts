@@ -1,23 +1,23 @@
 export {
   VideoPlayer,
-} from './VideoPlayer'
+} from './player'
 
 export {
   ControlsBar,
   PlayerChrome,
-} from './layout/PlayerChrome'
+} from './layout/player-chrome'
 
 export {
   DefaultVideoLayout,
-} from './layout/DefaultVideoLayout'
+} from './layout/default-video-layout'
 
 export {
   CompactVideoLayout,
-} from './layout/CompactVideoLayout'
+} from './layout/compact-video-layout'
 
 export {
   LargeVideoLayout,
-} from './layout/LargeVideoLayout'
+} from './layout/large-video-layout'
 
 export {
   SeekBar,
@@ -45,24 +45,8 @@ export {
 } from './context'
 
 export {
-  usePlayerKeyboardShortcuts,
-} from './hooks/usePlayerKeyboardShortcuts'
-
-export {
   useMobileGestures,
-} from './hooks/useMobileGestures'
-
-export {
-  useErrorHandler,
-} from './hooks/useErrorHandler'
-
-export {
-  useAutoPlayback,
-} from './hooks/useAutoPlayback'
-
-export {
-  formatTime,
-} from './utils'
+} from './hooks/use-mobile-gestures'
 
 export type {
   PlayerProps,
@@ -74,60 +58,16 @@ export type {
   PlayerContextValue,
 } from './types'
 
-export {
-  parseSRT,
-  parseVTT,
-  fetchSubtitles,
-  getActiveCue,
-} from './subtitle-parser'
-
+// ── Core re-exports (framework-agnostic) ────────────────────
+export { createPlayer, createGestureEngine, EventBus, Storage, STORAGE_KEYS, I18n, HotkeyRegistry, defaultPlayerLabels, formatTime } from '@vplayer/core'
+export { parseSRT, parseVTT, fetchSubtitles, getActiveCue, fetchThumbnails, parseThumbnailVTT, getThumbnailAtTime } from '@vplayer/core'
 export type {
-  SubtitleCue,
-  SubtitleTrack,
-  ThumbnailCue,
-} from './subtitle-parser'
-export {
-  fetchThumbnails,
-  parseThumbnailVTT,
-  getThumbnailAtTime,
-} from './subtitle-parser'
-
-// ── Plugin system exports ────────────────────────────────────
-
-export type {
-  ControlRegistration,
-  SettingRegistration,
-  LayerRegistration,
-  PlayerPlugin,
-  PluginAPI,
-} from './plugin-api'
-
-export {
-  EventBus,
-} from './event-bus'
-export type {
-  PlayerEventName,
-  PlayerEventHandler,
-} from './event-bus'
-
-export {
-  Storage,
-  STORAGE_KEYS,
-} from './storage'
-
-export {
-  I18n,
-} from './i18n'
-export type {
-  LanguageDict,
-} from './i18n'
-
-export {
-  HotkeyRegistry,
-} from './hotkey-registry'
-export type {
-  HotkeyBinding,
-} from './hotkey-registry'
+  PlayerOptions, PlayerInstance, PlayerSystems, PlayerError, PlayerEventName, PlayerEventHandler,
+  SubtitleCue, SubtitleTrack, ThumbnailCue, LanguageDict, HotkeyBinding,
+  ControlRegistration, SettingRegistration, LayerRegistration, SettingItem,
+  ContextMenuItem, ContextMenuRegistration, PlayerPlugin, PluginAPI,
+  RemoteRef, PlayerContextRef, FlipState, AspectRatioState,
+} from '@vplayer/core'
 
 export {
   PluginControlsLeft,
@@ -141,20 +81,20 @@ export {
 
 export {
   MiniProgressBar,
-} from './components/MiniProgressBar'
+} from './components/mini-progress-bar'
 
 export {
   ScreenshotButton,
-} from './components/ScreenshotButton'
+} from './components/screenshot-button'
 
 export {
   ErrorOverlay,
-} from './components/ErrorOverlay'
+} from './components/error-overlay'
 
 export {
   AutoResumeOverlay,
-} from './components/AutoResumeOverlay'
+} from './components/auto-resume-overlay'
 
 export {
   ContextMenu,
-} from './components/ContextMenu'
+} from './components/context-menu'

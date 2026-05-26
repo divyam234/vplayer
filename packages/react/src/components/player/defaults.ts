@@ -20,45 +20,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react'
-import type { PlayerIcons, PlayerLabels } from './types'
-
-export const defaultPlayerLabels: PlayerLabels = {
-  play: 'Play',
-  pause: 'Pause',
-  replay: 'Replay',
-  mute: 'Mute',
-  unmute: 'Unmute',
-  settings: 'Settings',
-  pip: 'Picture in Picture',
-  pipExit: 'Exit Picture in Picture',
-  fullscreen: 'Fullscreen',
-  fullscreenExit: 'Exit fullscreen',
-  speed: 'Speed',
-  quality: 'Quality',
-  subtitles: 'Subtitles',
-  off: 'Off',
-  endedTitle: "You've reached the end",
-  screenshot: 'Screenshot',
-  flip: 'Flip',
-  flipNormal: 'Normal',
-  flipHorizontal: 'Horizontal',
-  flipVertical: 'Vertical',
-  aspectRatio: 'Aspect Ratio',
-  aspectRatioDefault: 'Default',
-  aspectRatio16: '16 : 9',
-  aspectRatio4: '4 : 3',
-  aspectRatioFill: 'Fill',
-  continue: 'Continue',
-  continuePlay: 'Continue from',
-  continueStartOver: 'Start over',
-  error: 'An error occurred',
-  retry: 'Retry',
-  contextMenuPlay: 'Play',
-  contextMenuPause: 'Pause',
-  contextMenuLoop: 'Loop',
-  infoPanel: 'Info',
-  loop: 'Loop',
-}
+import type { PlayerIcons } from './types'
 
 export const defaultPlayerIcons: PlayerIcons = {
   play: Play,

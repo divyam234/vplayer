@@ -16,8 +16,7 @@ import {
   TooltipTrigger,
 } from 'react-aria-components'
 import { useMediaRemote, useMediaState, usePlayerContext } from './context'
-import { getThumbnailAtTime } from './subtitle-parser'
-import { formatTime } from './utils'
+import { getThumbnailAtTime, formatTime } from '@vplayer/core'
 
 interface IconButtonProps {
   label: string

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FC } from 'react'
 import { Button } from 'react-aria-components'
 import { useMediaRemote, useMediaState, usePlayerContext } from '../context'
-import type { ContextMenuItem } from '../plugin-api'
+import type { ContextMenuItem } from '@vplayer/core'
 
 export const ContextMenu: FC = () => {
   const isPlaying = useMediaState('isPlaying')

@@ -1,6 +1,6 @@
 import { type FC } from 'react'
 import { useMediaState } from '../context'
-import type { PluginAPI, AspectRatioState } from '../plugin-api'
+import type { PluginAPI, AspectRatioState } from '@vplayer/core'
 
 const ASPECT_RATIO_OPTIONS: { value: AspectRatioState; labelKey: string }[] = [
   { value: 'default', labelKey: 'aspectRatioDefault' },

@@ -3,7 +3,7 @@
  */
 import { useEffect, useState, type FC } from 'react'
 import { useMediaState, usePluginAPI } from './context'
-import type { ControlRegistration, LayerRegistration, SettingRegistration } from './plugin-api'
+import type { ControlRegistration, LayerRegistration, PluginAPI, SettingRegistration } from '@vplayer/core'
 
 // ── Plugin Controls ───────────────────────────────────────────
 
@@ -33,7 +33,7 @@ function byIndex(a: { index: number }, b: { index: number }) {
 
 const PluginControlItem: FC<{ def: ControlRegistration }> = ({ def }) => {
   const api = usePluginAPI()
-  const Component = def.component
+  const Component = def.render as React.ComponentType<{ api: PluginAPI }>
   return <Component api={api} />
 }
 
@@ -50,7 +50,7 @@ export const PluginLayers: FC = () => {
   return (
     <>
       {layers.map((layer) => {
-        const Component = layer.component
+        const Component = layer.render as React.ComponentType<{ api: PluginAPI }>
         return <Component key={layer.name} api={api} />
       })}
     </>
@@ -66,8 +66,8 @@ export const PluginSettings: FC = () => {
   return (
     <>
       {settings.map((setting) => {
-        if (setting.component) {
-          const Component = setting.component
+        if (setting.render) {
+          const Component = setting.render as React.ComponentType<{ api: PluginAPI }>
           return <Component key={setting.name} api={api} />
         }
         return null

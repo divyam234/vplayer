@@ -1,4 +1,4 @@
 import type { FC } from 'react'
-import { DefaultVideoLayout } from './DefaultVideoLayout'
+import { DefaultVideoLayout } from './default-video-layout'
 
 export const CompactVideoLayout: FC = () => <DefaultVideoLayout />

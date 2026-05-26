@@ -83,5 +83,4 @@ export class HotkeyRegistry {
     this.bindings.forEach((list) => result.push(...list))
     return result
   }
-
 }

@@ -1,1 +1,0 @@
-export { useMediaState } from '../context'

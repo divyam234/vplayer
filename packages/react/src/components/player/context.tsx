@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 import { useStore } from '@tanstack/react-store'
-import type { PluginAPI } from './plugin-api'
+import type { PluginAPI } from '@vplayer/core'
 import type { MediaRemote, MediaState, PlayerContextValue } from './types'
 
 export const PlayerContext = createContext<PlayerContextValue | null>(null)

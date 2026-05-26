@@ -1,7 +1,7 @@
 import type { FC } from 'react'
 import { usePlayerContext } from '../context'
 import { BufferingOverlay, EndOverlay, PauseOverlay } from '../overlays'
-import { PlayerChrome } from './PlayerChrome'
+import { PlayerChrome } from './player-chrome'
 
 export const DefaultVideoLayout: FC = () => {
   const { slots } = usePlayerContext()

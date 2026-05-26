@@ -28,6 +28,7 @@
     "@react-aria/interactions": "^3.25.6",
     "@tanstack/react-store": "^0.8.0",
     "@tanstack/store": "^0.8.0",
+    "@vplayer/core": "workspace:*",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",
     "react-aria": "^3.48.0",

@@ -12,7 +12,7 @@ import {
   VolumeControl,
 } from '../controls'
 import { useMediaState, usePlayerContext } from '../context'
-import { ScreenshotButton } from '../components/ScreenshotButton'
+import { ScreenshotButton } from '../components/screenshot-button'
 import {
   NotificationOverlay,
   PluginControlsCenter,
