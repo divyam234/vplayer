@@ -2,6 +2,7 @@
 
 import { useStore } from '@tanstack/react-store'
 import clsx from 'clsx'
+import { UNSAFE_PortalProvider } from 'react-aria'
 import { PlayerContext } from './context'
 import { useControlsVisibility } from './hooks/useControlsVisibility'
 import { useFullscreenState } from './hooks/useFullscreenState'
@@ -51,6 +52,9 @@ export function VideoPlayer({
         {...controls.rootHandlers}
         className={clsx('vplayer', !controlsVisible && 'vplayer--controls-hidden', className)}
       >
+        <UNSAFE_PortalProvider
+          getContainer={() => document.fullscreenElement ? ctx.containerRef.current : document.body}
+        >
         <video {...state.videoProps}>
           <source src={src} />
         </video>
@@ -62,6 +66,7 @@ export function VideoPlayer({
           className={clsx('vplayer__click-layer', controlsVisible && 'vplayer__click-layer--hidden')}
           onClick={ctx.mediaRemote.togglePlay}
         />
+        </UNSAFE_PortalProvider>
       </div>
     </PlayerContext.Provider>
   )
