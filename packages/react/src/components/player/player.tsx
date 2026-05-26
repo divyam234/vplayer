@@ -5,7 +5,6 @@ import { defaultPlayerIcons, defaultPlayerLabels } from '@vplayer/core'
 import { mergeLabels, mergeIcons } from '@vplayer/framework'
 import clsx from 'clsx'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { UNSAFE_PortalProvider } from 'react-aria'
 
 import { AutoResumeOverlay } from './components/auto-resume-overlay'
 import { ContextMenu } from './components/context-menu'
@@ -151,8 +150,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
         onTouchEnd={onTouchEnd}
         onDoubleClick={instance.remote.toggleFullscreen}
       >
-        <UNSAFE_PortalProvider getContainer={() => (document.fullscreenElement ? containerRef.current : document.body)}>
-          <video {...videoProps}>
+        <video {...videoProps}>
             <source src={src ?? ''} />
           </video>
 
@@ -171,7 +169,6 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
             className={clsx('vplayer__click-layer', controlsVisible && 'vplayer__click-layer--hidden')}
             onClick={instance.remote.togglePlay}
           />
-        </UNSAFE_PortalProvider>
       </div>
     </PlayerContext.Provider>
   )

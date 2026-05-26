@@ -97,10 +97,13 @@
     @apply relative mb-1;
   }
   .vplayer__seek-slider {
-    @apply relative -my-3 flex h-10 cursor-pointer items-center;
+    @apply relative w-full;
+  }
+  .vplayer__seek-slider-control {
+    @apply relative flex h-10 cursor-pointer items-center;
   }
   .vplayer__seek-track {
-    @apply relative h-1 w-full rounded-full;
+    @apply relative h-1 flex-1 rounded-full;
     background: color-mix(in srgb, white 23%, transparent);
   }
   .vplayer__seek:hover .vplayer__seek-track {
@@ -111,18 +114,21 @@
     background: color-mix(in srgb, white 35%, transparent);
   }
   .vplayer__seek-progress {
-    @apply absolute top-0 left-0 h-full rounded-full;
+    @apply h-full rounded-full;
     background: var(--vplayer-fg);
   }
   .vplayer__seek-thumb {
-    @apply top-1/2 z-10 size-3 rounded-full opacity-90;
+    @apply z-10 size-3 rounded-full opacity-90;
     background: var(--vplayer-fg);
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--vplayer-accent) 20%, transparent);
+    /* Vertical centering without using transform (Ark UI uses transform for horizontal positioning) */
+    inset-block: 0;
+    margin-block: auto;
   }
   .vplayer__seek-thumb:hover {
     @apply opacity-100;
   }
-  .vplayer__seek-thumb[data-dragging='true'] {
+  .vplayer__seek-thumb[data-dragging] {
     @apply scale-125 opacity-100;
   }
   .vplayer__seek-tooltip {
@@ -165,59 +171,48 @@
   }
 
   .vplayer__tooltip {
-    @apply rounded border px-2 py-1 text-xs text-white shadow-xl;
+    @apply rounded border px-2 py-1 text-xs text-white shadow-xl z-50;
     background: var(--vplayer-tooltip-bg);
     border-color: var(--vplayer-tooltip-border);
     pointer-events: none;
-    will-change: transform;
+    will-change: transform, opacity, scale;
     transform: translate3d(0, 0, 0);
-    transition:
-      opacity 150ms ease,
-      transform 150ms ease;
+    scale: 1;
+    transition-property: opacity, transform, scale;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .vplayer__tooltip[data-entering],
   .vplayer__tooltip[data-exiting] {
     opacity: 0;
     transform: var(--vplayer-tooltip-origin, translateY(4px));
+    scale: 0.95;
   }
 
   .vplayer__tooltip[data-placement='top'] {
     --vplayer-tooltip-origin: translateY(4px);
-    margin-bottom: 10px;
+    margin-bottom: 4px;
   }
 
   .vplayer__tooltip[data-placement='bottom'] {
     --vplayer-tooltip-origin: translateY(-4px);
-    margin-top: 10px;
+    margin-top: 4px;
   }
 
   .vplayer__tooltip[data-placement='right'] {
     --vplayer-tooltip-origin: translateX(-4px);
-    margin-left: 10px;
+    margin-left: 4px;
   }
 
   .vplayer__tooltip[data-placement='left'] {
     --vplayer-tooltip-origin: translateX(4px);
-    margin-right: 10px;
+    margin-right: 4px;
   }
 
-  .vplayer__tooltip .vplayer__tooltip-arrow {
-    display: block;
-    fill: var(--vplayer-tooltip-bg);
-    stroke: var(--vplayer-tooltip-border);
-  }
-
-  .vplayer__tooltip[data-placement='bottom'] .vplayer__tooltip-arrow {
-    transform: rotate(180deg);
-  }
-
-  .vplayer__tooltip[data-placement='right'] .vplayer__tooltip-arrow {
-    transform: rotate(90deg);
-  }
-
-  .vplayer__tooltip[data-placement='left'] .vplayer__tooltip-arrow {
-    transform: rotate(-90deg);
+  .vplayer__tooltip [data-part='arrow'] {
+    --arrow-background: var(--vplayer-tooltip-bg);
+    --arrow-size: 8px;
   }
   .vplayer__time {
     @apply text-xs tracking-wide tabular-nums;
@@ -239,8 +234,12 @@
   .vplayer__volume-slider-track {
     @apply flex h-6 items-center;
   }
+  .vplayer__volume-slider-track .vplayer__seek-slider-control {
+    flex: 1;
+    height: auto;
+  }
   .vplayer__volume-fill {
-    @apply absolute top-0 left-0 h-full rounded-full;
+    @apply h-full rounded-full;
     background: var(--vplayer-fg);
   }
   .vplayer__volume-thumb {
@@ -257,14 +256,21 @@
     backdrop-filter: blur(18px);
   }
   .vplayer__menu-item {
-    @apply flex w-full cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors outline-none;
+    @apply flex w-full cursor-default items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors outline-none;
   }
   .vplayer__menu-item:hover,
   .vplayer__menu-item[data-focused] {
-    background: var(--vplayer-control-hover);
+    background: color-mix(in srgb, white 10%, transparent);
+  }
+  .vplayer__menu-item + .vplayer__menu-item {
+    @apply mt-0.5;
+  }
+  .vplayer__menu-separator {
+    @apply my-1.5 border-t;
+    border-color: var(--vplayer-control-border);
   }
   .vplayer__menu-label {
-    color: color-mix(in srgb, white 80%, transparent);
+    color: color-mix(in srgb, white 65%, transparent);
   }
   .vplayer__menu-value {
     @apply ml-auto;
@@ -274,17 +280,17 @@
     color: var(--vplayer-fg);
   }
   .vplayer__menu-value--inactive {
-    color: color-mix(in srgb, white 60%, transparent);
+    color: color-mix(in srgb, white 50%, transparent);
   }
   .vplayer__menu-value--truncate {
     @apply max-w-24 truncate;
   }
   .vplayer__menu-icon {
-    color: color-mix(in srgb, white 60%, transparent);
+    color: color-mix(in srgb, white 55%, transparent);
   }
   .vplayer__menu-check {
     @apply ml-auto;
-    color: color-mix(in srgb, white 82%, transparent);
+    color: color-mix(in srgb, white 75%, transparent);
   }
 
   .vplayer__overlay {

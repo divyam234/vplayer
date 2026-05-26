@@ -1,6 +1,5 @@
 import type { ContextMenuItem } from '@vplayer/core'
 import { useCallback, useEffect, useRef, useState, type FC } from 'react'
-import { Button } from 'react-aria-components'
 
 import { usePlayerRemote, usePlayerState, usePlayerContext } from '../context'
 
@@ -111,18 +110,18 @@ export const ContextMenu: FC = () => {
             role="separator"
           />
         ) : (
-          <Button
+          <button
             key={`item-${i}`}
             className="vplayer__contextmenu-item flex w-full items-center rounded-md px-2.5 py-1.5 text-sm text-white/80 transition-colors outline-none hover:bg-white/10 data-[focused]:bg-white/10"
-            isDisabled={item.disabled}
-            onPress={() => {
+            disabled={item.disabled}
+            onClick={() => {
               item.onAction()
               close()
             }}
             style={{ cursor: item.disabled ? 'default' : 'pointer' }}
           >
             {item.label}
-          </Button>
+          </button>
         ),
       )}
     </div>

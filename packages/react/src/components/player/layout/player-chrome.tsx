@@ -1,6 +1,5 @@
 import clsx from 'clsx'
 import type { FC, ReactNode } from 'react'
-import { Toolbar } from 'react-aria-components'
 
 import { ScreenshotButton } from '../components/screenshot-button'
 import { usePlayerState, usePlayerContext } from '../context'
@@ -44,7 +43,7 @@ export const PlayerChrome: FC = () => {
 
       <ControlsBar>
         {slots.seekBar ?? <SeekBar />}
-        <Toolbar aria-label="Playback controls" className="vplayer__controls-row">
+        <div role="toolbar" aria-label="Playback controls" className="vplayer__controls-row">
           {/* Plugin left controls before built-ins */}
           <PluginControlsCenter />
           {slots.playButton ?? <PlayButton />}
@@ -59,7 +58,7 @@ export const PlayerChrome: FC = () => {
           <PluginControlsRight />
           {slots.pipButton ?? <PiPButton />}
           {slots.fullscreenButton ?? <FullscreenButton />}
-        </Toolbar>
+        </div>
       </ControlsBar>
 
       {/* Plugin layers (overlays, extra UI) */}

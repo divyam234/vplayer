@@ -1,5 +1,4 @@
 import { useCallback, type FC } from 'react'
-import { Button } from 'react-aria-components'
 
 import { usePlayerState, usePlayerContext } from '../context'
 
@@ -20,8 +19,8 @@ export const ErrorOverlay: FC = () => {
       <div className="vplayer__error-overlay-content flex flex-col items-center gap-3 px-6 text-center">
         <p className="vplayer__error-overlay-message text-sm font-medium text-white/90">{labels.error}</p>
         <p className="vplayer__error-overlay-detail max-w-xs text-xs text-white/60">{error.message}</p>
-        <Button
-          onPress={handleRetry}
+        <button
+          onClick={handleRetry}
           className="vplayer__error-overlay-retry mt-2 rounded-full px-5 py-1.5 text-sm text-white transition-colors hover:bg-white/20"
           style={{
             background: 'color-mix(in srgb, white 12%, transparent)',
@@ -29,7 +28,7 @@ export const ErrorOverlay: FC = () => {
           }}
         >
           {labels.retry}
-        </Button>
+        </button>
       </div>
     </div>
   )

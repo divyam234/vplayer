@@ -1,6 +1,6 @@
+import { Switch } from '@ark-ui/react/switch'
 import { VideoPlayer } from '@vplayer/react'
 import { StrictMode, useMemo, useState } from 'react'
-import { Input, Label, Switch, TextField } from 'react-aria-components'
 import { createRoot } from 'react-dom/client'
 
 import '@vplayer/react/player.css'
@@ -74,62 +74,86 @@ function App() {
       <section className="controls-section">
         <div className="controls-grid">
           <Panel title="Sources">
-            <TextField value={src} onChange={setSrc} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <Label className="rac-label">Video URL</Label>
-              <Input className="rac-input" />
-            </TextField>
-            <TextField
-              value={poster}
-              onChange={setPoster}
-              style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}
-            >
-              <Label className="rac-label">Poster URL</Label>
-              <Input className="rac-input" />
-            </TextField>
+            <label className="field-row">
+              <span className="field-label">Video URL</span>
+              <input
+                value={src}
+                onChange={(e) => setSrc(e.target.value)}
+                className="field-input"
+              />
+            </label>
+            <label className="field-row">
+              <span className="field-label">Poster URL</span>
+              <input
+                value={poster}
+                onChange={(e) => setPoster(e.target.value)}
+                className="field-input"
+              />
+            </label>
           </Panel>
 
           <Panel title="Configuration">
-            <Switch isSelected={autoPlay} onChange={setAutoPlay} className="config-row">
-              <span>Autoplay</span>
-              <div className="switch-track">
-                <span className="switch-knob" />
-              </div>
-            </Switch>
-            <Switch isSelected={showPoster} onChange={setShowPoster} className="config-row">
-              <span>Poster visible</span>
-              <div className="switch-track">
-                <span className="switch-knob" />
-              </div>
-            </Switch>
-            <Switch isSelected={qualities} onChange={setQualities} className="config-row">
-              <span>Quality menu</span>
-              <div className="switch-track">
-                <span className="switch-knob" />
-              </div>
-            </Switch>
-            <Switch isSelected={thumbnails} onChange={setThumbnails} className="config-row">
-              <span>Thumbnail previews</span>
-              <div className="switch-track">
-                <span className="switch-knob" />
-              </div>
-            </Switch>
-            <Switch isSelected={rounded} onChange={setRounded} className="config-row">
-              <span>Rounded frame</span>
-              <div className="switch-track">
-                <span className="switch-knob" />
-              </div>
-            </Switch>
-            <TextField
-              value={accent}
-              onChange={setAccent}
-              style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}
+            <Switch.Root
+              checked={autoPlay}
+              onCheckedChange={(d) => setAutoPlay(d.checked)}
+              className="config-row"
             >
-              <Label className="rac-label">Accent color</Label>
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+              <Switch.Label>Autoplay</Switch.Label>
+            </Switch.Root>
+            <Switch.Root
+              checked={showPoster}
+              onCheckedChange={(d) => setShowPoster(d.checked)}
+              className="config-row"
+            >
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+              <Switch.Label>Poster visible</Switch.Label>
+            </Switch.Root>
+            <Switch.Root
+              checked={qualities}
+              onCheckedChange={(d) => setQualities(d.checked)}
+              className="config-row"
+            >
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+              <Switch.Label>Quality menu</Switch.Label>
+            </Switch.Root>
+            <Switch.Root
+              checked={thumbnails}
+              onCheckedChange={(d) => setThumbnails(d.checked)}
+              className="config-row"
+            >
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+              <Switch.Label>Thumbnail previews</Switch.Label>
+            </Switch.Root>
+            <Switch.Root
+              checked={rounded}
+              onCheckedChange={(d) => setRounded(d.checked)}
+              className="config-row"
+            >
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+              <Switch.Label>Rounded frame</Switch.Label>
+            </Switch.Root>
+            <label className="field-row">
+              <span className="field-label">Accent color</span>
               <div className="accent-row">
                 <span className="accent-swatch" style={{ background: accent }} />
-                <Input className="rac-input" />
+                <input
+                  value={accent}
+                  onChange={(e) => setAccent(e.target.value)}
+                  className="field-input"
+                />
               </div>
-            </TextField>
+            </label>
           </Panel>
 
           <Panel title="Event Log">

@@ -1,6 +1,5 @@
 import { STORAGE_KEYS, formatTime } from '@vplayer/core'
 import { useCallback, useEffect, useState, type FC } from 'react'
-import { Button } from 'react-aria-components'
 
 import { usePlayerState, usePlayerContext, usePluginAPI } from '../context'
 
@@ -46,8 +45,8 @@ export const AutoResumeOverlay: FC = () => {
           {labels.continuePlay} <span className="font-medium text-white tabular-nums">{formatTime(savedTime)}</span>?
         </p>
         <div className="vplayer__auto-resume-actions flex items-center gap-3">
-          <Button
-            onPress={handleContinue}
+          <button
+            onClick={handleContinue}
             className="vplayer__auto-resume-btn vplayer__auto-resume-btn--primary rounded-full px-5 py-1.5 text-sm text-white transition-colors hover:bg-white/20"
             style={{
               background: 'color-mix(in srgb, white 12%, transparent)',
@@ -55,13 +54,13 @@ export const AutoResumeOverlay: FC = () => {
             }}
           >
             {labels.continue}
-          </Button>
-          <Button
-            onPress={handleStartOver}
+          </button>
+          <button
+            onClick={handleStartOver}
             className="vplayer__auto-resume-btn rounded-full px-5 py-1.5 text-sm text-white/60 transition-colors hover:text-white"
           >
             {labels.continueStartOver}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

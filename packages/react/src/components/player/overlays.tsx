@@ -1,7 +1,6 @@
 import { Icon } from '@iconify/react'
 import clsx from 'clsx'
 import type { FC } from 'react'
-import { Button } from 'react-aria-components'
 
 import { usePlayerRemote, usePlayerState, usePlayerContext } from './context'
 
@@ -43,10 +42,10 @@ export const EndOverlay: FC = () => {
   return (
     <div className="vplayer__overlay vplayer__overlay--ended">
       <p className="vplayer__ended-title">{labels.endedTitle}</p>
-      <Button onPress={remote.togglePlay} className="vplayer__ended-button">
+      <button onClick={remote.togglePlay} className="vplayer__ended-button">
         <Icon icon={icons.replay} width={16} />
         {labels.replay}
-      </Button>
+      </button>
     </div>
   )
 }
