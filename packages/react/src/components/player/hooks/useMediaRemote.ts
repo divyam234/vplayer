@@ -1,0 +1,1 @@
+export { useMediaRemote } from '../context'

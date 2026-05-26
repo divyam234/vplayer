@@ -1,0 +1,12 @@
+export type PlayerSlotName =
+  | 'playButton'
+  | 'seekBar'
+  | 'volumeControl'
+  | 'timeDisplay'
+  | 'settingsButton'
+  | 'settingsMenu'
+  | 'fullscreenButton'
+  | 'pipButton'
+  | 'bufferingOverlay'
+  | 'pauseOverlay'
+  | 'endOverlay'

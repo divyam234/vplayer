@@ -1,0 +1,18 @@
+{
+  "name": "vplayer-workspace",
+  "private": true,
+  "packageManager": "bun@1.2.15",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter @vplayer/demo dev",
+    "build": "bun run --filter @vplayer/react build && bun run --filter @vplayer/demo build",
+    "typecheck": "bun run --filter @vplayer/react typecheck && bun run --filter @vplayer/demo typecheck"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "tailwindcss": "^4.1.18"
+  }
+}

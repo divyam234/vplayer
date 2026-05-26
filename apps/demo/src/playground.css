@@ -1,0 +1,153 @@
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: auto;
+  background: #090909;
+}
+
+.demo-shell {
+  min-height: 100vh;
+  padding: 36px;
+  color: white;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 222, 176, 0.16), transparent 32rem),
+    radial-gradient(circle at 100% 20%, rgba(130, 95, 255, 0.16), transparent 30rem),
+    linear-gradient(135deg, #080807 0%, #12100d 48%, #050505 100%);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.hero-panel {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.72fr) minmax(320px, 1.28fr);
+  gap: 32px;
+  align-items: center;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.hero-copy h1 {
+  margin: 0;
+  max-width: 720px;
+  font-size: clamp(2.6rem, 7vw, 6.5rem);
+  line-height: 0.86;
+  letter-spacing: -0.075em;
+}
+
+.hero-copy p {
+  max-width: 560px;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.eyebrow {
+  margin: 0 0 18px;
+  color: #f4d7a6 !important;
+  font-size: 0.75rem !important;
+  font-weight: 900;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.stage-card {
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 30px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04));
+  box-shadow: 0 42px 120px rgba(0, 0, 0, 0.55);
+}
+
+.demo-player-rounded {
+  border-radius: 22px;
+}
+
+.demo-player-square {
+  border-radius: 2px;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 0.8fr 0.85fr;
+  gap: 18px;
+  max-width: 1320px;
+  margin: 28px auto 0;
+}
+
+.config-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.065);
+  backdrop-filter: blur(20px);
+}
+
+.config-panel h2 {
+  margin: 0 0 4px;
+  font-size: 0.76rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.config-panel label:not(.toggle-row) {
+  display: grid;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.82rem;
+}
+
+.config-panel input[type="text"],
+.config-panel input:not([type]) {
+  width: 100%;
+}
+
+.config-panel input[type="text"],
+.config-panel input:not([type]),
+.config-panel label:not(.toggle-row) input {
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: white;
+  background: rgba(0, 0, 0, 0.32);
+  outline: none;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.toggle-row input {
+  accent-color: #f4d7a6;
+}
+
+.event-log {
+  display: grid;
+  gap: 8px;
+  min-height: 134px;
+  color: rgba(255, 255, 255, 0.62);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 980px) {
+  .demo-shell {
+    padding: 18px;
+  }
+
+  .hero-panel,
+  .controls-grid {
+    grid-template-columns: 1fr;
+  }
+}
