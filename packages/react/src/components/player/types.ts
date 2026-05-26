@@ -3,6 +3,7 @@ import type {
   EventBus,
   HotkeyRegistry,
   I18n,
+  MediaEngine,
   MediaRemote,
   MediaState,
   PlayerIcons,
@@ -74,6 +75,7 @@ export interface PlayerContextValue {
   storage: Storage
   i18n: I18n
   hotkeys: HotkeyRegistry
+  engine: MediaEngine | null
   instance: PlayerInstance
   createPluginAPI: PluginAPIBuilder
 }

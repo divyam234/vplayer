@@ -95,6 +95,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
     storage: instance.storage,
     i18n: instance.i18n,
     hotkeys: instance.hotkeys,
+    engine: instance.engine,
     instance,
     createPluginAPI,
   }

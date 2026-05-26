@@ -1,6 +1,6 @@
 import type { Store } from '@tanstack/store'
 import type {
-  EventBus, HotkeyRegistry, I18n, MediaRemote, MediaState,
+  EventBus, HotkeyRegistry, I18n, MediaEngine, MediaRemote, MediaState,
   PlayerIcons, PlayerLabels, PlayerInstance, PlayerOptions, Storage,
 } from '@vplayer/core'
 import type { PluginAPIBuilder } from '@vplayer/framework'
@@ -42,6 +42,7 @@ export interface PlayerContextValue {
   storage: Storage
   i18n: I18n
   hotkeys: HotkeyRegistry
+  engine: MediaEngine | null
   instance: PlayerInstance
   createPluginAPI: PluginAPIBuilder
 }

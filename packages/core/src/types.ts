@@ -3,17 +3,14 @@ import type { Store } from '@tanstack/store'
 import type { EventBus } from './event-bus'
 import type { HotkeyRegistry } from './hotkey-registry'
 import type { I18n } from './i18n'
+import type { MediaEngine } from './media-engine'
 import type { PlayerPlugin } from './plugin-api'
-import type {
-  AspectRatioState,
-  ControlRegistration,
-  ContextMenuItem,
-  FlipState,
-  LayerRegistration,
-  SettingRegistration,
-} from './plugin-api'
+import type { AspectRatioState, FlipState } from './plugin-api'
 import type { Storage } from './storage'
-import type { SubtitleTrack, ThumbnailCue } from './subtitle-parser'
+import type { SubtitleTrack } from './subtitle-parser'
+import type { MediaState } from './state/slices'
+
+export type { MediaState }
 
 // ── Icon types (framework-agnostic) ─────────────────────────
 //
@@ -69,37 +66,6 @@ export interface PlayerError {
   message: string
   reconnectAttempt: number
   isReconnecting: boolean
-}
-
-export interface MediaState {
-  isPlaying: boolean
-  isPaused: boolean
-  isBuffering: boolean
-  isEnded: boolean
-  isLooping: boolean
-  currentTime: number
-  duration: number
-  bufferedPercent: number
-  volume: number
-  isMuted: boolean
-  playbackRate: number
-  isFullscreen: boolean
-  activeSubtitle: SubtitleTrack | null
-  subtitleTracks: SubtitleTrack[]
-  activeQuality: string
-  qualities: string[]
-  thumbnailCues: ThumbnailCue[]
-  controlsVisible: boolean
-  controls: ControlRegistration[]
-  settings: SettingRegistration[]
-  layers: LayerRegistration[]
-  notification: { message: string; duration: number } | null
-  flip: FlipState
-  aspectRatio: AspectRatioState
-  error: PlayerError | null
-  contextMenuItems: ContextMenuItem[]
-  contextMenuEnabled: boolean
-  infoPanelVisible: boolean
 }
 
 export interface MediaRemote {
@@ -174,17 +140,8 @@ export interface PlayerInstance {
   storage: Storage
   i18n: I18n
   hotkeys: HotkeyRegistry
-  videoHandlers: {
-    onPlay: () => void
-    onPause: () => void
-    onEnded: () => void
-    onTimeUpdate: () => void
-    onLoadedMetadata: () => void
-    onProgress: () => void
-    onWaiting: () => void
-    onCanPlay: () => void
-    onError: () => void
-  }
+  /** The active media engine — swap to change source type (native, HLS, DASH). */
+  engine: MediaEngine
   updateOptions(opts: { subtitles?: SubtitleTrack[]; qualities?: string[] }): void
   setThumbnails(url?: string): void
   initPlugins(plugins: PlayerPlugin[]): () => void

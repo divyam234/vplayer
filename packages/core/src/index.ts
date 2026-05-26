@@ -20,6 +20,25 @@ export {
 export type { SubtitleCue, SubtitleTrack, ThumbnailCue } from './subtitle-parser'
 export { formatTime } from './utils'
 export { defaultPlayerLabels, defaultPlayerIcons } from './defaults'
+
+// ── Media Engine ──────────────────────────────────────────
+export { NativeVideoEngine } from './media-engine'
+export type { MediaEngine, MediaEngineDimensions, MediaEngineError, MediaEngineEvent } from './media-engine'
+
+// ── State slices (advanced selectors) ─────────────────────
+export {
+  createMediaStore,
+  getInitialMediaState,
+  selectMedia,
+  selectAudio,
+  selectPreferences,
+  selectUI,
+  selectPlugins,
+  selectThumbnails,
+  selectError,
+} from './state/slices'
+
+// ── Types ─────────────────────────────────────────────────
 export type {
   PlayerOptions,
   MediaState,
@@ -31,6 +50,7 @@ export type {
   PlayerSystems,
   PlayerError,
 } from './types'
+
 export type {
   ControlRegistration,
   SettingRegistration,

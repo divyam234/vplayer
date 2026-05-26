@@ -88,6 +88,9 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const iconMap = useMemo(() => mergeIcons(defaultPlayerIcons, iconsProp), [iconsProp])
 
   // ── Video element props ──
+  // Media event handlers are managed internally by the engine (NativeVideoEngine)
+  // created during mount(). The engine attaches its own DOM listeners and wires them
+  // to the store.
   const videoProps = useMemo(
     () => ({
       ref: videoRef,
@@ -97,9 +100,8 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       preload: 'metadata' as const,
       playsInline: true,
       onClick: instance.remote.togglePlay,
-      ...instance.videoHandlers,
     }),
-    [poster, autoPlay, instance.remote.togglePlay, instance.videoHandlers],
+    [poster, autoPlay, instance.remote.togglePlay],
   )
 
   // ── Gestures: touch → show controls + forward gesture events ──
@@ -130,6 +132,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       storage: instance.storage,
       i18n: instance.i18n,
       hotkeys: instance.hotkeys,
+      engine: instance.engine,
       instance,
       createPluginAPI,
     }),

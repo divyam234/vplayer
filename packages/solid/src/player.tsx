@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { createEffect, createMemo, onCleanup, onMount, type JSX } from 'solid-js'
+import { createEffect, createMemo, onCleanup, onMount } from 'solid-js'
 
 import { AutoResumeOverlay } from './components/auto-resume-overlay'
 import { ContextMenu } from './components/context-menu'
@@ -98,6 +98,7 @@ export function VideoPlayer(props: PlayerProps) {
     storage: instance.storage,
     i18n: instance.i18n,
     hotkeys: instance.hotkeys,
+    engine: instance.engine,
     instance,
     createPluginAPI,
   }
@@ -118,6 +119,7 @@ export function VideoPlayer(props: PlayerProps) {
         onTouchEnd={onTouchEnd}
         onDblClick={() => instance.remote.toggleFullscreen()}
       >
+        {/* Media event handlers managed internally by engine (NativeVideoEngine) */}
         <video
           ref={(el) => {
             videoRef.current = el as HTMLVideoElement
@@ -128,7 +130,6 @@ export function VideoPlayer(props: PlayerProps) {
           preload="metadata"
           playsinline
           onClick={() => instance.remote.togglePlay()}
-          {...(instance.videoHandlers as JSX.HTMLAttributes<HTMLVideoElement>)}
         >
           <source src={options.src ?? ''} />
         </video>
