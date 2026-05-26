@@ -21,18 +21,27 @@ function App() {
   const qualityList = useMemo(() => qualities ? ["Auto", "1080p", "720p", "480p"] : [], [qualities])
 
   const log = (event: string) => {
-    setEventLog((items) => [`${new Date().toLocaleTimeString()} ${event}`, ...items].slice(0, 8))
+    const now = new Date()
+    const time = now.toLocaleTimeString("en-US", { minute: "2-digit", second: "2-digit" })
+    setEventLog((items) => [`${time}  ${event}`, ...items].slice(0, 10))
   }
 
   return (
-    <main className="demo-shell dark">
-      <section className="hero-panel">
-        <div className="hero-copy">
-          <p className="eyebrow">VPlayer React</p>
-          <h1>Performance-focused video player playground</h1>
-          <p>
-            Test source URLs, poster behavior, autoplay, quality menus, controls, and callbacks against the package build.
-          </p>
+    <main className="demo-shell">
+      {/* Header */}
+      <header className="demo-header">
+        <a className="demo-brand" href="#">
+          <span className="demo-brand-icon">▶</span>
+          <span className="demo-brand-text">VPlayer</span>
+        </a>
+        <span className="demo-header-version">v0.0.0</span>
+      </header>
+
+      {/* Player Stage */}
+      <section className="hero-section">
+        <div className="hero-label">
+          <span className="hero-label-dot" />
+          Playground
         </div>
 
         <div className="stage-card" style={{ ["--vplayer-accent" as string]: accent, ["--vplayer-radius" as string]: rounded ? "18px" : "4px" }}>
@@ -51,40 +60,61 @@ function App() {
         </div>
       </section>
 
-      <section className="controls-grid">
-        <Panel title="Sources">
-          <label>
-            Video URL
-            <input value={src} onChange={(event) => setSrc(event.target.value)} />
-          </label>
-          <label>
-            Poster URL
-            <input value={poster} onChange={(event) => setPoster(event.target.value)} />
-          </label>
-        </Panel>
+      {/* Controls */}
+      <section className="controls-section">
+        <div className="controls-grid">
+          <Panel title="Sources">
+            <label>
+              Video URL
+              <input value={src} onChange={(e) => setSrc(e.target.value)} spellCheck={false} />
+            </label>
+            <label>
+              Poster URL
+              <input value={poster} onChange={(e) => setPoster(e.target.value)} spellCheck={false} />
+            </label>
+          </Panel>
 
-        <Panel title="Configuration">
-          <Toggle label="Autoplay" checked={autoPlay} onChange={setAutoPlay} />
-          <Toggle label="Poster" checked={showPoster} onChange={setShowPoster} />
-          <Toggle label="Quality menu" checked={qualities} onChange={setQualities} />
-          <Toggle label="Thumbnail previews" checked={thumbnails} onChange={setThumbnails} />
-          <Toggle label="Rounded frame" checked={rounded} onChange={setRounded} />
-          <label>
-            Accent (oklch/rgb/hex)
-            <input value={accent} onChange={(event) => setAccent(event.target.value)} />
-          </label>
-        </Panel>
+          <Panel title="Configuration">
+            <Toggle label="Autoplay" checked={autoPlay} onChange={setAutoPlay} />
+            <Toggle label="Poster visible" checked={showPoster} onChange={setShowPoster} />
+            <Toggle label="Quality menu" checked={qualities} onChange={setQualities} />
+            <Toggle label="Thumbnail previews" checked={thumbnails} onChange={setThumbnails} />
+            <Toggle label="Rounded frame" checked={rounded} onChange={setRounded} />
+            <label>
+              Accent color
+              <div className="accent-row">
+                <span className="accent-swatch" style={{ background: accent }} />
+                <input value={accent} onChange={(e) => setAccent(e.target.value)} spellCheck={false} />
+              </div>
+            </label>
+          </Panel>
 
-        <Panel title="Event Log">
-          <div className="event-log">
-            {eventLog.length === 0 ? <span>No events yet</span> : eventLog.map((item) => <span key={item}>{item}</span>)}
-          </div>
-        </Panel>
+          <Panel title="Event Log">
+            <div className="event-log">
+              {eventLog.length === 0 ? (
+                <span className="event-log-empty">No events yet — play the video</span>
+              ) : (
+                eventLog.map((entry) => {
+                  const idx = entry.indexOf("  ")
+                  const time = idx > 0 ? entry.slice(0, idx) : ""
+                  const event = idx > 0 ? entry.slice(idx + 2) : entry
+                  return (
+                    <span key={entry} className="event-log-entry">
+                      {time && <span className="event-log-entry-time">{time}</span>}
+                      <span>{event}</span>
+                    </span>
+                  )
+                })
+              )}
+            </div>
+          </Panel>
+        </div>
       </section>
     </main>
   )
 }
 
+/* ─── Panel ─── */
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="config-panel">
@@ -94,11 +124,19 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+/* ─── Custom Toggle Switch ─── */
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <label className="toggle-row">
       <span>{label}</span>
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <div
+        className="toggle-switch"
+        data-on={checked}
+        onClick={(e) => { e.preventDefault(); onChange(!checked) }}
+      >
+        <div className="toggle-switch-knob" />
+      </div>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
     </label>
   )
 }
