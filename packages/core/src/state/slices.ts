@@ -88,7 +88,8 @@ export interface ErrorSlice {
  * Consumers can reference MediaState or individual slices depending
  * on how granular they need to be.
  */
-export interface MediaState extends MediaSlice, AudioSlice, PreferencesSlice, UISlice, PluginSlice, ThumbnailSlice, ErrorSlice {}
+export interface MediaState
+  extends MediaSlice, AudioSlice, PreferencesSlice, UISlice, PluginSlice, ThumbnailSlice, ErrorSlice {}
 
 // ── Store factory ─────────────────────────────────────────
 

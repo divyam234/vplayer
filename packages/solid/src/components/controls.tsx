@@ -1,7 +1,7 @@
 import 'iconify-icon'
-import { Tooltip } from '@ark-ui/solid/tooltip'
 import { Menu } from '@ark-ui/solid/menu'
 import { Slider } from '@ark-ui/solid/slider'
+import { Tooltip } from '@ark-ui/solid/tooltip'
 import { getThumbnailAtTime, formatTime } from '@vplayer/core'
 import clsx from 'clsx'
 import { createEffect, createSignal, type JSX } from 'solid-js'
@@ -127,10 +127,7 @@ export function SeekBar() {
       </Slider.Root>
 
       {hoverPercent() !== null && !thumbnailCue() && (
-        <div
-          class="vplayer__seek-tooltip"
-          style={{ left: `${hoverPercent()! * 100}%` }}
-        >
+        <div class="vplayer__seek-tooltip" style={{ left: `${hoverPercent()! * 100}%` }}>
           {formatTime(hoverTime() ?? 0)}
         </div>
       )}
@@ -198,11 +195,7 @@ export function VolumeControl() {
   const [isHovered, setIsHovered] = createSignal(false)
 
   return (
-    <div
-      class="vplayer__volume"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <div class="vplayer__volume" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
       <IconToggle
         selected={!isMuted()}
         onChange={() => remote.toggleMute()}
@@ -210,13 +203,7 @@ export function VolumeControl() {
         tooltip={isMuted() ? `${labels.unmute} (m)` : `${labels.mute} (m)`}
       >
         <iconify-icon
-          icon={
-            isMuted() || volume() === 0
-              ? icons.volumeOff
-              : volume() < 0.5
-                ? icons.volumeLow
-                : icons.volumeHigh
-          }
+          icon={isMuted() || volume() === 0 ? icons.volumeOff : volume() < 0.5 ? icons.volumeLow : icons.volumeHigh}
           width="16"
         ></iconify-icon>
       </IconToggle>
@@ -283,21 +270,13 @@ export function SettingsTrigger() {
                 <span class="vplayer__menu-value">{playbackRate()}x</span>
               </Menu.Item>
               {qualities().length > 0 && (
-                <Menu.Item
-                  value="quality"
-                  onSelect={() => setView('quality')}
-                  class="vplayer__menu-item"
-                >
+                <Menu.Item value="quality" onSelect={() => setView('quality')} class="vplayer__menu-item">
                   <span class="vplayer__menu-label">{labels.quality}</span>
                   <span class="vplayer__menu-value">{activeQuality()}</span>
                 </Menu.Item>
               )}
               {subtitleTracks().length > 0 && (
-                <Menu.Item
-                  value="subtitles"
-                  onSelect={() => setView('subtitles')}
-                  class="vplayer__menu-item"
-                >
+                <Menu.Item value="subtitles" onSelect={() => setView('subtitles')} class="vplayer__menu-item">
                   <span class="vplayer__menu-label">{labels.subtitles}</span>
                   <span class="vplayer__menu-value vplayer__menu-value--truncate">
                     {activeSubtitle()?.label ?? labels.off}
@@ -309,16 +288,8 @@ export function SettingsTrigger() {
                 <span class="vplayer__menu-label">{labels.flip}</span>
                 <span class="vplayer__menu-value">{labels.flipNormal}</span>
               </Menu.Item>
-              <Menu.Item
-                value="aspectRatio"
-                onSelect={() => setView('aspectRatio')}
-                class="vplayer__menu-item"
-              >
-                <iconify-icon
-                  icon={icons.aspectRatio}
-                  width="14"
-                  class="vplayer__menu-icon"
-                ></iconify-icon>
+              <Menu.Item value="aspectRatio" onSelect={() => setView('aspectRatio')} class="vplayer__menu-item">
+                <iconify-icon icon={icons.aspectRatio} width="14" class="vplayer__menu-icon"></iconify-icon>
                 <span class="vplayer__menu-label">{labels.aspectRatio}</span>
                 <span class="vplayer__menu-value">{labels.aspectRatioDefault}</span>
               </Menu.Item>
@@ -327,11 +298,7 @@ export function SettingsTrigger() {
           {view() === 'speed' && (
             <>
               <Menu.Item value="back" onSelect={() => setView('main')} class="vplayer__menu-item">
-                <iconify-icon
-                  icon={icons.chevronLeft}
-                  width="14"
-                  class="vplayer__menu-icon"
-                ></iconify-icon>
+                <iconify-icon icon={icons.chevronLeft} width="14" class="vplayer__menu-icon"></iconify-icon>
                 <span class="vplayer__menu-label">{labels.speed}</span>
               </Menu.Item>
               <Menu.Separator class="vplayer__menu-separator" />
@@ -345,20 +312,12 @@ export function SettingsTrigger() {
                   class="vplayer__menu-item"
                 >
                   <span
-                    class={
-                      playbackRate() === speed
-                        ? 'vplayer__menu-value--active'
-                        : 'vplayer__menu-value--inactive'
-                    }
+                    class={playbackRate() === speed ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}
                   >
                     {speed}x
                   </span>
                   {playbackRate() === speed && (
-                    <iconify-icon
-                      icon={icons.check}
-                      width="14"
-                      class="vplayer__menu-check"
-                    ></iconify-icon>
+                    <iconify-icon icon={icons.check} width="14" class="vplayer__menu-check"></iconify-icon>
                   )}
                 </Menu.Item>
               ))}
@@ -367,11 +326,7 @@ export function SettingsTrigger() {
           {view() === 'quality' && (
             <>
               <Menu.Item value="back" onSelect={() => setView('main')} class="vplayer__menu-item">
-                <iconify-icon
-                  icon={icons.chevronLeft}
-                  width="14"
-                  class="vplayer__menu-icon"
-                ></iconify-icon>
+                <iconify-icon icon={icons.chevronLeft} width="14" class="vplayer__menu-icon"></iconify-icon>
                 <span class="vplayer__menu-label">{labels.quality}</span>
               </Menu.Item>
               <Menu.Separator class="vplayer__menu-separator" />
@@ -384,21 +339,11 @@ export function SettingsTrigger() {
                   }}
                   class="vplayer__menu-item"
                 >
-                  <span
-                    class={
-                      activeQuality() === q
-                        ? 'vplayer__menu-value--active'
-                        : 'vplayer__menu-value--inactive'
-                    }
-                  >
+                  <span class={activeQuality() === q ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>
                     {q}
                   </span>
                   {activeQuality() === q && (
-                    <iconify-icon
-                      icon={icons.check}
-                      width="14"
-                      class="vplayer__menu-check"
-                    ></iconify-icon>
+                    <iconify-icon icon={icons.check} width="14" class="vplayer__menu-check"></iconify-icon>
                   )}
                 </Menu.Item>
               ))}
@@ -407,11 +352,7 @@ export function SettingsTrigger() {
           {view() === 'flip' && (
             <>
               <Menu.Item value="back" onSelect={() => setView('main')} class="vplayer__menu-item">
-                <iconify-icon
-                  icon={icons.chevronLeft}
-                  width="14"
-                  class="vplayer__menu-icon"
-                ></iconify-icon>
+                <iconify-icon icon={icons.chevronLeft} width="14" class="vplayer__menu-icon"></iconify-icon>
                 <span class="vplayer__menu-label">{labels.flip}</span>
               </Menu.Item>
               <Menu.Separator class="vplayer__menu-separator" />
@@ -424,13 +365,7 @@ export function SettingsTrigger() {
                   }}
                   class="vplayer__menu-item"
                 >
-                  <span
-                    class={
-                      flip() === val
-                        ? 'vplayer__menu-value--active'
-                        : 'vplayer__menu-value--inactive'
-                    }
-                  >
+                  <span class={flip() === val ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>
                     {val === 'normal'
                       ? labels.flipNormal
                       : val === 'horizontal'
@@ -438,11 +373,7 @@ export function SettingsTrigger() {
                         : labels.flipVertical}
                   </span>
                   {flip() === val && (
-                    <iconify-icon
-                      icon={icons.check}
-                      width="14"
-                      class="vplayer__menu-check"
-                    ></iconify-icon>
+                    <iconify-icon icon={icons.check} width="14" class="vplayer__menu-check"></iconify-icon>
                   )}
                 </Menu.Item>
               ))}
@@ -451,11 +382,7 @@ export function SettingsTrigger() {
           {view() === 'aspectRatio' && (
             <>
               <Menu.Item value="back" onSelect={() => setView('main')} class="vplayer__menu-item">
-                <iconify-icon
-                  icon={icons.chevronLeft}
-                  width="14"
-                  class="vplayer__menu-icon"
-                ></iconify-icon>
+                <iconify-icon icon={icons.chevronLeft} width="14" class="vplayer__menu-icon"></iconify-icon>
                 <span class="vplayer__menu-label">{labels.aspectRatio}</span>
               </Menu.Item>
               <Menu.Separator class="vplayer__menu-separator" />
@@ -468,13 +395,7 @@ export function SettingsTrigger() {
                   }}
                   class="vplayer__menu-item"
                 >
-                  <span
-                    class={
-                      aspectRatio() === val
-                        ? 'vplayer__menu-value--active'
-                        : 'vplayer__menu-value--inactive'
-                    }
-                  >
+                  <span class={aspectRatio() === val ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>
                     {val === 'default'
                       ? labels.aspectRatioDefault
                       : val === '16:9'
@@ -484,11 +405,7 @@ export function SettingsTrigger() {
                           : labels.aspectRatioFill}
                   </span>
                   {aspectRatio() === val && (
-                    <iconify-icon
-                      icon={icons.check}
-                      width="14"
-                      class="vplayer__menu-check"
-                    ></iconify-icon>
+                    <iconify-icon icon={icons.check} width="14" class="vplayer__menu-check"></iconify-icon>
                   )}
                 </Menu.Item>
               ))}
@@ -497,11 +414,7 @@ export function SettingsTrigger() {
           {view() === 'subtitles' && (
             <>
               <Menu.Item value="back" onSelect={() => setView('main')} class="vplayer__menu-item">
-                <iconify-icon
-                  icon={icons.chevronLeft}
-                  width="14"
-                  class="vplayer__menu-icon"
-                ></iconify-icon>
+                <iconify-icon icon={icons.chevronLeft} width="14" class="vplayer__menu-icon"></iconify-icon>
                 <span class="vplayer__menu-label">{labels.subtitles}</span>
               </Menu.Item>
               <Menu.Separator class="vplayer__menu-separator" />
@@ -513,30 +426,18 @@ export function SettingsTrigger() {
                 }}
                 class="vplayer__menu-item"
               >
-                <span
-                  class={
-                    !activeSubtitle()
-                      ? 'vplayer__menu-value--active'
-                      : 'vplayer__menu-value--inactive'
-                  }
-                >
+                <span class={!activeSubtitle() ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>
                   {labels.off}
                 </span>
                 {!activeSubtitle() && (
-                  <iconify-icon
-                    icon={icons.check}
-                    width="14"
-                    class="vplayer__menu-check"
-                  ></iconify-icon>
+                  <iconify-icon icon={icons.check} width="14" class="vplayer__menu-check"></iconify-icon>
                 )}
               </Menu.Item>
               {subtitleTracks().map((track) => (
                 <Menu.Item
                   value={`sub-${track.lang}`}
                   onSelect={() => {
-                    remote.setActiveSubtitle(
-                      subtitleTracks().find((t) => t.lang === track.lang) ?? null,
-                    )
+                    remote.setActiveSubtitle(subtitleTracks().find((t) => t.lang === track.lang) ?? null)
                     setIsOpen(false)
                   }}
                   class="vplayer__menu-item"
@@ -551,11 +452,7 @@ export function SettingsTrigger() {
                     {track.label}
                   </span>
                   {activeSubtitle()?.lang === track.lang && (
-                    <iconify-icon
-                      icon={icons.check}
-                      width="14"
-                      class="vplayer__menu-check"
-                    ></iconify-icon>
+                    <iconify-icon icon={icons.check} width="14" class="vplayer__menu-check"></iconify-icon>
                   )}
                 </Menu.Item>
               ))}
@@ -598,10 +495,7 @@ export function FullscreenButton() {
       label={isFullscreen() ? labels.fullscreenExit : labels.fullscreen}
       tooltip={isFullscreen() ? `${labels.fullscreenExit} (f)` : `${labels.fullscreen} (f)`}
     >
-      <iconify-icon
-        icon={isFullscreen() ? icons.fullscreenExit : icons.fullscreen}
-        width="18"
-      ></iconify-icon>
+      <iconify-icon icon={isFullscreen() ? icons.fullscreenExit : icons.fullscreen} width="18"></iconify-icon>
     </IconToggle>
   )
 }

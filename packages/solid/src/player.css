@@ -175,7 +175,7 @@
   }
 
   .vplayer__tooltip {
-    @apply rounded border px-2 py-1 text-xs text-white shadow-xl z-50;
+    @apply z-50 rounded border px-2 py-1 text-xs text-white shadow-xl;
     background: var(--vplayer-tooltip-bg);
     border-color: var(--vplayer-tooltip-border);
     pointer-events: none;

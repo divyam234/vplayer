@@ -12,7 +12,11 @@ export function ScreenshotButton() {
 
   return (
     <Tooltip.Root openDelay={400} closeDelay={150}>
-      <Tooltip.Trigger onClick={() => mediaRemote.takeScreenshot()} aria-label={labels.screenshot} class="vplayer__button">
+      <Tooltip.Trigger
+        onClick={() => mediaRemote.takeScreenshot()}
+        aria-label={labels.screenshot}
+        class="vplayer__button"
+      >
         <iconify-icon icon={icons.screenshot} width="16"></iconify-icon>
       </Tooltip.Trigger>
       <Tooltip.Positioner>

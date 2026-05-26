@@ -1,3 +1,5 @@
+import { defaultPlayerIcons, defaultPlayerLabels } from '@vplayer/core'
+import { mergeLabels, mergeIcons } from '@vplayer/framework'
 import clsx from 'clsx'
 import { createEffect, createMemo, onCleanup, onMount } from 'solid-js'
 
@@ -5,18 +7,16 @@ import { AutoResumeOverlay } from './components/auto-resume-overlay'
 import { ContextMenu } from './components/context-menu'
 import { ErrorOverlay } from './components/error-overlay'
 import { InfoPanel } from './components/info-panel'
+import { DefaultVideoLayout } from './components/layout/default-video-layout'
 import { MiniProgressBar } from './components/mini-progress-bar'
+import { TopGradient } from './components/overlays'
 import { PlayerContext } from './context'
 import { useControlsVisibility } from './hooks/use-controls-visibility'
 import { usePlayerGestures } from './hooks/use-mobile-gestures'
 import { usePlayer } from './hooks/use-player'
 import { useStoreSignal } from './hooks/use-store'
-import { DefaultVideoLayout } from './components/layout/default-video-layout'
-import { TopGradient } from './components/overlays'
 import { createPluginAPI } from './plugin-api'
 import type { PlayerProps, PlayerContextValue } from './types'
-import { defaultPlayerIcons, defaultPlayerLabels } from '@vplayer/core'
-import { mergeLabels, mergeIcons } from '@vplayer/framework'
 
 export function VideoPlayer(props: PlayerProps) {
   const containerRef = { current: null as HTMLDivElement | null }
@@ -146,10 +146,7 @@ export function VideoPlayer(props: PlayerProps) {
 
         {/* Click layer to toggle play when controls are hidden */}
         <div
-          class={clsx(
-            'vplayer__click-layer',
-            controlsVisible() && 'vplayer__click-layer--hidden',
-          )}
+          class={clsx('vplayer__click-layer', controlsVisible() && 'vplayer__click-layer--hidden')}
           onClick={() => instance.remote.togglePlay()}
         />
       </div>

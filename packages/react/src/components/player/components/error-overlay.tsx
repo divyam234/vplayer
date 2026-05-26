@@ -19,10 +19,7 @@ export const ErrorOverlay: FC = () => {
       <div className="vplayer__error-overlay-content">
         <p className="vplayer__error-overlay-message">{labels.error}</p>
         <p className="vplayer__error-overlay-detail">{error.message}</p>
-        <button
-          onClick={handleRetry}
-          className="vplayer__error-overlay-retry"
-        >
+        <button onClick={handleRetry} className="vplayer__error-overlay-retry">
           {labels.retry}
         </button>
       </div>

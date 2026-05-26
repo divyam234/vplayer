@@ -15,13 +15,13 @@ bun run format        # oxfmt
 
 ## Package Boundaries
 
-| Package | Depends on | Entry |
-|---|---|---|
-| `@vplayer/core` | `@tanstack/store` only | `src/index.ts` |
-| `@vplayer/framework` | `@vplayer/core`, `@tanstack/store` | `src/index.ts` |
-| `@vplayer/react` | `@vplayer/core`, `@vplayer/framework`; peer: react >=18.3 | `src/components/player/index.ts` |
-| `@vplayer/solid` | `@vplayer/core`, `@vplayer/framework`; peer: solid-js >=1.8 | `src/index.ts` |
-| `@vplayer/demo` | `@vplayer/react` only | `apps/demo/src/main.tsx` |
+| Package              | Depends on                                                  | Entry                            |
+| -------------------- | ----------------------------------------------------------- | -------------------------------- |
+| `@vplayer/core`      | `@tanstack/store` only                                      | `src/index.ts`                   |
+| `@vplayer/framework` | `@vplayer/core`, `@tanstack/store`                          | `src/index.ts`                   |
+| `@vplayer/react`     | `@vplayer/core`, `@vplayer/framework`; peer: react >=18.3   | `src/components/player/index.ts` |
+| `@vplayer/solid`     | `@vplayer/core`, `@vplayer/framework`; peer: solid-js >=1.8 | `src/index.ts`                   |
+| `@vplayer/demo`      | `@vplayer/react` only                                       | `apps/demo/src/main.tsx`         |
 
 `packages/components/` is empty (placeholders only).
 
@@ -49,13 +49,13 @@ No test runner or tests exist. Any test setup is from scratch.
 
 ## Toolchain
 
-| Tool | Config | Notes |
-|---|---|---|
-| TypeScript 6 | Per-package `tsconfig.json` | `moduleResolution: "Bundler"`, `strict: true`, `--noEmit` for typecheck |
-| oxlint | Root `.oxlintrc.json` | Many jsx-a11y/react rules explicitly disabled; `correctness` + `suspicious` as error |
-| oxfmt | Root `.oxfmtric.json` | Run via `bun run format` |
-| TailwindCSS v4 | Root `postcss.config.mjs` | Uses `@tailwindcss/postcss` plugin |
-| Vite 8 | Per-package `vite.config.ts` | Each library package builds as ESM |
+| Tool           | Config                       | Notes                                                                                |
+| -------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
+| TypeScript 6   | Per-package `tsconfig.json`  | `moduleResolution: "Bundler"`, `strict: true`, `--noEmit` for typecheck              |
+| oxlint         | Root `.oxlintrc.json`        | Many jsx-a11y/react rules explicitly disabled; `correctness` + `suspicious` as error |
+| oxfmt          | Root `.oxfmtric.json`        | Run via `bun run format`                                                             |
+| TailwindCSS v4 | Root `postcss.config.mjs`    | Uses `@tailwindcss/postcss` plugin                                                   |
+| Vite 8         | Per-package `vite.config.ts` | Each library package builds as ESM                                                   |
 
 ## No CI
 

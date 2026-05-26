@@ -14,7 +14,7 @@ export default defineConfig({
       fileName: 'index',
     },
     rollupOptions: {
-      external: ['@tanstack/store'],
+      external: ['@tanstack/store', 'hls.js', 'dashjs'],
     },
   },
 })

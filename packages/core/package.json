@@ -6,6 +6,7 @@
     "dist"
   ],
   "type": "module",
+  "sideEffects": false,
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "types": "./src/index.ts",
@@ -20,7 +21,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@tanstack/store": "^0.8.0"
+    "@tanstack/store": "^0.8.0",
+    "dashjs": "^5.1.1",
+    "hls.js": "^1.6.16"
   },
   "devDependencies": {
     "typescript": "^6.0.2",

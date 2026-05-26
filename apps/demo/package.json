@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@ark-ui/react": "5.36.2",
-    "@ark-ui/react": "5.36.2",
     "@vplayer/react": "workspace:*",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

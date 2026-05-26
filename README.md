@@ -53,12 +53,12 @@ The player delegates all media I/O to a **MediaEngine** — a strategy interface
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| `@vplayer/core` | Player factory, state management, plugin API, subtitle parser, gesture engine |
-| `@vplayer/framework` | Adapter contract types and helpers |
-| `@vplayer/react` | React `<VideoPlayer>`, `usePlayer` hook, context, controls |
-| `@vplayer/solid` | Solid `<VideoPlayer>`, `usePlayer` hook, context, controls |
+| Package              | Description                                                                   |
+| -------------------- | ----------------------------------------------------------------------------- |
+| `@vplayer/core`      | Player factory, state management, plugin API, subtitle parser, gesture engine |
+| `@vplayer/framework` | Adapter contract types and helpers                                            |
+| `@vplayer/react`     | React `<VideoPlayer>`, `usePlayer` hook, context, controls                    |
+| `@vplayer/solid`     | Solid `<VideoPlayer>`, `usePlayer` hook, context, controls                    |
 
 ---
 
@@ -141,7 +141,7 @@ The simplest way to get a player with all built-in controls (play/pause, seek ba
 ```tsx
 import { DefaultVideoLayout, CompactVideoLayout, LargeVideoLayout } from '@vplayer/react'
 
-<VideoPlayer src="video.mp4">
+;<VideoPlayer src="video.mp4">
   <CompactVideoLayout />
 </VideoPlayer>
 ```
@@ -186,10 +186,10 @@ function CustomPlayer({ src }: { src: string }) {
   return (
     <div ref={containerRef}>
       <video ref={videoRef} />
-      <button onClick={() => remote.togglePlay()}>
-        {state.isPlaying ? 'Pause' : 'Play'}
-      </button>
-      <span>{formatTime(state.currentTime)} / {formatTime(state.duration)}</span>
+      <button onClick={() => remote.togglePlay()}>{state.isPlaying ? 'Pause' : 'Play'}</button>
+      <span>
+        {formatTime(state.currentTime)} / {formatTime(state.duration)}
+      </span>
     </div>
   )
 }
@@ -200,7 +200,7 @@ function CustomPlayer({ src }: { src: string }) {
 ```tsx
 import { PlayerProvider, DefaultVideoLayout } from '@vplayer/react'
 
-<PlayerProvider options={{ src: 'video.mp4', qualities: ['Auto', '1080p'] }}>
+;<PlayerProvider options={{ src: 'video.mp4', qualities: ['Auto', '1080p'] }}>
   <DefaultVideoLayout />
 </PlayerProvider>
 ```
@@ -209,24 +209,25 @@ import { PlayerProvider, DefaultVideoLayout } from '@vplayer/react'
 
 ## Player Options
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `src` | `string` | — | Video source URL |
-| `poster` | `string` | — | Poster image URL |
-| `autoPlay` | `boolean` | `false` | Auto-start playback |
-| `qualities` | `string[]` | `[]` | Available quality levels |
-| `subtitles` | `SubtitleTrack[]` | `[]` | Subtitle tracks |
-| `thumbnails` | `string` | — | Thumbnail VTT URL |
-| `lang` | `string` | `'en'` | UI language |
-| `translations` | `Record<string, string>` | — | Translation overrides |
-| `plugins` | `PlayerPlugin[]` | `[]` | Plugin registrations |
-| `persistPreferences` | `boolean` | `false` | Persist volume, rate, etc. |
-| `defaultHotkeys` | `boolean` | `true` | Enable default keyboard shortcuts |
-| `reconnectMax` | `number` | `3` | Max auto-reconnect attempts |
-| `reconnectSleep` | `number` | `1500` | Base delay between reconnects (ms) |
-| `onTimeUpdate` | `(time: number) => void` | — | Current time callback |
-| `onEnded` | `() => void` | — | Playback ended callback |
-| `onError` | `(message: string) => void` | — | Error callback |
+| Prop                 | Type                                                    | Default    | Description                        |
+| -------------------- | ------------------------------------------------------- | ---------- | ---------------------------------- |
+| `src`                | `string`                                                | —          | Video source URL                   |
+| `poster`             | `string`                                                | —          | Poster image URL                   |
+| `autoPlay`           | `boolean`                                               | `false`    | Auto-start playback                |
+| `qualities`          | `string[]`                                              | `[]`       | Available quality levels           |
+| `subtitles`          | `SubtitleTrack[]`                                       | `[]`       | Subtitle tracks                    |
+| `thumbnails`         | `string`                                                | —          | Thumbnail VTT URL                  |
+| `lang`               | `string`                                                | `'en'`     | UI language                        |
+| `translations`       | `Record<string, string>`                                | —          | Translation overrides              |
+| `plugins`            | `PlayerPlugin[]`                                        | `[]`       | Plugin registrations               |
+| `engine`             | `MediaEngine \| ((video: HTMLVideoElement) => MediaEngine)` | —      | Custom media engine (HLS, DASH)    |
+| `persistPreferences` | `boolean`                                               | `false`    | Persist volume, rate, etc.         |
+| `defaultHotkeys`     | `boolean`                                               | `true`     | Enable default keyboard shortcuts  |
+| `reconnectMax`       | `number`                                                | `3`        | Max auto-reconnect attempts        |
+| `reconnectSleep`     | `number`                                                | `1500`     | Base delay between reconnects (ms) |
+| `onTimeUpdate`       | `(time: number) => void`                                | —          | Current time callback              |
+| `onEnded`            | `() => void`                                            | —          | Playback ended callback            |
+| `onError`            | `(message: string) => void`                             | —          | Error callback                     |
 
 ---
 
@@ -287,65 +288,96 @@ const myPlugin: PlayerPlugin = {
 
 ### Plugin API
 
-| Method | Description |
-|---|---|
-| `addControl(def)` | Register a control button (returns disposer) |
-| `removeControl(name)` | Remove a control by name |
-| `addSetting(def)` | Register a settings menu entry (returns disposer) |
-| `removeSetting(name)` | Remove a setting by name |
-| `addLayer(def)` | Register a UI layer (returns disposer) |
-| `removeLayer(name)` | Remove a layer by name |
-| `addHotkey(binding)` | Register a keyboard shortcut (returns disposer) |
-| `addContextMenuItems(items)` | Add context menu entries (returns disposer) |
-| `notify(message, duration?)` | Show a notification toast |
+| Method                       | Description                                       |
+| ---------------------------- | ------------------------------------------------- |
+| `addControl(def)`            | Register a control button (returns disposer)      |
+| `removeControl(name)`        | Remove a control by name                          |
+| `addSetting(def)`            | Register a settings menu entry (returns disposer) |
+| `removeSetting(name)`        | Remove a setting by name                          |
+| `addLayer(def)`              | Register a UI layer (returns disposer)            |
+| `removeLayer(name)`          | Remove a layer by name                            |
+| `addHotkey(binding)`         | Register a keyboard shortcut (returns disposer)   |
+| `addContextMenuItems(items)` | Add context menu entries (returns disposer)       |
+| `notify(message, duration?)` | Show a notification toast                         |
 
 ---
 
 ## MediaEngine (Custom Engines)
 
-The `MediaEngine` interface abstracts the media source. Swap it for HLS, DASH, or a mock for testing:
+The `MediaEngine` interface abstracts the media source. Built-in engines:
 
-```typescript
-import type { MediaEngine, MediaEngineEvent } from '@vplayer/core'
+| Engine              | Use case                 | Source                    |
+| ------------------- | ------------------------ | ------------------------- |
+| `NativeVideoEngine` | Native `<video>` (MP4)   | Default (auto-created)    |
+| `HlsMediaEngine`    | HLS streams (.m3u8)      | `@vplayer/core`           |
+| `DashMediaEngine`   | DASH streams (.mpd)      | `@vplayer/core`           |
 
-class HLSEngine implements MediaEngine {
-  readonly element: HTMLVideoElement
+### HLS
 
-  constructor(video: HTMLVideoElement, src: string) {
-    this.element = video
-    // Initialize hls.js
-  }
+```tsx
+import { HlsMediaEngine } from '@vplayer/core'
+import { VideoPlayer } from '@vplayer/react'
 
-  play() { return this.element.play() }
-  pause() { this.element.pause() }
-  get currentTime() { return this.element.currentTime }
-  // ... implement the full MediaEngine interface
-  destroy() { /* cleanup hls.js instance */ }
-}
+<VideoPlayer
+  engine={(video) => new HlsMediaEngine(video, {
+    src: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+  })}
+/>
 ```
 
-Access the engine after mount via the `PlayerInstance`:
+### DASH
+
+```tsx
+import { DashMediaEngine } from '@vplayer/core'
+
+<VideoPlayer
+  engine={(video) => new DashMediaEngine(video, {
+    src: 'https://dash.akamaized.net/dash264/TestCases/1a/sony/SNE_DASH_SD_1.mpd',
+  })}
+/>
+```
+
+### Headless usage
 
 ```typescript
-const { instance } = usePlayer(options)
-// After mount: instance.engine is a NativeVideoEngine
+import { createPlayer, HlsMediaEngine } from '@vplayer/core'
+
+const player = createPlayer({
+  engine: (video) => new HlsMediaEngine(video, {
+    src: 'https://example.com/stream.m3u8',
+  }),
+})
+
+player.mount(videoElement, containerElement)
+```
+
+### Custom engine
+
+Pass a factory that returns any `MediaEngine` implementation:
+
+```typescript
+import type { MediaEngine } from '@vplayer/core'
+
+createPlayer({
+  engine: (video) => new MyCustomEngine(video),
+})
 ```
 
 ---
 
 ## Keyboard Shortcuts
 
-| Key | Action |
-|---|---|
+| Key           | Action            |
+| ------------- | ----------------- |
 | `Space` / `K` | Toggle play/pause |
-| `F` | Toggle fullscreen |
-| `M` | Toggle mute |
-| `L` | Toggle loop |
-| `I` | Toggle info panel |
-| `ArrowLeft` | Seek back 5s |
-| `ArrowRight` | Seek forward 5s |
-| `ArrowUp` | Volume up 10% |
-| `ArrowDown` | Volume down 10% |
+| `F`           | Toggle fullscreen |
+| `M`           | Toggle mute       |
+| `L`           | Toggle loop       |
+| `I`           | Toggle info panel |
+| `ArrowLeft`   | Seek back 5s      |
+| `ArrowRight`  | Seek forward 5s   |
+| `ArrowUp`     | Volume up 10%     |
+| `ArrowDown`   | Volume down 10%   |
 
 ---
 
@@ -363,15 +395,15 @@ const { volume, isMuted } = useStore(store, selectAudio)
 
 Available selectors:
 
-| Selector | Returns |
-|---|---|
-| `selectMedia` | `isPlaying`, `isPaused`, `currentTime`, `duration`, `bufferedPercent`, `playbackRate` |
-| `selectAudio` | `volume`, `isMuted` |
-| `selectPreferences` | `isLooping`, `flip`, `aspectRatio`, subtitle, quality |
-| `selectUI` | `controlsVisible`, `isFullscreen`, `infoPanelVisible`, `notification` |
-| `selectPlugins` | `controls`, `settings`, `layers`, `contextMenuItems` |
-| `selectThumbnails` | `thumbnailCues` |
-| `selectError` | `error` (or `null`) |
+| Selector            | Returns                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------- |
+| `selectMedia`       | `isPlaying`, `isPaused`, `currentTime`, `duration`, `bufferedPercent`, `playbackRate` |
+| `selectAudio`       | `volume`, `isMuted`                                                                   |
+| `selectPreferences` | `isLooping`, `flip`, `aspectRatio`, subtitle, quality                                 |
+| `selectUI`          | `controlsVisible`, `isFullscreen`, `infoPanelVisible`, `notification`                 |
+| `selectPlugins`     | `controls`, `settings`, `layers`, `contextMenuItems`                                  |
+| `selectThumbnails`  | `thumbnailCues`                                                                       |
+| `selectError`       | `error` (or `null`)                                                                   |
 
 ---
 
@@ -404,7 +436,7 @@ apps/
   demo/                        React demo app
 packages/
   core/src/                    Player factory, types, engine
-    media-engine/              MediaEngine interface + NativeVideoEngine
+    media-engine/              MediaEngine interface + Native/HLS/DASH engines
     state/                     State slices and selectors
   framework/src/               Adapter contract types + helpers
   react/src/                   React components + hooks

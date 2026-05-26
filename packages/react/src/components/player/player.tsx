@@ -154,24 +154,24 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
         onDoubleClick={instance.remote.toggleFullscreen}
       >
         <video {...videoProps}>
-            <source src={src ?? ''} />
-          </video>
+          <source src={src ?? ''} />
+        </video>
 
-          {children ?? <DefaultVideoLayout />}
-          <TopGradient />
+        {children ?? <DefaultVideoLayout />}
+        <TopGradient />
 
-          {/* Overlays & floating UI */}
-          <MiniProgressBar />
-          <ErrorOverlay />
-          <AutoResumeOverlay />
-          <ContextMenu />
-          <InfoPanel />
+        {/* Overlays & floating UI */}
+        <MiniProgressBar />
+        <ErrorOverlay />
+        <AutoResumeOverlay />
+        <ContextMenu />
+        <InfoPanel />
 
-          {/* Click layer to toggle play when controls are hidden */}
-          <div
-            className={clsx('vplayer__click-layer', controlsVisible && 'vplayer__click-layer--hidden')}
-            onClick={instance.remote.togglePlay}
-          />
+        {/* Click layer to toggle play when controls are hidden */}
+        <div
+          className={clsx('vplayer__click-layer', controlsVisible && 'vplayer__click-layer--hidden')}
+          onClick={instance.remote.togglePlay}
+        />
       </div>
     </PlayerContext.Provider>
   )

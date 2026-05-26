@@ -40,7 +40,15 @@ export { usePlayerGestures } from './hooks/use-mobile-gestures'
 export { usePlayer } from './hooks/use-player'
 export type { SolidUsePlayerResult } from './hooks/use-player'
 
-export type { PlayerProps, PlayerSlots, PlayerLabels, PlayerIcons, MediaState, MediaRemote, PlayerContextValue } from './types'
+export type {
+  PlayerProps,
+  PlayerSlots,
+  PlayerLabels,
+  PlayerIcons,
+  MediaState,
+  MediaRemote,
+  PlayerContextValue,
+} from './types'
 export type { UsePlayerResult } from '@vplayer/framework'
 export type { PlayerProviderProps } from './player-provider'
 
@@ -51,18 +59,48 @@ export { createPluginAPI } from './plugin-api'
 
 // ── Core re-exports (framework-agnostic) ────────────────────
 export {
-  createPlayer, createGestureEngine, EventBus, Storage, STORAGE_KEYS,
-  I18n, HotkeyRegistry, defaultPlayerLabels, defaultPlayerIcons, formatTime,
+  createPlayer,
+  createGestureEngine,
+  EventBus,
+  Storage,
+  STORAGE_KEYS,
+  I18n,
+  HotkeyRegistry,
+  defaultPlayerLabels,
+  defaultPlayerIcons,
+  formatTime,
 } from '@vplayer/core'
 export {
-  parseSRT, parseVTT, fetchSubtitles, getActiveCue,
-  fetchThumbnails, parseThumbnailVTT, getThumbnailAtTime,
+  parseSRT,
+  parseVTT,
+  fetchSubtitles,
+  getActiveCue,
+  fetchThumbnails,
+  parseThumbnailVTT,
+  getThumbnailAtTime,
 } from '@vplayer/core'
 export type {
-  PlayerOptions, PlayerInstance, PlayerSystems, PlayerError,
-  PlayerEventName, PlayerEventHandler, SubtitleCue, SubtitleTrack,
-  ThumbnailCue, LanguageDict, HotkeyBinding, ControlRegistration,
-  SettingRegistration, LayerRegistration, SettingItem, ContextMenuItem,
-  ContextMenuRegistration, PlayerPlugin, PluginAPI, RemoteRef,
-  PlayerContextRef, FlipState, AspectRatioState,
+  PlayerOptions,
+  PlayerInstance,
+  PlayerSystems,
+  PlayerError,
+  PlayerEventName,
+  PlayerEventHandler,
+  SubtitleCue,
+  SubtitleTrack,
+  ThumbnailCue,
+  LanguageDict,
+  HotkeyBinding,
+  ControlRegistration,
+  SettingRegistration,
+  LayerRegistration,
+  SettingItem,
+  ContextMenuItem,
+  ContextMenuRegistration,
+  PlayerPlugin,
+  PluginAPI,
+  RemoteRef,
+  PlayerContextRef,
+  FlipState,
+  AspectRatioState,
 } from '@vplayer/core'

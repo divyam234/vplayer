@@ -16,8 +16,8 @@
  * ```
  */
 
-import { createSignal, onCleanup } from 'solid-js'
 import type { Store } from '@tanstack/store'
+import { createSignal, onCleanup } from 'solid-js'
 
 export function useStoreSignal<T>(store: Store<T>): () => T
 export function useStoreSignal<T, S>(store: Store<T>, selector: (state: T) => S): () => S

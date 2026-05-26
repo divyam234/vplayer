@@ -19,10 +19,7 @@ export function ErrorOverlay() {
         <div class="vplayer__error-overlay-content">
           <p class="vplayer__error-overlay-message">{labels.error}</p>
           <p class="vplayer__error-overlay-detail">{error()!.message}</p>
-          <button
-            onClick={handleRetry}
-            class="vplayer__error-overlay-retry"
-          >
+          <button onClick={handleRetry} class="vplayer__error-overlay-retry">
             {labels.retry}
           </button>
         </div>

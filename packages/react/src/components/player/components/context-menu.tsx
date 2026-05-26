@@ -90,11 +90,7 @@ export const ContextMenu: FC = () => {
     >
       {allItems.map((item, i) =>
         item.separator ? (
-          <div
-            key={`sep-${i}`}
-            className="vplayer__contextmenu-separator"
-            role="separator"
-          />
+          <div key={`sep-${i}`} className="vplayer__contextmenu-separator" role="separator" />
         ) : (
           <button
             key={`item-${i}`}

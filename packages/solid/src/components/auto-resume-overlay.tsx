@@ -35,19 +35,14 @@ export function AutoResumeOverlay() {
       <div class="vplayer__auto-resume-overlay">
         <div class="vplayer__auto-resume-content">
           <p class="vplayer__auto-resume-text">
-            {labels.continuePlay} <span class="font-medium text-white tabular-nums">{formatTime(savedTime() ?? 0)}</span>?
+            {labels.continuePlay}{' '}
+            <span class="font-medium text-white tabular-nums">{formatTime(savedTime() ?? 0)}</span>?
           </p>
           <div class="vplayer__auto-resume-actions">
-            <button
-              onClick={handleContinue}
-              class="vplayer__auto-resume-btn vplayer__auto-resume-btn--primary"
-            >
+            <button onClick={handleContinue} class="vplayer__auto-resume-btn vplayer__auto-resume-btn--primary">
               {labels.continue}
             </button>
-            <button
-              onClick={handleStartOver}
-              class="vplayer__auto-resume-btn"
-            >
+            <button onClick={handleStartOver} class="vplayer__auto-resume-btn">
               {labels.continueStartOver}
             </button>
           </div>

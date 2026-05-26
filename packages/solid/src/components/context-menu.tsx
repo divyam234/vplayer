@@ -92,10 +92,7 @@ export function ContextMenu() {
       >
         {allItems().map((item, i) =>
           item.separator ? (
-            <div
-              class="vplayer__contextmenu-separator"
-              role="separator"
-            />
+            <div class="vplayer__contextmenu-separator" role="separator" />
           ) : (
             <button
               class="vplayer__contextmenu-item"

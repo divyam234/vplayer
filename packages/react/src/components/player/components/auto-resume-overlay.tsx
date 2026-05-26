@@ -39,16 +39,10 @@ export const AutoResumeOverlay: FC = () => {
           {labels.continuePlay} <span className="font-medium text-white tabular-nums">{formatTime(savedTime)}</span>?
         </p>
         <div className="vplayer__auto-resume-actions">
-          <button
-            onClick={handleContinue}
-            className="vplayer__auto-resume-btn vplayer__auto-resume-btn--primary"
-          >
+          <button onClick={handleContinue} className="vplayer__auto-resume-btn vplayer__auto-resume-btn--primary">
             {labels.continue}
           </button>
-          <button
-            onClick={handleStartOver}
-            className="vplayer__auto-resume-btn"
-          >
+          <button onClick={handleStartOver} className="vplayer__auto-resume-btn">
             {labels.continueStartOver}
           </button>
         </div>

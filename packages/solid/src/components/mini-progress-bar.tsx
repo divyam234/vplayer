@@ -11,21 +11,9 @@ export function MiniProgressBar() {
   const progress = () => (duration() > 0 ? (currentTime() / duration()) * 100 : 0)
 
   return (
-    <div
-      class={clsx(
-        'vplayer__mini-progress',
-        controlsVisible() ? 'opacity-0' : 'opacity-100',
-      )}
-      aria-hidden="true"
-    >
-      <div
-        class="vplayer__mini-progress-buffered"
-        style={{ width: `${bufferedPercent()}%` }}
-      />
-      <div
-        class="vplayer__mini-progress-played"
-        style={{ width: `${progress()}%` }}
-      />
+    <div class={clsx('vplayer__mini-progress', controlsVisible() ? 'opacity-0' : 'opacity-100')} aria-hidden="true">
+      <div class="vplayer__mini-progress-buffered" style={{ width: `${bufferedPercent()}%` }} />
+      <div class="vplayer__mini-progress-played" style={{ width: `${progress()}%` }} />
     </div>
   )
 }

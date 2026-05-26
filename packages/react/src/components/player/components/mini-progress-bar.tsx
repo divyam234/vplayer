@@ -12,21 +12,9 @@ export const MiniProgressBar: FC = () => {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
   return (
-    <div
-      className={clsx(
-        'vplayer__mini-progress',
-        controlsVisible ? 'opacity-0' : 'opacity-100',
-      )}
-      aria-hidden="true"
-    >
-      <div
-        className="vplayer__mini-progress-buffered"
-        style={{ width: `${bufferedPercent}%` }}
-      />
-      <div
-        className="vplayer__mini-progress-played"
-        style={{ width: `${progress}%` }}
-      />
+    <div className={clsx('vplayer__mini-progress', controlsVisible ? 'opacity-0' : 'opacity-100')} aria-hidden="true">
+      <div className="vplayer__mini-progress-buffered" style={{ width: `${bufferedPercent}%` }} />
+      <div className="vplayer__mini-progress-played" style={{ width: `${progress}%` }} />
     </div>
   )
 }

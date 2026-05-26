@@ -1,7 +1,16 @@
 import type { Store } from '@tanstack/store'
 import type {
-  EventBus, HotkeyRegistry, I18n, MediaEngine, MediaRemote, MediaState,
-  PlayerIcons, PlayerLabels, PlayerInstance, PlayerOptions, Storage,
+  EventBus,
+  HotkeyRegistry,
+  I18n,
+  MediaEngine,
+  MediaRemote,
+  MediaState,
+  PlayerIcons,
+  PlayerLabels,
+  PlayerInstance,
+  PlayerOptions,
+  Storage,
 } from '@vplayer/core'
 import type { PluginAPIBuilder } from '@vplayer/framework'
 import type { JSX } from 'solid-js'

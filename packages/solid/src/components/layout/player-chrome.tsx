@@ -1,8 +1,15 @@
 import clsx from 'clsx'
 import { type JSX } from 'solid-js'
 
-import { ScreenshotButton } from '../screenshot-button'
 import { usePlayerState, usePlayerContext } from '../../context'
+import {
+  NotificationOverlay,
+  PluginControlsCenter,
+  PluginControlsLeft,
+  PluginControlsRight,
+  PluginControlsTop,
+  PluginLayers,
+} from '../../plugin-renderer'
 import {
   FullscreenButton,
   PiPButton,
@@ -13,14 +20,7 @@ import {
   TimeDisplay,
   VolumeControl,
 } from '../controls'
-import {
-  NotificationOverlay,
-  PluginControlsCenter,
-  PluginControlsLeft,
-  PluginControlsRight,
-  PluginControlsTop,
-  PluginLayers,
-} from '../../plugin-renderer'
+import { ScreenshotButton } from '../screenshot-button'
 
 export function ControlsBar(props: { children?: JSX.Element }) {
   const controlsVisible = usePlayerState('controlsVisible')

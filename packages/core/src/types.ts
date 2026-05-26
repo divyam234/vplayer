@@ -6,9 +6,9 @@ import type { I18n } from './i18n'
 import type { MediaEngine } from './media-engine'
 import type { PlayerPlugin } from './plugin-api'
 import type { AspectRatioState, FlipState } from './plugin-api'
+import type { MediaState } from './state/slices'
 import type { Storage } from './storage'
 import type { SubtitleTrack } from './subtitle-parser'
-import type { MediaState } from './state/slices'
 
 export type { MediaState }
 
@@ -60,6 +60,30 @@ export interface PlayerOptions {
   onTimeUpdate?: (time: number) => void
   onEnded?: () => void
   onError?: (message: string) => void
+  /**
+   * Custom media engine or factory.
+   *
+   * - `MediaEngine` instance — used directly (must already be bound to a
+   *   `<video>` element).
+   * - `(video: HTMLVideoElement) => MediaEngine` — factory called at mount
+   *   time with the player's `<video>` element.
+   *
+   * When omitted, a NativeVideoEngine is created automatically.
+   *
+   * @example
+   * ```ts
+   * // HLS via factory (recommended)
+   * createPlayer({
+   *   engine: (video) => new HlsMediaEngine(video, { src: '...' }),
+   * })
+   *
+   * // Pre-configured instance
+   * createPlayer({
+   *   engine: new HlsMediaEngine(videoEl, { src: '...' }),
+   * })
+   * ```
+   */
+  engine?: MediaEngine | ((video: HTMLVideoElement) => MediaEngine)
 }
 
 export interface PlayerError {

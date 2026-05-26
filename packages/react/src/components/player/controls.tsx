@@ -1,7 +1,7 @@
-import { Icon } from '@iconify/react'
-import { Tooltip } from '@ark-ui/react/tooltip'
 import { Menu } from '@ark-ui/react/menu'
 import { Slider } from '@ark-ui/react/slider'
+import { Tooltip } from '@ark-ui/react/tooltip'
+import { Icon } from '@iconify/react'
 import { getThumbnailAtTime, formatTime } from '@vplayer/core'
 import clsx from 'clsx'
 import { useCallback, useEffect, useState, type FC, type PointerEvent, type ReactNode } from 'react'
@@ -44,12 +44,7 @@ interface IconToggleProps {
 function IconToggle({ label, tooltip, selected, onChange, children }: IconToggleProps) {
   return (
     <Tooltip.Root openDelay={400} closeDelay={150}>
-      <Tooltip.Trigger
-        onClick={onChange}
-        aria-label={label}
-        aria-pressed={selected}
-        className="vplayer__button"
-      >
+      <Tooltip.Trigger onClick={onChange} aria-label={label} aria-pressed={selected} className="vplayer__button">
         {children}
       </Tooltip.Trigger>
       <Tooltip.Positioner>

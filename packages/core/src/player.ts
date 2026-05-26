@@ -19,13 +19,13 @@
 import { EventBus } from './event-bus'
 import { HotkeyRegistry } from './hotkey-registry'
 import { I18n } from './i18n'
+import { NativeVideoEngine } from './media-engine'
+import type { MediaEngine } from './media-engine'
 import type { PluginAPI, PlayerPlugin, ContextMenuItem, FlipState, AspectRatioState, RemoteRef } from './plugin-api'
+import { createMediaStore } from './state/slices'
 import { Storage, STORAGE_KEYS } from './storage'
 import { fetchThumbnails } from './subtitle-parser'
 import type { SubtitleTrack } from './subtitle-parser'
-import { createMediaStore } from './state/slices'
-import { NativeVideoEngine } from './media-engine'
-import type { MediaEngine } from './media-engine'
 import type { PlayerOptions, MediaRemote, PlayerInstance } from './types'
 
 export function createPlayer(options: PlayerOptions): PlayerInstance {
@@ -62,42 +62,66 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     hotkeys.register({
       key: 'Space',
       description: 'Toggle play/pause',
-      handler: (e) => { e.preventDefault(); remote.togglePlay() },
+      handler: (e) => {
+        e.preventDefault()
+        remote.togglePlay()
+      },
     })
     hotkeys.register({
       key: 'KeyK',
       description: 'Toggle play/pause',
-      handler: (e) => { e.preventDefault(); remote.togglePlay() },
+      handler: (e) => {
+        e.preventDefault()
+        remote.togglePlay()
+      },
     })
     hotkeys.register({
       key: 'KeyL',
       description: 'Toggle loop',
-      handler: (e) => { e.preventDefault(); remote.toggleLoop() },
+      handler: (e) => {
+        e.preventDefault()
+        remote.toggleLoop()
+      },
     })
     hotkeys.register({
       key: 'KeyI',
       description: 'Toggle info panel',
-      handler: (e) => { e.preventDefault(); remote.toggleInfoPanel() },
+      handler: (e) => {
+        e.preventDefault()
+        remote.toggleInfoPanel()
+      },
     })
     hotkeys.register({
       key: 'KeyF',
       description: 'Toggle fullscreen',
-      handler: (e) => { e.preventDefault(); remote.toggleFullscreen() },
+      handler: (e) => {
+        e.preventDefault()
+        remote.toggleFullscreen()
+      },
     })
     hotkeys.register({
       key: 'KeyM',
       description: 'Toggle mute',
-      handler: (e) => { e.preventDefault(); remote.toggleMute() },
+      handler: (e) => {
+        e.preventDefault()
+        remote.toggleMute()
+      },
     })
     hotkeys.register({
       key: 'ArrowLeft',
       description: 'Seek backward 5s',
-      handler: (e) => { e.preventDefault(); remote.skip(-5) },
+      handler: (e) => {
+        e.preventDefault()
+        remote.skip(-5)
+      },
     })
     hotkeys.register({
       key: 'ArrowRight',
       description: 'Seek forward 5s',
-      handler: (e) => { e.preventDefault(); remote.skip(5) },
+      handler: (e) => {
+        e.preventDefault()
+        remote.skip(5)
+      },
     })
     hotkeys.register({
       key: 'ArrowUp',
@@ -580,8 +604,12 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     mount(video: HTMLVideoElement, container: HTMLDivElement): void {
       containerEl = container
 
-      // Create the media engine
-      const eng = new NativeVideoEngine(video)
+      // Create the media engine (custom or default NativeVideoEngine)
+      const eng = options.engine
+        ? typeof options.engine === 'function'
+          ? (options.engine as (v: HTMLVideoElement) => MediaEngine)(video)
+          : (options.engine as MediaEngine)
+        : new NativeVideoEngine(video)
       engine = eng
       ;(player as any).engine = eng
 

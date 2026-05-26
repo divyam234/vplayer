@@ -76,68 +76,40 @@ function App() {
           <Panel title="Sources">
             <label className="field-row">
               <span className="field-label">Video URL</span>
-              <input
-                value={src}
-                onChange={(e) => setSrc(e.target.value)}
-                className="field-input"
-              />
+              <input value={src} onChange={(e) => setSrc(e.target.value)} className="field-input" />
             </label>
             <label className="field-row">
               <span className="field-label">Poster URL</span>
-              <input
-                value={poster}
-                onChange={(e) => setPoster(e.target.value)}
-                className="field-input"
-              />
+              <input value={poster} onChange={(e) => setPoster(e.target.value)} className="field-input" />
             </label>
           </Panel>
 
           <Panel title="Configuration">
-            <Switch.Root
-              checked={autoPlay}
-              onCheckedChange={(d) => setAutoPlay(d.checked)}
-              className="config-row"
-            >
+            <Switch.Root checked={autoPlay} onCheckedChange={(d) => setAutoPlay(d.checked)} className="config-row">
               <Switch.Control>
                 <Switch.Thumb />
               </Switch.Control>
               <Switch.Label>Autoplay</Switch.Label>
             </Switch.Root>
-            <Switch.Root
-              checked={showPoster}
-              onCheckedChange={(d) => setShowPoster(d.checked)}
-              className="config-row"
-            >
+            <Switch.Root checked={showPoster} onCheckedChange={(d) => setShowPoster(d.checked)} className="config-row">
               <Switch.Control>
                 <Switch.Thumb />
               </Switch.Control>
               <Switch.Label>Poster visible</Switch.Label>
             </Switch.Root>
-            <Switch.Root
-              checked={qualities}
-              onCheckedChange={(d) => setQualities(d.checked)}
-              className="config-row"
-            >
+            <Switch.Root checked={qualities} onCheckedChange={(d) => setQualities(d.checked)} className="config-row">
               <Switch.Control>
                 <Switch.Thumb />
               </Switch.Control>
               <Switch.Label>Quality menu</Switch.Label>
             </Switch.Root>
-            <Switch.Root
-              checked={thumbnails}
-              onCheckedChange={(d) => setThumbnails(d.checked)}
-              className="config-row"
-            >
+            <Switch.Root checked={thumbnails} onCheckedChange={(d) => setThumbnails(d.checked)} className="config-row">
               <Switch.Control>
                 <Switch.Thumb />
               </Switch.Control>
               <Switch.Label>Thumbnail previews</Switch.Label>
             </Switch.Root>
-            <Switch.Root
-              checked={rounded}
-              onCheckedChange={(d) => setRounded(d.checked)}
-              className="config-row"
-            >
+            <Switch.Root checked={rounded} onCheckedChange={(d) => setRounded(d.checked)} className="config-row">
               <Switch.Control>
                 <Switch.Thumb />
               </Switch.Control>
@@ -147,11 +119,7 @@ function App() {
               <span className="field-label">Accent color</span>
               <div className="accent-row">
                 <span className="accent-swatch" style={{ background: accent }} />
-                <input
-                  value={accent}
-                  onChange={(e) => setAccent(e.target.value)}
-                  className="field-input"
-                />
+                <input value={accent} onChange={(e) => setAccent(e.target.value)} className="field-input" />
               </div>
             </label>
           </Panel>

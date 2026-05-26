@@ -22,8 +22,15 @@ export { formatTime } from './utils'
 export { defaultPlayerLabels, defaultPlayerIcons } from './defaults'
 
 // ── Media Engine ──────────────────────────────────────────
-export { NativeVideoEngine } from './media-engine'
-export type { MediaEngine, MediaEngineDimensions, MediaEngineError, MediaEngineEvent } from './media-engine'
+export { BaseMediaEngine, NativeVideoEngine, HlsMediaEngine, DashMediaEngine } from './media-engine'
+export type {
+  MediaEngine,
+  MediaEngineDimensions,
+  MediaEngineError,
+  MediaEngineEvent,
+  HlsMediaEngineOptions,
+  DashMediaEngineOptions,
+} from './media-engine'
 
 // ── State slices (advanced selectors) ─────────────────────
 export {

@@ -14,14 +14,14 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check"
   },
+  "dependencies": {
+    "@ark-ui/react": "5.36.2"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
     "oxfmt": "^0.52.0",
     "oxlint": "^1.67.0",
     "tailwindcss": "^4.1.18"
   },
-  "packageManager": "bun@1.2.15",
-  "dependencies": {
-    "@ark-ui/react": "5.36.2"
-  }
+  "packageManager": "bun@1.2.15"
 }
