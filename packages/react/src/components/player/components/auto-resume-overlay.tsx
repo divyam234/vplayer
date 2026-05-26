@@ -33,31 +33,21 @@ export const AutoResumeOverlay: FC = () => {
   if (savedTime === null || isPlaying) return null
 
   return (
-    <div className="vplayer__auto-resume-overlay absolute inset-0 z-30 flex items-center justify-center bg-black/60">
-      <div
-        className="vplayer__auto-resume-content flex flex-col items-center gap-4 rounded-xl px-8 py-6 shadow-2xl"
-        style={{
-          background: 'color-mix(in srgb, black 90%, transparent)',
-          border: '1px solid color-mix(in srgb, white 14%, transparent)',
-        }}
-      >
-        <p className="vplayer__auto-resume-text text-sm text-white/80">
+    <div className="vplayer__auto-resume-overlay">
+      <div className="vplayer__auto-resume-content">
+        <p className="vplayer__auto-resume-text">
           {labels.continuePlay} <span className="font-medium text-white tabular-nums">{formatTime(savedTime)}</span>?
         </p>
-        <div className="vplayer__auto-resume-actions flex items-center gap-3">
+        <div className="vplayer__auto-resume-actions">
           <button
             onClick={handleContinue}
-            className="vplayer__auto-resume-btn vplayer__auto-resume-btn--primary rounded-full px-5 py-1.5 text-sm text-white transition-colors hover:bg-white/20"
-            style={{
-              background: 'color-mix(in srgb, white 12%, transparent)',
-              border: '1px solid color-mix(in srgb, white 14%, transparent)',
-            }}
+            className="vplayer__auto-resume-btn vplayer__auto-resume-btn--primary"
           >
             {labels.continue}
           </button>
           <button
             onClick={handleStartOver}
-            className="vplayer__auto-resume-btn rounded-full px-5 py-1.5 text-sm text-white/60 transition-colors hover:text-white"
+            className="vplayer__auto-resume-btn"
           >
             {labels.continueStartOver}
           </button>

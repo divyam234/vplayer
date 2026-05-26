@@ -82,20 +82,7 @@ export const ContextMenu: FC = () => {
     <div
       ref={menuRef}
       className="vplayer__contextmenu"
-      style={{
-        position: 'fixed',
-        left: position.x,
-        top: position.y,
-        zIndex: 9999,
-        minWidth: 160,
-        borderRadius: 8,
-        padding: 6,
-        background: 'color-mix(in srgb, black 90%, transparent)',
-        border: '1px solid color-mix(in srgb, white 14%, transparent)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(18px)',
-        outline: 'none',
-      }}
+      style={{ left: position.x, top: position.y }}
       role="menu"
       onKeyDown={(e) => {
         if (e.key === 'Escape') close()
@@ -105,14 +92,13 @@ export const ContextMenu: FC = () => {
         item.separator ? (
           <div
             key={`sep-${i}`}
-            className="vplayer__contextmenu-separator my-1 border-t"
-            style={{ borderColor: 'color-mix(in srgb, white 14%, transparent)' }}
+            className="vplayer__contextmenu-separator"
             role="separator"
           />
         ) : (
           <button
             key={`item-${i}`}
-            className="vplayer__contextmenu-item flex w-full items-center rounded-md px-2.5 py-1.5 text-sm text-white/80 transition-colors outline-none hover:bg-white/10 data-[focused]:bg-white/10"
+            className="vplayer__contextmenu-item"
             disabled={item.disabled}
             onClick={() => {
               item.onAction()

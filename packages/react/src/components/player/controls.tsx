@@ -101,12 +101,8 @@ export const SeekBar: FC = () => {
                 style={{
                   width: thumbnailCue.w,
                   height: thumbnailCue.h,
-                  maxWidth: 240,
-                  maxHeight: 135,
                   backgroundImage: `url(${thumbnailCue.src})`,
                   backgroundPosition: `-${thumbnailCue.x}px -${thumbnailCue.y}px`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: 'auto',
                 }}
               />
             </div>
@@ -137,7 +133,7 @@ export const SeekBar: FC = () => {
       </Slider.Root>
 
       {hoverPercent !== null && !thumbnailCue && (
-        <div className="vplayer__seek-tooltip" style={{ left: `${hoverPercent * 100}%`, pointerEvents: 'none' }}>
+        <div className="vplayer__seek-tooltip" style={{ left: `${hoverPercent * 100}%` }}>
           {formatTime(hoverTime ?? 0)}
         </div>
       )}
