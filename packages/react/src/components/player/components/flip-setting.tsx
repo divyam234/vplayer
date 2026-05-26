@@ -1,5 +1,5 @@
 import { type FC } from 'react'
-import { useMediaState } from '../context'
+import { usePlayerState } from '../context'
 import type { PluginAPI, FlipState } from '@vplayer/core'
 
 const FLIP_OPTIONS: { value: FlipState; labelKey: string }[] = [
@@ -17,7 +17,7 @@ const FLIP_OPTIONS: { value: FlipState; labelKey: string }[] = [
  * Designed to be registered via `api.addSetting()` from a plugin.
  */
 export const FlipSetting: FC<{ api: PluginAPI }> = ({ api }) => {
-  const flip = useMediaState('flip')
+  const flip = usePlayerState('flip')
 
   return (
     <div className="vplayer__flip-setting">

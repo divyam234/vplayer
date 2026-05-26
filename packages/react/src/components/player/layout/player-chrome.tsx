@@ -11,7 +11,7 @@ import {
   TimeDisplay,
   VolumeControl,
 } from '../controls'
-import { useMediaState, usePlayerContext } from '../context'
+import { usePlayerState, usePlayerContext } from '../context'
 import { ScreenshotButton } from '../components/screenshot-button'
 import {
   NotificationOverlay,
@@ -23,7 +23,7 @@ import {
 } from '../plugin-renderer'
 
 export const ControlsBar: FC<{ children?: ReactNode }> = ({ children }) => {
-  const controlsVisible = useMediaState('controlsVisible')
+  const controlsVisible = usePlayerState('controlsVisible')
   return (
     <div className={clsx('vplayer__controls', !controlsVisible && 'vplayer__controls--hidden')}>
       <div className="vplayer__controls-backdrop" />

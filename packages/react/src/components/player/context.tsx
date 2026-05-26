@@ -11,10 +11,10 @@ export function usePlayerContext(): PlayerContextValue {
   return ctx
 }
 
-export function useMediaState(): MediaState
-export function useMediaState<K extends keyof MediaState>(key: K): MediaState[K]
-export function useMediaState<TSelected>(selector: (state: MediaState) => TSelected): TSelected
-export function useMediaState<K extends keyof MediaState, TSelected>(
+export function usePlayerState(): MediaState
+export function usePlayerState<K extends keyof MediaState>(key: K): MediaState[K]
+export function usePlayerState<TSelected>(selector: (state: MediaState) => TSelected): TSelected
+export function usePlayerState<K extends keyof MediaState, TSelected>(
   keyOrSelector?: K | ((state: MediaState) => TSelected),
 ) {
   const ctx = usePlayerContext()
@@ -27,7 +27,7 @@ export function useMediaState<K extends keyof MediaState, TSelected>(
   return useStore(ctx.mediaStore, (state) => state[keyOrSelector])
 }
 
-export function useMediaRemote(): MediaRemote {
+export function usePlayerRemote(): MediaRemote {
   return usePlayerContext().mediaRemote
 }
 

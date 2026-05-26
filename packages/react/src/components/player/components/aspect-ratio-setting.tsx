@@ -1,5 +1,5 @@
 import { type FC } from 'react'
-import { useMediaState } from '../context'
+import { usePlayerState } from '../context'
 import type { PluginAPI, AspectRatioState } from '@vplayer/core'
 
 const ASPECT_RATIO_OPTIONS: { value: AspectRatioState; labelKey: string }[] = [
@@ -18,7 +18,7 @@ const ASPECT_RATIO_OPTIONS: { value: AspectRatioState; labelKey: string }[] = [
  * Designed to be registered via `api.addSetting()` from a plugin.
  */
 export const AspectRatioSetting: FC<{ api: PluginAPI }> = ({ api }) => {
-  const aspectRatio = useMediaState('aspectRatio')
+  const aspectRatio = usePlayerState('aspectRatio')
 
   return (
     <div className="vplayer__aspect-ratio-setting">

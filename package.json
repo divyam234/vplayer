@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "bun run --filter @vplayer/demo dev",
     "build": "bun run --filter @vplayer/core build && bun run --filter @vplayer/react build && bun run --filter @vplayer/demo build",
-    "typecheck": "bun run --filter @vplayer/core typecheck && bun run --filter @vplayer/react typecheck && bun run --filter @vplayer/demo typecheck"
+    "typecheck": "bun run --filter @vplayer/core typecheck && bun run --filter @vplayer/framework typecheck && bun run --filter @vplayer/react typecheck && bun run --filter @vplayer/demo typecheck"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",

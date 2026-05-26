@@ -1,12 +1,12 @@
 import type { FC } from 'react'
 import clsx from 'clsx'
-import { useMediaState } from '../context'
+import { usePlayerState } from '../context'
 
 export const MiniProgressBar: FC = () => {
-  const controlsVisible = useMediaState('controlsVisible')
-  const currentTime = useMediaState('currentTime')
-  const duration = useMediaState('duration')
-  const bufferedPercent = useMediaState('bufferedPercent')
+  const controlsVisible = usePlayerState('controlsVisible')
+  const currentTime = usePlayerState('currentTime')
+  const duration = usePlayerState('duration')
+  const bufferedPercent = usePlayerState('bufferedPercent')
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 

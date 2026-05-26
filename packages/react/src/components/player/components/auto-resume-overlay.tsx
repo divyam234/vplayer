@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState, type FC } from 'react'
 import { Button } from 'react-aria-components'
-import { useMediaState, usePlayerContext, usePluginAPI } from '../context'
+import { usePlayerState, usePlayerContext, usePluginAPI } from '../context'
 import { STORAGE_KEYS, formatTime } from '@vplayer/core'
 
 export const AutoResumeOverlay: FC = () => {
-  const duration = useMediaState('duration')
-  const isPlaying = useMediaState('isPlaying')
+  const duration = usePlayerState('duration')
+  const isPlaying = usePlayerState('isPlaying')
   const { labels } = usePlayerContext()
   const api = usePluginAPI()
   const [savedTime, setSavedTime] = useState<number | null>(null)

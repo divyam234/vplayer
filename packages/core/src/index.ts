@@ -11,9 +11,9 @@ export type { HotkeyBinding } from './hotkey-registry'
 export { parseSRT, parseVTT, fetchSubtitles, getActiveCue, fetchThumbnails, parseThumbnailVTT, getThumbnailAtTime } from './subtitle-parser'
 export type { SubtitleCue, SubtitleTrack, ThumbnailCue } from './subtitle-parser'
 export { formatTime } from './utils'
-export { defaultPlayerLabels } from './defaults'
+export { defaultPlayerLabels, defaultPlayerIcons } from './defaults'
 export type {
-  PlayerOptions, MediaState, MediaRemote, PlayerLabels,
+  PlayerOptions, MediaState, MediaRemote, PlayerLabels, PlayerIcons, SvgIcon,
   PlayerInstance, PlayerSystems, PlayerError,
 } from './types'
 export type {

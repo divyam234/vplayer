@@ -1,4 +1,4 @@
-import type { PlayerLabels } from './types'
+import type { PlayerIcons, PlayerLabels } from './types'
 
 export const defaultPlayerLabels: PlayerLabels = {
   play: 'Play',
@@ -36,4 +36,28 @@ export const defaultPlayerLabels: PlayerLabels = {
   contextMenuLoop: 'Loop',
   infoPanel: 'Info',
   loop: 'Loop',
+}
+
+/** @see https://iconify.design/icon-sets/lucide/ */
+export const defaultPlayerIcons: PlayerIcons = {
+  play: 'lucide:play',
+  pause: 'lucide:pause',
+  replay: 'lucide:rotate-ccw',
+  skipBack: 'lucide:skip-back',
+  skipForward: 'lucide:skip-forward',
+  volumeHigh: 'lucide:volume-2',
+  volumeLow: 'lucide:volume-1',
+  volumeOff: 'lucide:volume-x',
+  settings: 'lucide:settings-2',
+  pip: 'lucide:picture-in-picture-2',
+  fullscreen: 'lucide:maximize',
+  fullscreenExit: 'lucide:minimize',
+  chevronLeft: 'lucide:chevron-left',
+  check: 'lucide:check',
+  spinner: 'lucide:loader-2',
+  screenshot: 'lucide:camera',
+  flip: 'lucide:flip-horizontal-2',
+  aspectRatio: 'lucide:monitor',
+  info: 'lucide:info',
+  loop: 'lucide:repeat',
 }

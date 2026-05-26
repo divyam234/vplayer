@@ -39,14 +39,18 @@ export {
 
 export {
   usePlayerContext,
-  useMediaState,
-  useMediaRemote,
+  usePlayerState,
+  usePlayerRemote,
   usePluginAPI,
 } from './context'
 
 export {
-  useMobileGestures,
+  usePlayerGestures,
 } from './hooks/use-mobile-gestures'
+
+export { usePlayer } from './hooks/use-player'
+export { PlayerProvider } from './player-provider'
+export type { PlayerProviderProps } from './player-provider'
 
 export type {
   PlayerProps,
@@ -58,8 +62,15 @@ export type {
   PlayerContextValue,
 } from './types'
 
+export type { UsePlayerResult } from '@vplayer/framework'
+
+// ── Framework contract helpers ──────────────────────────────
+export { createPluginAPIBuilder } from '@vplayer/framework'
+export type { PluginAPIBuilder, PluginAPIContext } from '@vplayer/framework'
+export { createPluginAPI } from './plugin-api'
+
 // ── Core re-exports (framework-agnostic) ────────────────────
-export { createPlayer, createGestureEngine, EventBus, Storage, STORAGE_KEYS, I18n, HotkeyRegistry, defaultPlayerLabels, formatTime } from '@vplayer/core'
+export { createPlayer, createGestureEngine, EventBus, Storage, STORAGE_KEYS, I18n, HotkeyRegistry, defaultPlayerLabels, defaultPlayerIcons, formatTime } from '@vplayer/core'
 export { parseSRT, parseVTT, fetchSubtitles, getActiveCue, fetchThumbnails, parseThumbnailVTT, getThumbnailAtTime } from '@vplayer/core'
 export type {
   PlayerOptions, PlayerInstance, PlayerSystems, PlayerError, PlayerEventName, PlayerEventHandler,

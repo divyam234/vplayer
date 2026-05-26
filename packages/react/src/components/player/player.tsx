@@ -1,13 +1,15 @@
 "use client"
 
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useStore } from '@tanstack/react-store'
 import clsx from 'clsx'
 import { UNSAFE_PortalProvider } from 'react-aria'
+import { mergeLabels, mergeIcons } from '@vplayer/framework'
+import { defaultPlayerIcons, defaultPlayerLabels } from '@vplayer/core'
 import { PlayerContext } from './context'
+import { usePlayer } from './hooks/use-player'
 import { useControlsVisibility } from './hooks/use-controls-visibility'
-import { useVideoController } from './hooks/use-video-controller'
-import { useMobileGestures } from './hooks/use-mobile-gestures'
+import { usePlayerGestures } from './hooks/use-mobile-gestures'
 import { DefaultVideoLayout } from './layout/default-video-layout'
 import { TopGradient } from './overlays'
 import { MiniProgressBar } from './components/mini-progress-bar'
@@ -16,167 +18,182 @@ import { ContextMenu } from './components/context-menu'
 import { InfoPanel } from './components/info-panel'
 import { AutoResumeOverlay } from './components/auto-resume-overlay'
 import type { PlayerProps, PlayerContextValue } from './types'
-import type { MediaRemote } from '@vplayer/core'
+import { createPluginAPI } from './plugin-api'
 
 export function VideoPlayer({
-  src,
-  poster,
-  subtitles,
-  qualities,
-  thumbnails,
   className = '',
   children,
-  autoPlay,
-  onTimeUpdate: _onTimeUpdate,
-  onEnded: _onEnded,
-  onError: _onError,
-  plugins: pluginInputs,
-  lang,
-  translations,
+  ...options
 }: PlayerProps) {
-  const state = useVideoController({
-    src,
-    poster,
-    subtitles,
-    qualities,
-    autoPlay,
-    thumbnails,
-    onTimeUpdate: _onTimeUpdate,
-    onEnded: _onEnded,
-    onError: _onError,
-  })
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const src = options.src
+  const poster = options.poster
+  const autoPlay = options.autoPlay
+  const subtitles = options.subtitles
+  const qualities = options.qualities
+  const thumbnails = options.thumbnails
+  const plugins = options.plugins
+  const labelsProp = options.labels
+  const iconsProp = options.icons
+  const slots = options.slots ?? {}
 
-  const { player } = state
+  // ── Core player via contract hook ──
+  const player = usePlayer(options)
+  const { instance } = player
 
-  // Sync reactive props to core (handles subtitle/quality changes)
+  // ── Mount/unmount lifecycle ──
+  // Use stable function references for deps — player.attach/detach
+  // are useCallback'd inside usePlayer and never change identity.
   useEffect(() => {
-    player.updateOptions({ subtitles, qualities })
-  }, [subtitles, qualities, player])
+    const video = videoRef.current
+    const container = containerRef.current
+    if (video && container) {
+      player.attach(container, video)
+    }
+    return () => player.detach()
+  }, [player.attach, player.detach])
 
-  // Sync thumbnails to core
+  // ── Sync reactive props to core ──
   useEffect(() => {
-    player.setThumbnails(thumbnails)
-  }, [thumbnails, player])
+    instance.updateOptions({ subtitles, qualities })
+  }, [subtitles, qualities, instance])
 
-  // Initialize plugins — delegates to core's initPlugins()
   useEffect(() => {
-    return player.initPlugins(pluginInputs ?? [])
-  }, [pluginInputs, player])
+    instance.setThumbnails(thumbnails)
+  }, [thumbnails, instance])
 
-  // Controls auto-hide (UI concern, stays in React)
-  const controls = useControlsVisibility(player.store)
-  const controlsVisible = useStore(player.store, (media) => media.controlsVisible)
+  // ── Initialize plugins ──
+  useEffect(() => {
+    return instance.initPlugins(plugins ?? [])
+  }, [plugins, instance])
 
-  // Keyboard events through core's hotkey registry
-  const onKeyDown = useCallback((event: React.KeyboardEvent) => {
-    if (
-      event.target instanceof HTMLInputElement ||
-      event.target instanceof HTMLTextAreaElement ||
-      (event.target as HTMLElement).isContentEditable
-    ) return
-    controls.showControls()
-    player.hotkeys.handleKeyDown(event as unknown as KeyboardEvent)
-  }, [player.hotkeys, controls])
+  // ── Controls auto-hide (UI concern) ──
+  const controls = useControlsVisibility(instance.store)
+  const controlsVisible = useStore(instance.store, (s) => s.controlsVisible)
 
-  // Build context value
-  const enhancedCtx: PlayerContextValue = useMemo(() => ({
-    containerRef: state.containerRef,
-    videoRef: state.videoRef,
-    labels: state.labels,
-    icons: state.icons,
-    slots: state.slots,
-    mediaStore: player.store,
-    mediaRemote: player.remote,
-    events: player.events,
-    storage: player.storage,
-    i18n: player.i18n,
-    hotkeys: player.hotkeys,
-  }), [state, player])
-
-  return (
-    <PlayerContext.Provider value={enhancedCtx}>
-      <PlayerShell
-        rootProps={state.rootProps}
-        src={src}
-        controls={controls}
-        controlsVisible={controlsVisible}
-        className={className}
-        containerRef={state.containerRef}
-        mediaRemote={player.remote}
-        videoProps={state.videoProps}
-        onKeyDown={onKeyDown}
-      >
-        {children}
-      </PlayerShell>
-    </PlayerContext.Provider>
+  // ── Keyboard events through core's hotkey registry ──
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        (event.target as HTMLElement).isContentEditable
+      ) return
+      controls.showControls()
+      instance.hotkeys.handleKeyDown(event as unknown as KeyboardEvent)
+    },
+    [instance.hotkeys, controls],
   )
-}
 
-// ── Inner component that mounts inside PlayerContext.Provider ──
-interface PlayerShellProps {
-  rootProps: Record<string, any>
-  src: string
-  controls: ReturnType<typeof useControlsVisibility>
-  controlsVisible: boolean
-  className: string
-  containerRef: React.RefObject<HTMLDivElement | null>
-  mediaRemote: MediaRemote
-  videoProps: Record<string, any>
-  onKeyDown: (e: React.KeyboardEvent) => void
-  children?: React.ReactNode
-}
+  // ── Resolve labels, icons ──
+  const labels = useMemo(
+    () => mergeLabels(defaultPlayerLabels, labelsProp),
+    [labelsProp],
+  )
+  const iconMap = useMemo(
+    () => mergeIcons(defaultPlayerIcons, iconsProp),
+    [iconsProp],
+  )
 
-function PlayerShell({
-  rootProps,
-  src,
-  controls,
-  controlsVisible,
-  className,
-  containerRef,
-  mediaRemote,
-  videoProps,
-  onKeyDown,
-  children,
-}: PlayerShellProps) {
-  const gestures = useMobileGestures()
+  // ── Video element props ──
+  const videoProps = useMemo(
+    () => ({
+      ref: videoRef,
+      className: 'vplayer__video',
+      poster,
+      autoPlay,
+      preload: 'metadata' as const,
+      playsInline: true,
+      onClick: instance.remote.togglePlay,
+      ...instance.videoHandlers,
+    }),
+    [poster, autoPlay, instance.remote.togglePlay, instance.videoHandlers],
+  )
 
-  const onTouchStartHandler = (e: React.TouchEvent) => {
-    controls.showControls()
-    gestures.onTouchStart(e as unknown as TouchEvent)
-  }
+  // ── Gestures: touch → show controls + forward gesture events ──
+  // Pass store/remote explicitly since PlayerContext isn't available yet
+  // (VideoPlayer provides the context, so we're inside the provider)
+  const gestures = usePlayerGestures(instance.store, instance.remote)
+  const onTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      controls.showControls()
+      gestures.onTouchStart(e as unknown as TouchEvent)
+    },
+    [controls, gestures],
+  )
+  const onTouchMove = useCallback(
+    (e: React.TouchEvent) => gestures.onTouchMove(e as unknown as TouchEvent),
+    [gestures],
+  )
+  const onTouchEnd = useCallback(
+    (e: React.TouchEvent) => gestures.onTouchEnd(e as unknown as TouchEvent),
+    [gestures],
+  )
+
+  // ── Context value ──
+  const ctx: PlayerContextValue = useMemo(
+    () => ({
+      containerRef,
+      videoRef,
+      labels,
+      icons: iconMap,
+      slots,
+      mediaStore: instance.store,
+      mediaRemote: instance.remote,
+      events: instance.events,
+      storage: instance.storage,
+      i18n: instance.i18n,
+      hotkeys: instance.hotkeys,
+      instance,
+      createPluginAPI,
+    }),
+    [instance, labels, iconMap, slots, createPluginAPI],
+  )
 
   return (
-    <div
-      {...rootProps}
-      onKeyDown={onKeyDown}
-      onMouseMove={controls.rootHandlers.onMouseMove}
-      onMouseEnter={controls.rootHandlers.onMouseEnter}
-      onTouchStart={onTouchStartHandler}
-      onTouchMove={(e) => gestures.onTouchMove(e as unknown as TouchEvent)}
-      onTouchEnd={(e) => gestures.onTouchEnd(e as unknown as TouchEvent)}
-      className={clsx('vplayer', !controlsVisible && 'vplayer--controls-hidden', className)}
-    >
-      <UNSAFE_PortalProvider
-        getContainer={() => document.fullscreenElement ? containerRef.current : document.body}
-      >
-      <video {...videoProps}>
-        <source src={src} />
-      </video>
-
-      {children ?? <DefaultVideoLayout />}
-      <TopGradient />
-
-      <MiniProgressBar />
-      <ErrorOverlay />
-      <AutoResumeOverlay />
-      <ContextMenu />
-      <InfoPanel />
-
+    <PlayerContext.Provider value={ctx}>
       <div
-        className={clsx('vplayer__click-layer', controlsVisible && 'vplayer__click-layer--hidden')}
-        onClick={mediaRemote.togglePlay}
-      />
-      </UNSAFE_PortalProvider>
-    </div>
+        ref={containerRef}
+        tabIndex={0}
+        className={clsx('vplayer', !controlsVisible && 'vplayer--controls-hidden', className)}
+        onKeyDown={onKeyDown}
+        onMouseMove={controls.rootHandlers.onMouseMove}
+        onMouseEnter={controls.rootHandlers.onMouseEnter}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onDoubleClick={instance.remote.toggleFullscreen}
+      >
+        <UNSAFE_PortalProvider
+          getContainer={() =>
+            document.fullscreenElement ? containerRef.current : document.body
+          }
+        >
+          <video {...videoProps}>
+            <source src={src ?? ''} />
+          </video>
+
+          {children ?? <DefaultVideoLayout />}
+          <TopGradient />
+
+          {/* Overlays & floating UI */}
+          <MiniProgressBar />
+          <ErrorOverlay />
+          <AutoResumeOverlay />
+          <ContextMenu />
+          <InfoPanel />
+
+          {/* Click layer to toggle play when controls are hidden */}
+          <div
+            className={clsx(
+              'vplayer__click-layer',
+              controlsVisible && 'vplayer__click-layer--hidden',
+            )}
+            onClick={instance.remote.togglePlay}
+          />
+        </UNSAFE_PortalProvider>
+      </div>
+    </PlayerContext.Provider>
   )
 }

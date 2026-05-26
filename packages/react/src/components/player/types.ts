@@ -1,13 +1,17 @@
 import type { ComponentType, ReactNode, RefObject } from 'react'
 import type { Store } from '@tanstack/store'
+import type { PluginAPIBuilder } from '@vplayer/framework'
 import type {
   EventBus,
   HotkeyRegistry,
   I18n,
   MediaRemote,
   MediaState,
+  PlayerIcons,
   PlayerLabels,
+  PlayerInstance,
   PlayerOptions,
+  SvgIcon,
   Storage,
   SubtitleTrack,
   ThumbnailCue,
@@ -23,34 +27,9 @@ import type {
   SettingRegistration,
 } from '@vplayer/core'
 
-export type { MediaState, MediaRemote, PlayerLabels, PlayerOptions }
+export type { MediaState, MediaRemote, PlayerIcons, PlayerLabels, PlayerOptions, SvgIcon }
 export type { AspectRatioState, ControlRegistration, ContextMenuItem, FlipState, LayerRegistration, PlayerPlugin, PluginAPI, SettingRegistration }
 export type { EventBus, HotkeyRegistry, I18n, Storage, SubtitleTrack, ThumbnailCue }
-
-export type IconComponent = ComponentType<{ size?: number; className?: string; fill?: string }>
-
-export interface PlayerIcons {
-  play: IconComponent
-  pause: IconComponent
-  replay: IconComponent
-  skipBack: IconComponent
-  skipForward: IconComponent
-  volumeHigh: IconComponent
-  volumeLow: IconComponent
-  volumeOff: IconComponent
-  settings: IconComponent
-  pip: IconComponent
-  fullscreen: IconComponent
-  fullscreenExit: IconComponent
-  chevronLeft: IconComponent
-  check: IconComponent
-  spinner: IconComponent
-  screenshot: IconComponent
-  flip: IconComponent
-  aspectRatio: IconComponent
-  info: IconComponent
-  loop: IconComponent
-}
 
 export interface PlayerSlots {
   playButton?: ReactNode
@@ -86,4 +65,6 @@ export interface PlayerContextValue {
   storage: Storage
   i18n: I18n
   hotkeys: HotkeyRegistry
+  instance: PlayerInstance
+  createPluginAPI: PluginAPIBuilder
 }

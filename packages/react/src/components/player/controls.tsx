@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FC, type PointerEvent, type ReactNode } from 'react'
 import clsx from 'clsx'
+import { Icon } from '@iconify/react'
 import { useHover } from '@react-aria/interactions'
 import {
   Button,
@@ -15,7 +16,7 @@ import {
   Tooltip,
   TooltipTrigger,
 } from 'react-aria-components'
-import { useMediaRemote, useMediaState, usePlayerContext } from './context'
+import { usePlayerRemote, usePlayerState, usePlayerContext } from './context'
 import { getThumbnailAtTime, formatTime } from '@vplayer/core'
 
 interface IconButtonProps {
@@ -70,11 +71,11 @@ function IconToggle({ label, tooltip, selected, onChange, children }: IconToggle
 }
 
 export const SeekBar: FC = () => {
-  const currentTime = useMediaState('currentTime')
-  const duration = useMediaState('duration')
-  const bufferedPercent = useMediaState('bufferedPercent')
-  const thumbnailCues = useMediaState('thumbnailCues')
-  const remote = useMediaRemote()
+  const currentTime = usePlayerState('currentTime')
+  const duration = usePlayerState('duration')
+  const bufferedPercent = usePlayerState('bufferedPercent')
+  const thumbnailCues = usePlayerState('thumbnailCues')
+  const remote = usePlayerRemote()
   const [hoverPercent, setHoverPercent] = useState<number | null>(null)
   const [overrideValue, setOverrideValue] = useState<number | null>(null)
 
@@ -157,13 +158,10 @@ export const SeekBar: FC = () => {
 }
 
 export const PlayButton: FC<{ size?: number }> = ({ size = 20 }) => {
-  const isPlaying = useMediaState('isPlaying')
-  const isEnded = useMediaState('isEnded')
+  const isPlaying = usePlayerState('isPlaying')
+  const isEnded = usePlayerState('isEnded')
   const { labels, icons } = usePlayerContext()
-  const remote = useMediaRemote()
-  const ReplayIcon = icons.replay
-  const PlayIcon = icons.play
-  const PauseIcon = icons.pause
+  const remote = usePlayerRemote()
 
   return (
     <IconToggle
@@ -172,33 +170,38 @@ export const PlayButton: FC<{ size?: number }> = ({ size = 20 }) => {
       label={isPlaying ? labels.pause : labels.play}
       tooltip={isPlaying ? `${labels.pause} (k)` : `${labels.play} (k)`}
     >
-      {isEnded ? <ReplayIcon size={size} /> : isPlaying ? <PauseIcon size={size} fill="currentColor" /> : <PlayIcon size={size} fill="currentColor" />}
+      {isEnded
+        ? <Icon icon={icons.replay} width={size} />
+        : <Icon icon={isPlaying ? icons.pause : icons.play} width={size} fill="currentColor" />
+      }
     </IconToggle>
   )
 }
 
 export const SkipButton: FC<{ seconds: number }> = ({ seconds }) => {
   const { icons } = usePlayerContext()
-  const remote = useMediaRemote()
+  const remote = usePlayerRemote()
   const forward = seconds > 0
   const label = forward ? `Skip forward ${seconds}s` : `Skip back ${Math.abs(seconds)}s`
-  const SkipIcon = forward ? icons.skipForward : icons.skipBack
-  return <IconButton label={label} tooltip={label} onPress={() => remote.skip(seconds)}><SkipIcon size={18} /></IconButton>
+  return (
+    <IconButton label={label} tooltip={label} onPress={() => remote.skip(seconds)}>
+      <Icon icon={forward ? icons.skipForward : icons.skipBack} width={18} />
+    </IconButton>
+  )
 }
 
 export const TimeDisplay: FC = () => {
-  const currentTime = useMediaState('currentTime')
-  const duration = useMediaState('duration')
+  const currentTime = usePlayerState('currentTime')
+  const duration = usePlayerState('duration')
   return <span className="vplayer__time">{formatTime(currentTime)} / {formatTime(duration)}</span>
 }
 
 export const VolumeControl: FC = () => {
-  const volume = useMediaState('volume')
-  const isMuted = useMediaState('isMuted')
+  const volume = usePlayerState('volume')
+  const isMuted = usePlayerState('isMuted')
   const { labels, icons } = usePlayerContext()
-  const remote = useMediaRemote()
+  const remote = usePlayerRemote()
   const { hoverProps, isHovered } = useHover({})
-  const VolumeIcon = isMuted || volume === 0 ? icons.volumeOff : volume < 0.5 ? icons.volumeLow : icons.volumeHigh
 
   return (
     <div className="vplayer__volume" {...hoverProps}>
@@ -208,7 +211,7 @@ export const VolumeControl: FC = () => {
         label={isMuted ? labels.unmute : labels.mute}
         tooltip={isMuted ? `${labels.unmute} (m)` : `${labels.mute} (m)`}
       >
-        <VolumeIcon size={16} />
+        <Icon icon={isMuted || volume === 0 ? icons.volumeOff : volume < 0.5 ? icons.volumeLow : icons.volumeHigh} width={16} />
       </IconToggle>
       <div className={clsx('vplayer__volume-slider', isHovered && 'vplayer__volume-slider--visible')}>
         <Slider value={isMuted ? 0 : volume * 100} onChange={(v) => remote.setVolume(v / 100)} minValue={0} maxValue={100} step={1} aria-label="Volume" className="vplayer__volume-slider-track">
@@ -228,26 +231,21 @@ export const VolumeControl: FC = () => {
 
 export const SettingsTrigger: FC = () => {
   const { labels, icons } = usePlayerContext()
-  const remote = useMediaRemote()
-  const playbackRate = useMediaState('playbackRate')
-  const qualities = useMediaState('qualities')
-  const activeQuality = useMediaState('activeQuality')
-  const subtitleTracks = useMediaState('subtitleTracks')
-  const activeSubtitle = useMediaState('activeSubtitle')
-  const flip = useMediaState('flip')
-  const aspectRatio = useMediaState('aspectRatio')
+  const remote = usePlayerRemote()
+  const playbackRate = usePlayerState('playbackRate')
+  const qualities = usePlayerState('qualities')
+  const activeQuality = usePlayerState('activeQuality')
+  const subtitleTracks = usePlayerState('subtitleTracks')
+  const activeSubtitle = usePlayerState('activeSubtitle')
+  const flip = usePlayerState('flip')
+  const aspectRatio = usePlayerState('aspectRatio')
   const [isOpen, setIsOpen] = useState(false)
   const [view, setView] = useState<'main' | 'speed' | 'quality' | 'subtitles' | 'flip' | 'aspectRatio'>('main')
   const speeds = [0.5, 1, 1.25, 1.5, 2]
-  const BackIcon = icons.chevronLeft
-  const CheckIcon = icons.check
-  const SettingsIcon = icons.settings
-  const FlipIcon = icons.flip
-  const AspectRatioIcon = icons.aspectRatio
 
   return (
     <MenuTrigger isOpen={isOpen} onOpenChange={(open) => { setIsOpen(open); if (open) setView('main') }}>
-      <IconButton label={labels.settings} tooltip={labels.settings}><SettingsIcon size={18} /></IconButton>
+      <IconButton label={labels.settings} tooltip={labels.settings}><Icon icon={icons.settings} width={18} /></IconButton>
       <Popover placement="top end" className="vplayer__menu-popover">
         <Menu key={view} className="vplayer__menu" shouldCloseOnSelect={false}>
           {view === 'main' ? (
@@ -255,48 +253,48 @@ export const SettingsTrigger: FC = () => {
               <MenuItem onAction={() => setView('speed')} className="vplayer__menu-item"><span className="vplayer__menu-label">{labels.speed}</span><span className="vplayer__menu-value">{playbackRate}x</span></MenuItem>
               {qualities.length > 0 && <MenuItem onAction={() => setView('quality')} className="vplayer__menu-item"><span className="vplayer__menu-label">{labels.quality}</span><span className="vplayer__menu-value">{activeQuality}</span></MenuItem>}
               {subtitleTracks.length > 0 && <MenuItem onAction={() => setView('subtitles')} className="vplayer__menu-item"><span className="vplayer__menu-label">{labels.subtitles}</span><span className="vplayer__menu-value vplayer__menu-value--truncate">{activeSubtitle?.label ?? labels.off}</span></MenuItem>}
-              <MenuItem onAction={() => setView('flip')} className="vplayer__menu-item"><FlipIcon size={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.flip}</span><span className="vplayer__menu-value">{labels.flipNormal}</span></MenuItem>
-              <MenuItem onAction={() => setView('aspectRatio')} className="vplayer__menu-item"><AspectRatioIcon size={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.aspectRatio}</span><span className="vplayer__menu-value">{labels.aspectRatioDefault}</span></MenuItem>
+              <MenuItem onAction={() => setView('flip')} className="vplayer__menu-item"><Icon icon={icons.flip} width={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.flip}</span><span className="vplayer__menu-value">{labels.flipNormal}</span></MenuItem>
+              <MenuItem onAction={() => setView('aspectRatio')} className="vplayer__menu-item"><Icon icon={icons.aspectRatio} width={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.aspectRatio}</span><span className="vplayer__menu-value">{labels.aspectRatioDefault}</span></MenuItem>
             </>
           ) : view === 'speed' ? (
             <>
-              <MenuItem onAction={() => setView('main')} className="vplayer__menu-item"><BackIcon size={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.speed}</span></MenuItem>
-              {speeds.map((speed) => <MenuItem key={String(speed)} onAction={() => { remote.setPlaybackRate(Number(speed)); setIsOpen(false) }} className="vplayer__menu-item"><span className={playbackRate === speed ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>{speed}x</span>{playbackRate === speed && <CheckIcon size={14} className="vplayer__menu-check" />}</MenuItem>)}
+              <MenuItem onAction={() => setView('main')} className="vplayer__menu-item"><Icon icon={icons.chevronLeft} width={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.speed}</span></MenuItem>
+              {speeds.map((speed) => <MenuItem key={String(speed)} onAction={() => { remote.setPlaybackRate(Number(speed)); setIsOpen(false) }} className="vplayer__menu-item"><span className={playbackRate === speed ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>{speed}x</span>{playbackRate === speed && <Icon icon={icons.check} width={14} className="vplayer__menu-check" />}</MenuItem>)}
             </>
           ) : view === 'quality' ? (
             <>
-              <MenuItem onAction={() => setView('main')} className="vplayer__menu-item"><BackIcon size={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.quality}</span></MenuItem>
-              {qualities.map((q) => <MenuItem key={q} onAction={() => { remote.setActiveQuality(q); setIsOpen(false) }} className="vplayer__menu-item"><span className={activeQuality === q ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>{q}</span>{activeQuality === q && <CheckIcon size={14} className="vplayer__menu-check" />}</MenuItem>)}
+              <MenuItem onAction={() => setView('main')} className="vplayer__menu-item"><Icon icon={icons.chevronLeft} width={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.quality}</span></MenuItem>
+              {qualities.map((q) => <MenuItem key={q} onAction={() => { remote.setActiveQuality(q); setIsOpen(false) }} className="vplayer__menu-item"><span className={activeQuality === q ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>{q}</span>{activeQuality === q && <Icon icon={icons.check} width={14} className="vplayer__menu-check" />}</MenuItem>)}
             </>
           ) : view === 'flip' ? (
             <>
-              <MenuItem onAction={() => setView('main')} className="vplayer__menu-item"><BackIcon size={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.flip}</span></MenuItem>
+              <MenuItem onAction={() => setView('main')} className="vplayer__menu-item"><Icon icon={icons.chevronLeft} width={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.flip}</span></MenuItem>
               {(['normal', 'horizontal', 'vertical'] as const).map((val) => (
                 <MenuItem key={val} onAction={() => { remote.setFlip(val); setIsOpen(false) }} className="vplayer__menu-item">
                   <span className={flip === val ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>
                     {val === 'normal' ? labels.flipNormal : val === 'horizontal' ? labels.flipHorizontal : labels.flipVertical}
                   </span>
-                  {flip === val && <CheckIcon size={14} className="vplayer__menu-check" />}
+                  {flip === val && <Icon icon={icons.check} width={14} className="vplayer__menu-check" />}
                 </MenuItem>
               ))}
             </>
           ) : view === 'aspectRatio' ? (
             <>
-              <MenuItem onAction={() => setView('main')} className="vplayer__menu-item"><BackIcon size={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.aspectRatio}</span></MenuItem>
+              <MenuItem onAction={() => setView('main')} className="vplayer__menu-item"><Icon icon={icons.chevronLeft} width={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.aspectRatio}</span></MenuItem>
               {(['default', '16:9', '4:3', 'fill'] as const).map((val) => (
                 <MenuItem key={val} onAction={() => { remote.setAspectRatio(val); setIsOpen(false) }} className="vplayer__menu-item">
                   <span className={aspectRatio === val ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>
                     {val === 'default' ? labels.aspectRatioDefault : val === '16:9' ? labels.aspectRatio16 : val === '4:3' ? labels.aspectRatio4 : labels.aspectRatioFill}
                   </span>
-                  {aspectRatio === val && <CheckIcon size={14} className="vplayer__menu-check" />}
+                  {aspectRatio === val && <Icon icon={icons.check} width={14} className="vplayer__menu-check" />}
                 </MenuItem>
               ))}
             </>
           ) : (
             <>
-              <MenuItem onAction={() => setView('main')} className="vplayer__menu-item"><BackIcon size={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.subtitles}</span></MenuItem>
-              <MenuItem onAction={() => { remote.setActiveSubtitle(null); setIsOpen(false) }} className="vplayer__menu-item"><span className={!activeSubtitle ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>{labels.off}</span>{!activeSubtitle && <CheckIcon size={14} className="vplayer__menu-check" />}</MenuItem>
-              {subtitleTracks.map((track) => <MenuItem key={track.lang} onAction={() => { remote.setActiveSubtitle(subtitleTracks.find((t) => t.lang === track.lang) ?? null); setIsOpen(false) }} className="vplayer__menu-item"><span className={activeSubtitle?.lang === track.lang ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>{track.label}</span>{activeSubtitle?.lang === track.lang && <CheckIcon size={14} className="vplayer__menu-check" />}</MenuItem>)}
+              <MenuItem onAction={() => setView('main')} className="vplayer__menu-item"><Icon icon={icons.chevronLeft} width={14} className="vplayer__menu-icon" /><span className="vplayer__menu-label">{labels.subtitles}</span></MenuItem>
+              <MenuItem onAction={() => { remote.setActiveSubtitle(null); setIsOpen(false) }} className="vplayer__menu-item"><span className={!activeSubtitle ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>{labels.off}</span>{!activeSubtitle && <Icon icon={icons.check} width={14} className="vplayer__menu-check" />}</MenuItem>
+              {subtitleTracks.map((track) => <MenuItem key={track.lang} onAction={() => { remote.setActiveSubtitle(subtitleTracks.find((t) => t.lang === track.lang) ?? null); setIsOpen(false) }} className="vplayer__menu-item"><span className={activeSubtitle?.lang === track.lang ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>{track.label}</span>{activeSubtitle?.lang === track.lang && <Icon icon={icons.check} width={14} className="vplayer__menu-check" />}</MenuItem>)}
             </>
           )}
         </Menu>
@@ -307,16 +305,14 @@ export const SettingsTrigger: FC = () => {
 
 export const PiPButton: FC = () => {
   const { labels, icons } = usePlayerContext()
-  const remote = useMediaRemote()
+  const remote = usePlayerRemote()
   const active = typeof document !== 'undefined' && !!document.pictureInPictureElement
-  const PipIcon = icons.pip
-  return <IconToggle selected={active} onChange={remote.togglePiP} label={active ? labels.pipExit : labels.pip} tooltip={active ? labels.pipExit : labels.pip}><PipIcon size={16} /></IconToggle>
+  return <IconToggle selected={active} onChange={remote.togglePiP} label={active ? labels.pipExit : labels.pip} tooltip={active ? labels.pipExit : labels.pip}><Icon icon={icons.pip} width={16} /></IconToggle>
 }
 
 export const FullscreenButton: FC = () => {
-  const isFullscreen = useMediaState('isFullscreen')
+  const isFullscreen = usePlayerState('isFullscreen')
   const { labels, icons } = usePlayerContext()
-  const remote = useMediaRemote()
-  const Icon = isFullscreen ? icons.fullscreenExit : icons.fullscreen
-  return <IconToggle selected={isFullscreen} onChange={remote.toggleFullscreen} label={isFullscreen ? labels.fullscreenExit : labels.fullscreen} tooltip={isFullscreen ? `${labels.fullscreenExit} (f)` : `${labels.fullscreen} (f)`}><Icon size={18} /></IconToggle>
+  const remote = usePlayerRemote()
+  return <IconToggle selected={isFullscreen} onChange={remote.toggleFullscreen} label={isFullscreen ? labels.fullscreenExit : labels.fullscreen} tooltip={isFullscreen ? `${labels.fullscreenExit} (f)` : `${labels.fullscreen} (f)`}><Icon icon={isFullscreen ? icons.fullscreenExit : icons.fullscreen} width={18} /></IconToggle>
 }

@@ -1,9 +1,9 @@
 import { useCallback, type FC } from 'react'
 import { Button } from 'react-aria-components'
-import { useMediaState, usePlayerContext } from '../context'
+import { usePlayerState, usePlayerContext } from '../context'
 
 export const ErrorOverlay: FC = () => {
-  const error = useMediaState('error')
+  const error = usePlayerState('error')
   const { labels, videoRef } = usePlayerContext()
 
   const handleRetry = useCallback(() => {

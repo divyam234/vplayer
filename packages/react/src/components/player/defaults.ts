@@ -1,46 +1,8 @@
-import {
-  Camera,
-  Check,
-  ChevronLeft,
-  FlipHorizontal2,
-  Info,
-  Loader2,
-  Maximize,
-  Minimize,
-  Monitor,
-  Pause,
-  PictureInPicture2,
-  Play,
-  Repeat,
-  RotateCcw,
-  Settings2,
-  SkipBack,
-  SkipForward,
-  Volume1,
-  Volume2,
-  VolumeX,
-} from 'lucide-react'
-import type { PlayerIcons } from './types'
-
-export const defaultPlayerIcons: PlayerIcons = {
-  play: Play,
-  pause: Pause,
-  replay: RotateCcw,
-  skipBack: SkipBack,
-  skipForward: SkipForward,
-  volumeHigh: Volume2,
-  volumeLow: Volume1,
-  volumeOff: VolumeX,
-  settings: Settings2,
-  pip: PictureInPicture2,
-  fullscreen: Maximize,
-  fullscreenExit: Minimize,
-  chevronLeft: ChevronLeft,
-  check: Check,
-  spinner: Loader2,
-  screenshot: Camera,
-  flip: FlipHorizontal2,
-  aspectRatio: Monitor,
-  info: Info,
-  loop: Repeat,
-}
+/**
+ * React-specific defaults.
+ *
+ * Note: defaultPlayerLabels and defaultPlayerIcons live in @vplayer/core
+ * as framework-agnostic plain data (strings + Iconify icon IDs).
+ * Re-export them here so consumers can import from @vplayer/react.
+ */
+export { defaultPlayerLabels, defaultPlayerIcons } from '@vplayer/core'

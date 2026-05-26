@@ -2,28 +2,28 @@
  * Renders plugin-registered controls, settings, and layers.
  */
 import { useEffect, useState, type FC } from 'react'
-import { useMediaState, usePluginAPI } from './context'
+import { usePlayerState, usePluginAPI } from './context'
 import type { ControlRegistration, LayerRegistration, PluginAPI, SettingRegistration } from '@vplayer/core'
 
 // ── Plugin Controls ───────────────────────────────────────────
 
 export const PluginControlsLeft: FC = () => {
-  const controls = useMediaState('controls')
+  const controls = usePlayerState('controls')
   return <>{controls.filter((c) => c.position === 'left').sort(byIndex).map(renderControl)}</>
 }
 
 export const PluginControlsRight: FC = () => {
-  const controls = useMediaState('controls')
+  const controls = usePlayerState('controls')
   return <>{controls.filter((c) => c.position === 'right').sort(byIndex).map(renderControl)}</>
 }
 
 export const PluginControlsTop: FC = () => {
-  const controls = useMediaState('controls')
+  const controls = usePlayerState('controls')
   return <>{controls.filter((c) => c.position === 'top').sort(byIndex).map(renderControl)}</>
 }
 
 export const PluginControlsCenter: FC = () => {
-  const controls = useMediaState('controls')
+  const controls = usePlayerState('controls')
   return <>{controls.filter((c) => c.position === 'center').sort(byIndex).map(renderControl)}</>
 }
 
@@ -44,7 +44,7 @@ function renderControl(def: ControlRegistration) {
 // ── Plugin Layers ─────────────────────────────────────────────
 
 export const PluginLayers: FC = () => {
-  const layers = useMediaState('layers')
+  const layers = usePlayerState('layers')
   if (layers.length === 0) return null
   const api = usePluginAPI()
   return (
@@ -60,7 +60,7 @@ export const PluginLayers: FC = () => {
 // ── Plugin Settings ───────────────────────────────────────────
 
 export const PluginSettings: FC = () => {
-  const settings = useMediaState('settings')
+  const settings = usePlayerState('settings')
   if (settings.length === 0) return null
   const api = usePluginAPI()
   return (
@@ -79,7 +79,7 @@ export const PluginSettings: FC = () => {
 // ── Notification (Notice) Overlay ─────────────────────────────
 
 export const NotificationOverlay: FC = () => {
-  const notification = useMediaState('notification')
+  const notification = usePlayerState('notification')
   const store = usePluginAPI().store
   const [visible, setVisible] = useState(false)
 

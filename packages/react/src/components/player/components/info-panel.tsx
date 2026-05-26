@@ -1,5 +1,5 @@
 import { useEffect, useState, type FC } from 'react'
-import { useMediaState, usePlayerContext } from '../context'
+import { usePlayerState, usePlayerContext } from '../context'
 
 const NETWORK_LABELS = ['Empty', 'Idle', 'Loading', 'No Source'] as const
 
@@ -18,8 +18,8 @@ interface VideoMeta {
  * monospace grid.
  */
 export const InfoPanel: FC = () => {
-  const state = useMediaState()
-  const infoPanelVisible = useMediaState('infoPanelVisible')
+  const state = usePlayerState()
+  const infoPanelVisible = usePlayerState('infoPanelVisible')
   const { videoRef } = usePlayerContext()
 
   if (!infoPanelVisible) return null

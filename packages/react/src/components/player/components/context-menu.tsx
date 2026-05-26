@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type FC } from 'react'
 import { Button } from 'react-aria-components'
-import { useMediaRemote, useMediaState, usePlayerContext } from '../context'
+import { usePlayerRemote, usePlayerState, usePlayerContext } from '../context'
 import type { ContextMenuItem } from '@vplayer/core'
 
 export const ContextMenu: FC = () => {
-  const isPlaying = useMediaState('isPlaying')
-  const isLooping = useMediaState('isLooping')
-  const contextMenuItems = (useMediaState('contextMenuItems') ?? []) as ContextMenuItem[]
-  const contextMenuEnabled = useMediaState('contextMenuEnabled') !== false
+  const isPlaying = usePlayerState('isPlaying')
+  const isLooping = usePlayerState('isLooping')
+  const contextMenuItems = (usePlayerState('contextMenuItems') ?? []) as ContextMenuItem[]
+  const contextMenuEnabled = usePlayerState('contextMenuEnabled') !== false
   const { labels } = usePlayerContext()
-  const remote = useMediaRemote()
+  const remote = usePlayerRemote()
   const containerRef = usePlayerContext().containerRef
   const menuRef = useRef<HTMLDivElement>(null)
 
