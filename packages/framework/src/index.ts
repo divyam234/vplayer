@@ -34,8 +34,4 @@ export type { PluginAPIBuilder, PluginAPIContext } from './plugin-api'
 export { mergeLabels, mergeIcons } from './merge'
 export type { DeepPartial } from './merge'
 
-export type {
-  UsePlayerResult,
-  FrameworkComponent,
-  AdapterContextValue,
-} from './types'
+export type { UsePlayerResult, FrameworkComponent, AdapterContextValue } from './types'

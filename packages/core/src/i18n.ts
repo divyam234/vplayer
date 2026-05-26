@@ -92,7 +92,7 @@ export class I18n {
   /** Add or override translations for a language */
   addTranslations(lang: string, dict: LanguageDict): void {
     const code = lang.toLowerCase()
-    this.languages[code] = { ...(this.languages[code] ?? {}), ...dict }
+    this.languages[code] = { ...this.languages[code], ...dict }
     if (code === this.currentLang) {
       this.currentDict = this.languages[code]
     }

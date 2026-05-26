@@ -21,7 +21,7 @@
  */
 
 import { createPluginAPIBuilder } from '@vplayer/framework'
-import type { PluginAPIBuilder, PluginAPIContext } from '@vplayer/framework'
+import type { PluginAPIBuilder } from '@vplayer/framework'
 
 const buildAPI = createPluginAPIBuilder()
 

@@ -36,9 +36,7 @@ export function parseSRT(content: string): SubtitleCue[] {
       const index = Number.parseInt(lines[0], 10)
       if (Number.isNaN(index)) return null
 
-      const timeMatch = lines[1].match(
-        /(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/,
-      )
+      const timeMatch = lines[1].match(/(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/)
       if (!timeMatch) return null
 
       const text = lines.slice(2).join('\n')
@@ -73,9 +71,7 @@ export function parseVTT(content: string): SubtitleCue[] {
       const timeLineIndex = lines.findIndex((l) => l.includes('-->'))
       if (timeLineIndex === -1) return null
 
-      const timeMatch = lines[timeLineIndex].match(
-        /(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/,
-      )
+      const timeMatch = lines[timeLineIndex].match(/(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/)
       if (!timeMatch) return null
 
       const textLines = lines.slice(timeLineIndex + 1).filter((l) => !l.startsWith(''))
@@ -93,9 +89,7 @@ export function parseVTT(content: string): SubtitleCue[] {
 }
 
 /** Fetch and parse subtitles from URL */
-export async function fetchSubtitles(
-  track: SubtitleTrack,
-): Promise<SubtitleCue[]> {
+export async function fetchSubtitles(track: SubtitleTrack): Promise<SubtitleCue[]> {
   const resp = await fetch(track.src)
   const text = await resp.text()
 
@@ -106,10 +100,7 @@ export async function fetchSubtitles(
 }
 
 /** Get active cue at a given time */
-export function getActiveCue(
-  cues: SubtitleCue[],
-  time: number,
-): SubtitleCue | null {
+export function getActiveCue(cues: SubtitleCue[], time: number): SubtitleCue | null {
   // Binary search for efficiency
   let lo = 0
   let hi = cues.length - 1
@@ -171,9 +162,7 @@ export function parseThumbnailVTT(content: string): ThumbnailCue[] {
       const timeLineIndex = lines.findIndex((l) => l.includes('-->'))
       if (timeLineIndex === -1) return null
 
-      const timeMatch = lines[timeLineIndex].match(
-        /(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/,
-      )
+      const timeMatch = lines[timeLineIndex].match(/(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/)
       if (!timeMatch) return null
 
       const urlLine = lines.slice(timeLineIndex + 1).find((l) => l.trim().length > 0)
@@ -203,10 +192,7 @@ export async function fetchThumbnails(url: string): Promise<ThumbnailCue[]> {
 }
 
 /** Find the matching thumbnail cue for a given time */
-export function getThumbnailAtTime(
-  cues: ThumbnailCue[],
-  time: number,
-): ThumbnailCue | null {
+export function getThumbnailAtTime(cues: ThumbnailCue[], time: number): ThumbnailCue | null {
   if (cues.length === 0) return null
   let lo = 0
   let hi = cues.length - 1

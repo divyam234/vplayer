@@ -1,7 +1,8 @@
+import type { ContextMenuItem } from '@vplayer/core'
 import { useCallback, useEffect, useRef, useState, type FC } from 'react'
 import { Button } from 'react-aria-components'
+
 import { usePlayerRemote, usePlayerState, usePlayerContext } from '../context'
-import type { ContextMenuItem } from '@vplayer/core'
 
 export const ContextMenu: FC = () => {
   const isPlaying = usePlayerState('isPlaying')
@@ -62,11 +63,15 @@ export const ContextMenu: FC = () => {
   const builtInItems: ContextMenuItem[] = [
     {
       label: isPlaying ? labels.contextMenuPause : labels.contextMenuPlay,
-      onAction: () => { remote.togglePlay() },
+      onAction: () => {
+        remote.togglePlay()
+      },
     },
     {
       label: `${isLooping ? '✓ ' : ''}${labels.contextMenuLoop}`,
-      onAction: () => { remote.toggleLoop() },
+      onAction: () => {
+        remote.toggleLoop()
+      },
     },
   ]
 
@@ -93,7 +98,9 @@ export const ContextMenu: FC = () => {
         outline: 'none',
       }}
       role="menu"
-      onKeyDown={(e) => { if (e.key === 'Escape') close() }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') close()
+      }}
     >
       {allItems.map((item, i) =>
         item.separator ? (
@@ -106,9 +113,12 @@ export const ContextMenu: FC = () => {
         ) : (
           <Button
             key={`item-${i}`}
-            className="vplayer__contextmenu-item flex w-full items-center rounded-md px-2.5 py-1.5 text-sm text-white/80 outline-none transition-colors hover:bg-white/10 data-[focused]:bg-white/10"
+            className="vplayer__contextmenu-item flex w-full items-center rounded-md px-2.5 py-1.5 text-sm text-white/80 transition-colors outline-none hover:bg-white/10 data-[focused]:bg-white/10"
             isDisabled={item.disabled}
-            onPress={() => { item.onAction(); close() }}
+            onPress={() => {
+              item.onAction()
+              close()
+            }}
             style={{ cursor: item.disabled ? 'default' : 'pointer' }}
           >
             {item.label}

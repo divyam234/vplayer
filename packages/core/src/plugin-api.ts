@@ -1,4 +1,5 @@
 import type { Store } from '@tanstack/store'
+
 import type { EventBus } from './event-bus'
 import type { HotkeyRegistry, HotkeyBinding } from './hotkey-registry'
 import type { I18n } from './i18n'
@@ -31,7 +32,7 @@ export interface ControlRegistration {
   name: string
   position: 'left' | 'right' | 'top' | 'center'
   index: number
-  render: unknown  // Framework-specific component, cast by adapter
+  render: unknown // Framework-specific component, cast by adapter
 }
 
 export interface SettingItem {
@@ -43,12 +44,12 @@ export interface SettingRegistration {
   name: string
   label: string
   items?: SettingItem[]
-  render?: unknown  // Framework-specific component, cast by adapter
+  render?: unknown // Framework-specific component, cast by adapter
 }
 
 export interface LayerRegistration {
   name: string
-  render: unknown  // Framework-specific component, cast by adapter
+  render: unknown // Framework-specific component, cast by adapter
 }
 
 export interface ContextMenuItem {

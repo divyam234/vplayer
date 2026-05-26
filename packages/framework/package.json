@@ -11,11 +11,11 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@tanstack/store": "^0.7.0",
+    "@vplayer/core": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "^6.0.2"
-  },
-  "dependencies": {
-    "@vplayer/core": "workspace:*",
-    "@tanstack/store": "^0.7.0"
   }
 }

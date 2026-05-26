@@ -1,12 +1,13 @@
 import { Store } from '@tanstack/store'
+
 import { EventBus } from './event-bus'
 import { HotkeyRegistry } from './hotkey-registry'
 import { I18n } from './i18n'
+import type { PluginAPI, PlayerPlugin, ContextMenuItem, FlipState, AspectRatioState, RemoteRef } from './plugin-api'
 import { Storage, STORAGE_KEYS } from './storage'
 import { fetchThumbnails } from './subtitle-parser'
-import type { PlayerOptions, MediaState, MediaRemote, PlayerInstance } from './types'
-import type { PluginAPI, PlayerPlugin, ContextMenuItem, FlipState, AspectRatioState, RemoteRef } from './plugin-api'
 import type { SubtitleTrack } from './subtitle-parser'
+import type { PlayerOptions, MediaState, MediaRemote, PlayerInstance } from './types'
 
 function createMediaStore(options: PlayerOptions): Store<MediaState> {
   return new Store<MediaState>({
@@ -53,16 +54,88 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
   // ── Register default keyboard shortcuts ────────────────────
   function registerDefaultHotkeys(): void {
-    hotkeys.register({ key: 'Space', description: 'Toggle play/pause', handler: (e) => { e.preventDefault(); remote.togglePlay() } })
-    hotkeys.register({ key: 'KeyK', description: 'Toggle play/pause', handler: (e) => { e.preventDefault(); remote.togglePlay() } })
-    hotkeys.register({ key: 'KeyL', description: 'Toggle loop', handler: (e) => { e.preventDefault(); remote.toggleLoop() } })
-    hotkeys.register({ key: 'KeyI', description: 'Toggle info panel', handler: (e) => { e.preventDefault(); remote.toggleInfoPanel() } })
-    hotkeys.register({ key: 'KeyF', description: 'Toggle fullscreen', handler: (e) => { e.preventDefault(); remote.toggleFullscreen() } })
-    hotkeys.register({ key: 'KeyM', description: 'Toggle mute', handler: (e) => { e.preventDefault(); remote.toggleMute() } })
-    hotkeys.register({ key: 'ArrowLeft', description: 'Seek backward 5s', handler: (e) => { e.preventDefault(); remote.skip(-5) } })
-    hotkeys.register({ key: 'ArrowRight', description: 'Seek forward 5s', handler: (e) => { e.preventDefault(); remote.skip(5) } })
-    hotkeys.register({ key: 'ArrowUp', description: 'Volume up 10%', handler: (e) => { e.preventDefault(); const v = Math.min(1, store.state.volume + 0.1); remote.setVolume(v) } })
-    hotkeys.register({ key: 'ArrowDown', description: 'Volume down 10%', handler: (e) => { e.preventDefault(); const v = Math.max(0, store.state.volume - 0.1); remote.setVolume(v) } })
+    hotkeys.register({
+      key: 'Space',
+      description: 'Toggle play/pause',
+      handler: (e) => {
+        e.preventDefault()
+        remote.togglePlay()
+      },
+    })
+    hotkeys.register({
+      key: 'KeyK',
+      description: 'Toggle play/pause',
+      handler: (e) => {
+        e.preventDefault()
+        remote.togglePlay()
+      },
+    })
+    hotkeys.register({
+      key: 'KeyL',
+      description: 'Toggle loop',
+      handler: (e) => {
+        e.preventDefault()
+        remote.toggleLoop()
+      },
+    })
+    hotkeys.register({
+      key: 'KeyI',
+      description: 'Toggle info panel',
+      handler: (e) => {
+        e.preventDefault()
+        remote.toggleInfoPanel()
+      },
+    })
+    hotkeys.register({
+      key: 'KeyF',
+      description: 'Toggle fullscreen',
+      handler: (e) => {
+        e.preventDefault()
+        remote.toggleFullscreen()
+      },
+    })
+    hotkeys.register({
+      key: 'KeyM',
+      description: 'Toggle mute',
+      handler: (e) => {
+        e.preventDefault()
+        remote.toggleMute()
+      },
+    })
+    hotkeys.register({
+      key: 'ArrowLeft',
+      description: 'Seek backward 5s',
+      handler: (e) => {
+        e.preventDefault()
+        remote.skip(-5)
+      },
+    })
+    hotkeys.register({
+      key: 'ArrowRight',
+      description: 'Seek forward 5s',
+      handler: (e) => {
+        e.preventDefault()
+        remote.skip(5)
+      },
+    })
+    hotkeys.register({
+      key: 'ArrowUp',
+      description: 'Volume up 10%',
+      handler: (e) => {
+        e.preventDefault()
+        const v = Math.min(1, store.state.volume + 0.1)
+        remote.setVolume(v)
+      },
+    })
+    hotkeys.register({
+      key: 'ArrowDown',
+      description: 'Volume down 10%',
+      handler: (e) => {
+        e.preventDefault()
+        const v = Math.max(0, store.state.volume - 0.1)
+        remote.setVolume(v)
+      },
+    })
   }
   if (options.defaultHotkeys !== false) {
     registerDefaultHotkeys()
@@ -81,8 +154,12 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
   // ── Remote commands ───────────────────────────────────────
   const remote: MediaRemote = {
-    play: () => { videoEl?.play().catch(() => {}) },
-    pause: () => { videoEl?.pause() },
+    play: () => {
+      videoEl?.play().catch(() => {})
+    },
+    pause: () => {
+      videoEl?.pause()
+    },
     togglePlay: () => {
       if (!videoEl) return
       if (videoEl.paused || videoEl.ended) {
@@ -91,7 +168,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
         videoEl.pause()
       }
     },
-    seek: (time: number) => { if (videoEl) videoEl.currentTime = time },
+    seek: (time: number) => {
+      if (videoEl) videoEl.currentTime = time
+    },
     skip: (seconds: number) => {
       if (!videoEl) return
       const newTime = Math.max(0, Math.min(videoEl.currentTime + seconds, videoEl.duration || 0))
@@ -192,13 +271,17 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   const videoHandlers = {
     onPlay: () => {
       store.setState((prev) => ({
-        ...prev, isPlaying: true, isPaused: false, isEnded: false,
+        ...prev,
+        isPlaying: true,
+        isPaused: false,
+        isEnded: false,
         // Clear error on successful play (e.g. after reconnect)
         error: null,
       }))
       reconnectAttempt = 0
     },
-    onPause: () => store.setState((prev) => ({ ...prev, isPlaying: false, isPaused: !prev.isEnded, controlsVisible: true })),
+    onPause: () =>
+      store.setState((prev) => ({ ...prev, isPlaying: false, isPaused: !prev.isEnded, controlsVisible: true })),
     onEnded: () => {
       store.setState((prev) => ({ ...prev, isPlaying: false, isPaused: false, isEnded: true, controlsVisible: true }))
       options.onEnded?.()
@@ -367,29 +450,52 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       hotkeys,
       i18n,
       context: {
-        containerRef: { get current() { return containerEl } },
-        videoRef: { get current() { return videoEl } },
+        containerRef: {
+          get current() {
+            return containerEl
+          },
+        },
+        videoRef: {
+          get current() {
+            return videoEl
+          },
+        },
       },
       addControl: (def) => {
         store.setState((prev) => ({ ...prev, controls: [...prev.controls.filter((c) => c.name !== def.name), def] }))
-        return () => { store.setState((prev) => ({ ...prev, controls: prev.controls.filter((c) => c.name !== def.name) })) }
+        return () => {
+          store.setState((prev) => ({ ...prev, controls: prev.controls.filter((c) => c.name !== def.name) }))
+        }
       },
-      removeControl: (name) => { store.setState((prev) => ({ ...prev, controls: prev.controls.filter((c) => c.name !== name) })) },
+      removeControl: (name) => {
+        store.setState((prev) => ({ ...prev, controls: prev.controls.filter((c) => c.name !== name) }))
+      },
       addSetting: (def) => {
         store.setState((prev) => ({ ...prev, settings: [...prev.settings.filter((s) => s.name !== def.name), def] }))
-        return () => { store.setState((prev) => ({ ...prev, settings: prev.settings.filter((s) => s.name !== def.name) })) }
+        return () => {
+          store.setState((prev) => ({ ...prev, settings: prev.settings.filter((s) => s.name !== def.name) }))
+        }
       },
-      removeSetting: (name) => { store.setState((prev) => ({ ...prev, settings: prev.settings.filter((s) => s.name !== name) })) },
+      removeSetting: (name) => {
+        store.setState((prev) => ({ ...prev, settings: prev.settings.filter((s) => s.name !== name) }))
+      },
       addLayer: (def) => {
         store.setState((prev) => ({ ...prev, layers: [...prev.layers.filter((l) => l.name !== def.name), def] }))
-        return () => { store.setState((prev) => ({ ...prev, layers: prev.layers.filter((l) => l.name !== def.name) })) }
+        return () => {
+          store.setState((prev) => ({ ...prev, layers: prev.layers.filter((l) => l.name !== def.name) }))
+        }
       },
-      removeLayer: (name) => { store.setState((prev) => ({ ...prev, layers: prev.layers.filter((l) => l.name !== name) })) },
+      removeLayer: (name) => {
+        store.setState((prev) => ({ ...prev, layers: prev.layers.filter((l) => l.name !== name) }))
+      },
       addHotkey: (binding) => hotkeys.register({ ...binding }),
       addContextMenuItems: (items: ContextMenuItem[]) => {
         store.setState((prev) => ({ ...prev, contextMenuItems: [...prev.contextMenuItems, ...items] }))
         return () => {
-          store.setState((prev) => ({ ...prev, contextMenuItems: prev.contextMenuItems.filter((existing) => !items.includes(existing)) }))
+          store.setState((prev) => ({
+            ...prev,
+            contextMenuItems: prev.contextMenuItems.filter((existing) => !items.includes(existing)),
+          }))
         }
       },
       notify: (message, duration = 3000) => {
@@ -417,14 +523,14 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
           subtitleTracks,
           qualities,
           activeSubtitle: opts.subtitles
-            ? (
-                prev.activeSubtitle && opts.subtitles.some((t) => t.lang === prev.activeSubtitle!.lang)
-                  ? prev.activeSubtitle
-                  : opts.subtitles.find((s) => s.default) ?? opts.subtitles[0] ?? null
-              )
+            ? prev.activeSubtitle && opts.subtitles.some((t) => t.lang === prev.activeSubtitle!.lang)
+              ? prev.activeSubtitle
+              : (opts.subtitles.find((s) => s.default) ?? opts.subtitles[0] ?? null)
             : prev.activeSubtitle,
           activeQuality: opts.qualities
-            ? (opts.qualities.includes(prev.activeQuality) ? prev.activeQuality : opts.qualities[0] ?? 'Auto')
+            ? opts.qualities.includes(prev.activeQuality)
+              ? prev.activeQuality
+              : (opts.qualities[0] ?? 'Auto')
             : prev.activeQuality,
         }
       })
@@ -448,7 +554,11 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       events.emit('pluginregistered')
       return () => {
         for (const cleanup of cleanups) {
-          try { cleanup() } catch (e) { console.error('[vplayer] plugin cleanup error:', e) }
+          try {
+            cleanup()
+          } catch (e) {
+            console.error('[vplayer] plugin cleanup error:', e)
+          }
         }
       }
     },

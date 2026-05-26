@@ -1,7 +1,6 @@
 {
   "name": "vplayer-workspace",
   "private": true,
-  "packageManager": "bun@1.2.15",
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -9,10 +8,17 @@
   "scripts": {
     "dev": "bun run --filter @vplayer/demo dev",
     "build": "bun run --filter @vplayer/core build && bun run --filter @vplayer/react build && bun run --filter @vplayer/demo build",
-    "typecheck": "bun run --filter @vplayer/core typecheck && bun run --filter @vplayer/framework typecheck && bun run --filter @vplayer/react typecheck && bun run --filter @vplayer/demo typecheck"
+    "typecheck": "bun run --filter @vplayer/core typecheck && bun run --filter @vplayer/framework typecheck && bun run --filter @vplayer/react typecheck && bun run --filter @vplayer/demo typecheck",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
+    "oxfmt": "^0.52.0",
+    "oxlint": "^1.67.0",
     "tailwindcss": "^4.1.18"
-  }
+  },
+  "packageManager": "bun@1.2.15"
 }

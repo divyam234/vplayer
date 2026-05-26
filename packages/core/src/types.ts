@@ -1,9 +1,8 @@
 import type { Store } from '@tanstack/store'
+
 import type { EventBus } from './event-bus'
 import type { HotkeyRegistry } from './hotkey-registry'
 import type { I18n } from './i18n'
-import type { Storage } from './storage'
-import type { SubtitleTrack, ThumbnailCue } from './subtitle-parser'
 import type { PlayerPlugin } from './plugin-api'
 import type {
   AspectRatioState,
@@ -13,6 +12,8 @@ import type {
   LayerRegistration,
   SettingRegistration,
 } from './plugin-api'
+import type { Storage } from './storage'
+import type { SubtitleTrack, ThumbnailCue } from './subtitle-parser'
 
 // ── Icon types (framework-agnostic) ─────────────────────────
 //

@@ -1,6 +1,4 @@
-import type { ComponentType, ReactNode, RefObject } from 'react'
 import type { Store } from '@tanstack/store'
-import type { PluginAPIBuilder } from '@vplayer/framework'
 import type {
   EventBus,
   HotkeyRegistry,
@@ -26,9 +24,20 @@ import type {
   PluginAPI,
   SettingRegistration,
 } from '@vplayer/core'
+import type { PluginAPIBuilder } from '@vplayer/framework'
+import type { ReactNode, RefObject } from 'react'
 
 export type { MediaState, MediaRemote, PlayerIcons, PlayerLabels, PlayerOptions, SvgIcon }
-export type { AspectRatioState, ControlRegistration, ContextMenuItem, FlipState, LayerRegistration, PlayerPlugin, PluginAPI, SettingRegistration }
+export type {
+  AspectRatioState,
+  ControlRegistration,
+  ContextMenuItem,
+  FlipState,
+  LayerRegistration,
+  PlayerPlugin,
+  PluginAPI,
+  SettingRegistration,
+}
 export type { EventBus, HotkeyRegistry, I18n, Storage, SubtitleTrack, ThumbnailCue }
 
 export interface PlayerSlots {

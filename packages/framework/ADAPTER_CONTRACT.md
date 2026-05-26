@@ -20,16 +20,17 @@ Creates a `PlayerInstance`, wires it to framework lifecycle, returns reactive st
 ```ts
 // CONTRACT — every adapter exports this
 function usePlayer(options: PlayerOptions): {
-  state: MediaState       // reactive — changes trigger re-render
-  remote: MediaRemote     // stable — never changes identity
+  state: MediaState // reactive — changes trigger re-render
+  remote: MediaRemote // stable — never changes identity
   attach(el, video): void // call after DOM is ready
-  detach(): void          // unbind without destroying
-  use(plugin): void       // register & init plugin
+  detach(): void // unbind without destroying
+  use(plugin): void // register & init plugin
   instance: PlayerInstance // escape hatch
 }
 ```
 
 #### React
+
 ```ts
 function usePlayer(options: PlayerOptions) {
   const [state, setState] = useState(initialState)
@@ -50,6 +51,7 @@ function usePlayer(options: PlayerOptions) {
 ```
 
 #### Vue
+
 ```ts
 function usePlayer(options: PlayerOptions) {
   const player = createPlayer(options)
@@ -69,6 +71,7 @@ function usePlayer(options: PlayerOptions) {
 ```
 
 #### Svelte
+
 ```ts
 function usePlayer(options: PlayerOptions) {
   const player = createPlayer(options)
@@ -81,6 +84,7 @@ function usePlayer(options: PlayerOptions) {
 ```
 
 #### Solid
+
 ```ts
 function usePlayer(options: PlayerOptions) {
   const player = createPlayer(options)
@@ -95,12 +99,12 @@ function usePlayer(options: PlayerOptions) {
 
 Selective subscription to the store. Returns only the slice you need.
 
-| Framework | Implementation |
-|---|---|
-| React | `useSyncExternalStore(store.subscribe, () => selector(store.state))` |
-| Vue | `computed(() => selector(store.state))` |
-| Svelte | `derived(store, s => selector(s))` |
-| Solid | `createMemo(() => selector(store.state))` |
+| Framework | Implementation                                                       |
+| --------- | -------------------------------------------------------------------- |
+| React     | `useSyncExternalStore(store.subscribe, () => selector(store.state))` |
+| Vue       | `computed(() => selector(store.state))`                              |
+| Svelte    | `derived(store, s => selector(s))`                                   |
+| Solid     | `createMemo(() => selector(store.state))`                            |
 
 ### 3. `usePlayerRemote()` — Stable command dispatcher
 
@@ -143,12 +147,12 @@ function usePlayerGestures(): GestureHandlers {
 Makes the player instance and resolved config available to all descendant
 components.
 
-| Framework | Implementation |
-|---|---|
-| React | `createContext` + `<Provider>` + `useContext` |
-| Vue | `provide('player', ...)` + `inject('player')` |
-| Svelte | `setContext('player', ...)` + `getContext('player')` |
-| Solid | `createContext` + `<Provider>` + `useContext` |
+| Framework | Implementation                                       |
+| --------- | ---------------------------------------------------- |
+| React     | `createContext` + `<Provider>` + `useContext`        |
+| Vue       | `provide('player', ...)` + `inject('player')`        |
+| Svelte    | `setContext('player', ...)` + `getContext('player')` |
+| Solid     | `createContext` + `<Provider>` + `useContext`        |
 
 The provider **owns the player lifecycle** — it calls `usePlayer`, then provides
 the result via context.
@@ -183,6 +187,7 @@ const api = buildPluginAPI(plugin.name, {
 - **Label/icon merging** — `mergeLabels()`, `mergeIcons()` from `@vplayer/framework`
 
 You ONLY build:
+
 1. The 6 bridges above (~150 lines total)
 2. UI components (framework-native, same as any app)
 

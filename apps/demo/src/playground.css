@@ -1,6 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap');
 
-*, *::before, *::after { box-sizing: border-box; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
 :root {
   --bg-base: oklch(0.045 0.005 280);
@@ -19,7 +23,12 @@
   --radius-xl: 28px;
 }
 
-html, body, #root { min-height: 100%; margin: 0; }
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
 
 body {
   overflow: auto;
@@ -63,8 +72,9 @@ body::after {
   left: -20%;
   width: 140%;
   height: 100%;
-  background: radial-gradient(ellipse at 30% 20%, oklch(0.72 0.11 75 / 0.06), transparent 60%),
-              radial-gradient(ellipse at 70% 0%, oklch(0.5 0.08 280 / 0.08), transparent 50%);
+  background:
+    radial-gradient(ellipse at 30% 20%, oklch(0.72 0.11 75 / 0.06), transparent 60%),
+    radial-gradient(ellipse at 70% 0%, oklch(0.5 0.08 280 / 0.08), transparent 50%);
   pointer-events: none;
   z-index: -1;
 }
@@ -191,14 +201,25 @@ body::after {
 }
 
 @media (max-width: 900px) {
-  .controls-grid { grid-template-columns: 1fr; }
-  .demo-shell { padding: 0 16px 32px; }
-  .demo-header { margin-bottom: 32px; }
+  .controls-grid {
+    grid-template-columns: 1fr;
+  }
+  .demo-shell {
+    padding: 0 16px 32px;
+  }
+  .demo-header {
+    margin-bottom: 32px;
+  }
 }
 
 @media (max-width: 600px) {
-  .demo-header { flex-wrap: wrap; gap: 8px; }
-  .demo-brand-text { font-size: 18px; }
+  .demo-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .demo-brand-text {
+    font-size: 18px;
+  }
 }
 
 /* ─── Panel ─── */
@@ -240,7 +261,9 @@ body::after {
   font-size: 13px;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .rac-input:focus {
@@ -267,8 +290,12 @@ body::after {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.config-row:last-child { border-bottom: none; }
-.config-row:hover { color: var(--fg-primary); }
+.config-row:last-child {
+  border-bottom: none;
+}
+.config-row:hover {
+  color: var(--fg-primary);
+}
 
 /* ─── RAC Switch track ─── */
 .switch-track {
@@ -280,7 +307,9 @@ body::after {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .config-row[data-selected] .switch-track {
@@ -356,6 +385,12 @@ body::after {
 }
 
 @keyframes eventIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -1,30 +1,59 @@
+import type { ControlRegistration, PluginAPI } from '@vplayer/core'
 /**
  * Renders plugin-registered controls, settings, and layers.
  */
 import { useEffect, useState, type FC } from 'react'
+
 import { usePlayerState, usePluginAPI } from './context'
-import type { ControlRegistration, LayerRegistration, PluginAPI, SettingRegistration } from '@vplayer/core'
 
 // ── Plugin Controls ───────────────────────────────────────────
 
 export const PluginControlsLeft: FC = () => {
   const controls = usePlayerState('controls')
-  return <>{controls.filter((c) => c.position === 'left').sort(byIndex).map(renderControl)}</>
+  return (
+    <>
+      {controls
+        .filter((c) => c.position === 'left')
+        .toSorted(byIndex)
+        .map(renderControl)}
+    </>
+  )
 }
 
 export const PluginControlsRight: FC = () => {
   const controls = usePlayerState('controls')
-  return <>{controls.filter((c) => c.position === 'right').sort(byIndex).map(renderControl)}</>
+  return (
+    <>
+      {controls
+        .filter((c) => c.position === 'right')
+        .toSorted(byIndex)
+        .map(renderControl)}
+    </>
+  )
 }
 
 export const PluginControlsTop: FC = () => {
   const controls = usePlayerState('controls')
-  return <>{controls.filter((c) => c.position === 'top').sort(byIndex).map(renderControl)}</>
+  return (
+    <>
+      {controls
+        .filter((c) => c.position === 'top')
+        .toSorted(byIndex)
+        .map(renderControl)}
+    </>
+  )
 }
 
 export const PluginControlsCenter: FC = () => {
   const controls = usePlayerState('controls')
-  return <>{controls.filter((c) => c.position === 'center').sort(byIndex).map(renderControl)}</>
+  return (
+    <>
+      {controls
+        .filter((c) => c.position === 'center')
+        .toSorted(byIndex)
+        .map(renderControl)}
+    </>
+  )
 }
 
 function byIndex(a: { index: number }, b: { index: number }) {

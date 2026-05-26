@@ -1,0 +1,63 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "unicorn", "oxc", "jsx-a11y", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "off",
+    "perf": "warn",
+    "style": "off"
+  },
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "typescript/no-explicit-any": "off",
+    "typescript/no-non-null-assertion": "off",
+    "no-console": "off",
+    "eslint/sort-keys": "off",
+    "eslint/sort-imports": "off",
+    "eslint/no-magic-numbers": "off",
+    "eslint/no-ternary": "off",
+    "eslint/id-length": "off",
+    "eslint/max-lines": "off",
+    "eslint/max-lines-per-function": "off",
+    "eslint/max-statements": "off",
+    "eslint/func-style": "off",
+    "eslint/curly": "off",
+    "eslint/no-nested-ternary": "off",
+    "eslint/no-negated-condition": "off",
+    "eslint/no-duplicate-imports": "off",
+    "eslint/no-implicit-coercion": "off",
+    "unicorn/prefer-query-selector": "off",
+    "unicorn/catch-error-name": "off",
+    "unicorn/no-negated-condition": "off",
+    "unicorn/prefer-import-meta-properties": "off",
+    "import/no-unassigned-import": "off",
+    "import/no-named-export": "off",
+    "import/no-anonymous-default-export": "off",
+    "import/no-nodejs-modules": "off",
+    "jsx-a11y/anchor-is-valid": "off",
+    "react/jsx-max-depth": "off",
+    "typescript/array-type": "off",
+    "react/jsx-no-constructed-context-values": "off",
+    "react/no-object-type-as-default-prop": "off",
+    "react/no-array-index-key": "off",
+    "jsx-a11y/interactive-supports-focus": "off",
+    "jsx-a11y/control-has-associated-label": "off",
+    "jsx-a11y/click-events-have-key-events": "off",
+    "jsx-a11y/no-noninteractive-tabindex": "off",
+    "jsx-a11y/no-static-element-interactions": "off",
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/media-has-caption": "off",
+    "jsx-a11y/anchor-has-content": "off",
+    "react-hooks/exhaustive-deps": "off",
+    "eslint/no-shadow": "off"
+  },
+  "overrides": [
+    {
+      "files": ["apps/demo/src/**"],
+      "rules": {
+        "jsx-a11y/anchor-is-valid": "off"
+      }
+    }
+  ]
+}

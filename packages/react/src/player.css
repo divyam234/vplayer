@@ -1,6 +1,6 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-@source "./components/**/*.tsx";
+@source './components/**/*.tsx';
 
 :root {
   --vplayer-radius: 18px;
@@ -27,14 +27,18 @@
     aspect-ratio: var(--vplayer-aspect-ratio);
     max-height: var(--vplayer-max-height);
     border-radius: var(--vplayer-radius);
-    background: radial-gradient(circle at top, color-mix(in srgb, var(--vplayer-accent) 18%, transparent), transparent 42%), var(--vplayer-bg);
+    background:
+      radial-gradient(circle at top, color-mix(in srgb, var(--vplayer-accent) 18%, transparent), transparent 42%),
+      var(--vplayer-bg);
     color: var(--vplayer-fg);
     box-shadow: var(--vplayer-shadow);
     outline: none;
   }
 
   .vplayer:focus-visible {
-    box-shadow: var(--vplayer-shadow), 0 0 0 2px var(--vplayer-focus-ring);
+    box-shadow:
+      var(--vplayer-shadow),
+      0 0 0 2px var(--vplayer-focus-ring);
   }
 
   .vplayer--controls-hidden {
@@ -54,7 +58,7 @@
   }
 
   .vplayer__top-gradient {
-    @apply pointer-events-none absolute left-0 right-0 top-0 z-20 h-28 transition-opacity duration-300;
+    @apply pointer-events-none absolute top-0 right-0 left-0 z-20 h-28 transition-opacity duration-300;
     background: linear-gradient(180deg, color-mix(in srgb, black 55%, transparent), transparent);
   }
 
@@ -64,49 +68,93 @@
   }
 
   .vplayer__controls {
-    @apply absolute bottom-0 left-0 right-0 z-30 transition-all duration-300;
+    @apply absolute right-0 bottom-0 left-0 z-30 transition-all duration-300;
   }
 
   .vplayer__controls--hidden {
-    @apply translate-y-3 opacity-0 pointer-events-none;
+    @apply pointer-events-none translate-y-3 opacity-0;
   }
 
   .vplayer__controls-backdrop {
     @apply pointer-events-none absolute inset-0;
-    background: linear-gradient(180deg, transparent, color-mix(in srgb, black 40%, transparent) 50%, color-mix(in srgb, black 80%, transparent));
+    background: linear-gradient(
+      180deg,
+      transparent,
+      color-mix(in srgb, black 40%, transparent) 50%,
+      color-mix(in srgb, black 80%, transparent)
+    );
   }
 
   .vplayer__controls-content {
-    @apply relative z-10 flex flex-col gap-2 px-4 pb-4 pt-10;
+    @apply relative z-10 flex flex-col gap-2 px-4 pt-10 pb-4;
   }
 
   .vplayer__controls-row {
     @apply flex items-center gap-2 px-2 py-1;
   }
 
-  .vplayer__seek { @apply relative mb-1; }
-  .vplayer__seek-slider { @apply relative flex items-center h-10 -my-3 cursor-pointer; }
-  .vplayer__seek-track { @apply relative h-1 w-full rounded-full; background: color-mix(in srgb, white 23%, transparent); }
-  .vplayer__seek:hover .vplayer__seek-track { @apply h-1.5; }
-  .vplayer__seek-buffered { @apply absolute left-0 top-0 h-full rounded-full; background: color-mix(in srgb, white 35%, transparent); }
-  .vplayer__seek-progress { @apply absolute left-0 top-0 h-full rounded-full; background: var(--vplayer-fg); }
-  .vplayer__seek-thumb { @apply top-1/2 size-3 rounded-full z-10 opacity-90; background: var(--vplayer-fg); box-shadow: 0 0 0 4px color-mix(in srgb, var(--vplayer-accent) 20%, transparent); }
-  .vplayer__seek-thumb:hover { @apply opacity-100; }
-  .vplayer__seek-thumb[data-dragging="true"] { @apply scale-125 opacity-100; }
-  .vplayer__seek-tooltip { @apply absolute -top-8 -translate-x-1/2 rounded px-2 py-0.5 text-xs tabular-nums pointer-events-none; background: color-mix(in srgb, black 75%, transparent); }
-  .vplayer__seek-preview { @apply absolute -top-[136px] -translate-x-1/2 z-50 pointer-events-none; }
-  .vplayer__seek-preview-inner { @apply flex flex-col items-center gap-1; }
-  .vplayer__seek-preview-image { @apply rounded-md overflow-hidden border shadow-2xl bg-black; border-color: color-mix(in srgb, white 24%, transparent); }
-  .vplayer__seek-preview-time { @apply text-[11px] tabular-nums rounded px-1.5 py-0.5; background: color-mix(in srgb, black 72%, transparent); }
-  .vplayer__seek-preview-arrow { @apply size-2 rotate-45 -mb-1; background: color-mix(in srgb, black 72%, transparent); }
+  .vplayer__seek {
+    @apply relative mb-1;
+  }
+  .vplayer__seek-slider {
+    @apply relative -my-3 flex h-10 cursor-pointer items-center;
+  }
+  .vplayer__seek-track {
+    @apply relative h-1 w-full rounded-full;
+    background: color-mix(in srgb, white 23%, transparent);
+  }
+  .vplayer__seek:hover .vplayer__seek-track {
+    @apply h-1.5;
+  }
+  .vplayer__seek-buffered {
+    @apply absolute top-0 left-0 h-full rounded-full;
+    background: color-mix(in srgb, white 35%, transparent);
+  }
+  .vplayer__seek-progress {
+    @apply absolute top-0 left-0 h-full rounded-full;
+    background: var(--vplayer-fg);
+  }
+  .vplayer__seek-thumb {
+    @apply top-1/2 z-10 size-3 rounded-full opacity-90;
+    background: var(--vplayer-fg);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--vplayer-accent) 20%, transparent);
+  }
+  .vplayer__seek-thumb:hover {
+    @apply opacity-100;
+  }
+  .vplayer__seek-thumb[data-dragging='true'] {
+    @apply scale-125 opacity-100;
+  }
+  .vplayer__seek-tooltip {
+    @apply pointer-events-none absolute -top-8 -translate-x-1/2 rounded px-2 py-0.5 text-xs tabular-nums;
+    background: color-mix(in srgb, black 75%, transparent);
+  }
+  .vplayer__seek-preview {
+    @apply pointer-events-none absolute -top-[136px] z-50 -translate-x-1/2;
+  }
+  .vplayer__seek-preview-inner {
+    @apply flex flex-col items-center gap-1;
+  }
+  .vplayer__seek-preview-image {
+    @apply overflow-hidden rounded-md border bg-black shadow-2xl;
+    border-color: color-mix(in srgb, white 24%, transparent);
+  }
+  .vplayer__seek-preview-time {
+    @apply rounded px-1.5 py-0.5 text-[11px] tabular-nums;
+    background: color-mix(in srgb, black 72%, transparent);
+  }
+  .vplayer__seek-preview-arrow {
+    @apply -mb-1 size-2 rotate-45;
+    background: color-mix(in srgb, black 72%, transparent);
+  }
 
   .vplayer__button {
-    @apply inline-flex items-center justify-center p-1.5 rounded-full transition-all duration-200 outline-none;
+    @apply inline-flex items-center justify-center rounded-full p-1.5 transition-all duration-200 outline-none;
     color: var(--vplayer-muted);
   }
 
   .vplayer__button:hover,
-  .vplayer__button[data-hovered="true"] {
+  .vplayer__button[data-hovered='true'] {
     color: var(--vplayer-fg);
     background: var(--vplayer-control-hover);
     transform: translateY(-1px);
@@ -117,13 +165,15 @@
   }
 
   .vplayer__tooltip {
-    @apply rounded px-2 py-1 text-xs text-white shadow-xl border;
+    @apply rounded border px-2 py-1 text-xs text-white shadow-xl;
     background: var(--vplayer-tooltip-bg);
     border-color: var(--vplayer-tooltip-border);
     pointer-events: none;
     will-change: transform;
     transform: translate3d(0, 0, 0);
-    transition: opacity 150ms ease, transform 150ms ease;
+    transition:
+      opacity 150ms ease,
+      transform 150ms ease;
   }
 
   .vplayer__tooltip[data-entering],
@@ -132,22 +182,22 @@
     transform: var(--vplayer-tooltip-origin, translateY(4px));
   }
 
-  .vplayer__tooltip[data-placement="top"] {
+  .vplayer__tooltip[data-placement='top'] {
     --vplayer-tooltip-origin: translateY(4px);
     margin-bottom: 10px;
   }
 
-  .vplayer__tooltip[data-placement="bottom"] {
+  .vplayer__tooltip[data-placement='bottom'] {
     --vplayer-tooltip-origin: translateY(-4px);
     margin-top: 10px;
   }
 
-  .vplayer__tooltip[data-placement="right"] {
+  .vplayer__tooltip[data-placement='right'] {
     --vplayer-tooltip-origin: translateX(-4px);
     margin-left: 10px;
   }
 
-  .vplayer__tooltip[data-placement="left"] {
+  .vplayer__tooltip[data-placement='left'] {
     --vplayer-tooltip-origin: translateX(4px);
     margin-right: 10px;
   }
@@ -158,55 +208,132 @@
     stroke: var(--vplayer-tooltip-border);
   }
 
-  .vplayer__tooltip[data-placement="bottom"] .vplayer__tooltip-arrow {
+  .vplayer__tooltip[data-placement='bottom'] .vplayer__tooltip-arrow {
     transform: rotate(180deg);
   }
 
-  .vplayer__tooltip[data-placement="right"] .vplayer__tooltip-arrow {
+  .vplayer__tooltip[data-placement='right'] .vplayer__tooltip-arrow {
     transform: rotate(90deg);
   }
 
-  .vplayer__tooltip[data-placement="left"] .vplayer__tooltip-arrow {
+  .vplayer__tooltip[data-placement='left'] .vplayer__tooltip-arrow {
     transform: rotate(-90deg);
   }
-  .vplayer__time { @apply tabular-nums text-xs tracking-wide; color: var(--vplayer-muted); }
-  .vplayer__spacer { @apply flex-1; }
+  .vplayer__time {
+    @apply text-xs tracking-wide tabular-nums;
+    color: var(--vplayer-muted);
+  }
+  .vplayer__spacer {
+    @apply flex-1;
+  }
 
-  .vplayer__volume { @apply flex items-center gap-1.5; }
-  .vplayer__volume-slider { @apply w-0 overflow-hidden transition-all duration-200; }
-  .vplayer__volume-slider--visible { @apply w-24; }
-  .vplayer__volume-slider-track { @apply flex items-center h-6; }
-  .vplayer__volume-fill { @apply absolute left-0 top-0 h-full rounded-full; background: var(--vplayer-fg); }
-  .vplayer__volume-thumb { @apply size-0; }
+  .vplayer__volume {
+    @apply flex items-center gap-1.5;
+  }
+  .vplayer__volume-slider {
+    @apply w-0 overflow-hidden transition-all duration-200;
+  }
+  .vplayer__volume-slider--visible {
+    @apply w-24;
+  }
+  .vplayer__volume-slider-track {
+    @apply flex h-6 items-center;
+  }
+  .vplayer__volume-fill {
+    @apply absolute top-0 left-0 h-full rounded-full;
+    background: var(--vplayer-fg);
+  }
+  .vplayer__volume-thumb {
+    @apply size-0;
+  }
 
-  .vplayer__menu-popover { @apply z-50; }
-  .vplayer__menu { @apply min-w-44 rounded-lg border p-1.5 shadow-2xl outline-none; background: color-mix(in srgb, black 90%, transparent); border-color: var(--vplayer-control-border); backdrop-filter: blur(18px); }
-  .vplayer__menu-item { @apply flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none transition-colors cursor-default; }
+  .vplayer__menu-popover {
+    @apply z-50;
+  }
+  .vplayer__menu {
+    @apply min-w-44 rounded-lg border p-1.5 shadow-2xl outline-none;
+    background: color-mix(in srgb, black 90%, transparent);
+    border-color: var(--vplayer-control-border);
+    backdrop-filter: blur(18px);
+  }
+  .vplayer__menu-item {
+    @apply flex w-full cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors outline-none;
+  }
   .vplayer__menu-item:hover,
-  .vplayer__menu-item[data-focused] { background: var(--vplayer-control-hover); }
-  .vplayer__menu-label { color: color-mix(in srgb, white 80%, transparent); }
-  .vplayer__menu-value { @apply ml-auto; color: color-mix(in srgb, white 45%, transparent); }
-  .vplayer__menu-value--active { color: var(--vplayer-fg); }
-  .vplayer__menu-value--inactive { color: color-mix(in srgb, white 60%, transparent); }
-  .vplayer__menu-value--truncate { @apply truncate max-w-24; }
-  .vplayer__menu-icon { color: color-mix(in srgb, white 60%, transparent); }
-  .vplayer__menu-check { @apply ml-auto; color: color-mix(in srgb, white 82%, transparent); }
+  .vplayer__menu-item[data-focused] {
+    background: var(--vplayer-control-hover);
+  }
+  .vplayer__menu-label {
+    color: color-mix(in srgb, white 80%, transparent);
+  }
+  .vplayer__menu-value {
+    @apply ml-auto;
+    color: color-mix(in srgb, white 45%, transparent);
+  }
+  .vplayer__menu-value--active {
+    color: var(--vplayer-fg);
+  }
+  .vplayer__menu-value--inactive {
+    color: color-mix(in srgb, white 60%, transparent);
+  }
+  .vplayer__menu-value--truncate {
+    @apply max-w-24 truncate;
+  }
+  .vplayer__menu-icon {
+    color: color-mix(in srgb, white 60%, transparent);
+  }
+  .vplayer__menu-check {
+    @apply ml-auto;
+    color: color-mix(in srgb, white 82%, transparent);
+  }
 
-  .vplayer__overlay { @apply pointer-events-none absolute inset-0 z-20 flex items-center justify-center transition-opacity duration-200; }
-  .vplayer__overlay--ended { @apply pointer-events-auto flex-col gap-4; background: var(--vplayer-overlay); }
-  .vplayer__pause-orb { @apply flex size-20 items-center justify-center rounded-full; background: color-mix(in srgb, white 12%, transparent); backdrop-filter: blur(8px); }
-  .vplayer__pause-icon { @apply ml-1 size-10; color: var(--vplayer-fg); }
-  .vplayer__spinner { @apply size-10 animate-spin; color: color-mix(in srgb, white 82%, transparent); }
-  .vplayer__ended-title { @apply text-lg font-medium; color: color-mix(in srgb, white 85%, transparent); }
-  .vplayer__ended-button { @apply flex items-center gap-2 rounded-full px-6 py-2 text-sm transition-all; color: var(--vplayer-fg); background: color-mix(in srgb, white 12%, transparent); border: 1px solid var(--vplayer-control-border); }
-  .vplayer__ended-button:hover { background: color-mix(in srgb, white 20%, transparent); }
+  .vplayer__overlay {
+    @apply pointer-events-none absolute inset-0 z-20 flex items-center justify-center transition-opacity duration-200;
+  }
+  .vplayer__overlay--ended {
+    @apply pointer-events-auto flex-col gap-4;
+    background: var(--vplayer-overlay);
+  }
+  .vplayer__pause-orb {
+    @apply flex size-20 items-center justify-center rounded-full;
+    background: color-mix(in srgb, white 12%, transparent);
+    backdrop-filter: blur(8px);
+  }
+  .vplayer__pause-icon {
+    @apply ml-1 size-10;
+    color: var(--vplayer-fg);
+  }
+  .vplayer__spinner {
+    @apply size-10 animate-spin;
+    color: color-mix(in srgb, white 82%, transparent);
+  }
+  .vplayer__ended-title {
+    @apply text-lg font-medium;
+    color: color-mix(in srgb, white 85%, transparent);
+  }
+  .vplayer__ended-button {
+    @apply flex items-center gap-2 rounded-full px-6 py-2 text-sm transition-all;
+    color: var(--vplayer-fg);
+    background: color-mix(in srgb, white 12%, transparent);
+    border: 1px solid var(--vplayer-control-border);
+  }
+  .vplayer__ended-button:hover {
+    background: color-mix(in srgb, white 20%, transparent);
+  }
 
-  .vplayer__notice { @apply pointer-events-none absolute left-1/2 top-1/4 z-50 -translate-x-1/2 -translate-y-1/2; }
-  .vplayer__notice-inner { @apply rounded-lg px-4 py-2 text-sm shadow-lg; background: var(--vplayer-tooltip-bg); border: 1px solid var(--vplayer-tooltip-border); color: var(--vplayer-tooltip-fg); }
+  .vplayer__notice {
+    @apply pointer-events-none absolute top-1/4 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2;
+  }
+  .vplayer__notice-inner {
+    @apply rounded-lg px-4 py-2 text-sm shadow-lg;
+    background: var(--vplayer-tooltip-bg);
+    border: 1px solid var(--vplayer-tooltip-border);
+    color: var(--vplayer-tooltip-fg);
+  }
 
   /* ── Mini Progress Bar ─────────────────────────────────────── */
   .vplayer__mini-progress {
-    @apply pointer-events-none absolute bottom-0 left-0 right-0 z-30 h-[3px] transition-opacity duration-300;
+    @apply pointer-events-none absolute right-0 bottom-0 left-0 z-30 h-[3px] transition-opacity duration-300;
   }
   .vplayer__mini-progress-buffered {
     @apply absolute inset-0 rounded-full;
@@ -281,7 +408,7 @@
     backdrop-filter: blur(18px);
   }
   .vplayer__contextmenu-item {
-    @apply flex w-full items-center rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors;
+    @apply flex w-full items-center rounded-md px-2.5 py-1.5 text-sm transition-colors outline-none;
     color: color-mix(in srgb, white 80%, transparent);
   }
   .vplayer__contextmenu-item:hover,
@@ -295,7 +422,7 @@
 
   /* ── Info Panel ──────────────────────────────────────────────── */
   .vplayer__info-panel {
-    @apply absolute top-2 right-2 z-50 rounded-md px-3 py-2 text-xs font-mono leading-relaxed pointer-events-none;
+    @apply pointer-events-none absolute top-2 right-2 z-50 rounded-md px-3 py-2 font-mono text-xs leading-relaxed;
     background: color-mix(in srgb, black 70%, transparent);
     color: color-mix(in srgb, white 85%, transparent);
   }
@@ -305,7 +432,7 @@
     @apply flex flex-col gap-1 p-2;
   }
   .vplayer__flip-option {
-    @apply flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors;
+    @apply flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors outline-none;
     color: color-mix(in srgb, white 80%, transparent);
     cursor: pointer;
   }
@@ -321,7 +448,7 @@
     @apply flex flex-col gap-1 p-2;
   }
   .vplayer__aspect-ratio-option {
-    @apply flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors;
+    @apply flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors outline-none;
     color: color-mix(in srgb, white 80%, transparent);
     cursor: pointer;
   }

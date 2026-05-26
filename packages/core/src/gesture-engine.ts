@@ -38,8 +38,7 @@ export function createGestureEngine(
   let lastTap: { time: number } | null = null
   let containerEl: HTMLElement | null = null
 
-  const isTouchDevice =
-    typeof window !== 'undefined' && 'ontouchstart' in window
+  const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window
 
   function onTouchStart(e: TouchEvent): void {
     if (!isTouchDevice || e.touches.length !== 1) return
@@ -101,9 +100,7 @@ export function createGestureEngine(
     if (!s) return
 
     const elapsed = Date.now() - s.startTime
-    const isTap =
-      elapsed < 300 &&
-      Math.abs(e.changedTouches[0].clientX - s.startX) < 20
+    const isTap = elapsed < 300 && Math.abs(e.changedTouches[0].clientX - s.startX) < 20
 
     if (isTap) {
       const now = Date.now()

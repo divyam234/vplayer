@@ -31,11 +31,11 @@
  * ```
  */
 
-import { useCallback, useEffect, useMemo } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { createPlayer } from '@vplayer/core'
 import type { PlayerOptions, PlayerPlugin } from '@vplayer/core'
 import type { UsePlayerResult } from '@vplayer/framework'
+import { useCallback, useEffect, useMemo } from 'react'
 
 export function usePlayer(options: PlayerOptions): UsePlayerResult {
   const player = useMemo(() => createPlayer(options), [])
@@ -51,13 +51,12 @@ export function usePlayer(options: PlayerOptions): UsePlayerResult {
     [player],
   )
 
-  const detach = useCallback(
-    () => player.unmount(),
-    [player],
-  )
+  const detach = useCallback(() => player.unmount(), [player])
 
   const usePlugin = useCallback(
-    (plugin: PlayerPlugin) => { player.initPlugins([plugin]) },
+    (plugin: PlayerPlugin) => {
+      player.initPlugins([plugin])
+    },
     [player],
   )
 

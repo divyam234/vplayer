@@ -1,4 +1,5 @@
 import { useEffect, useState, type FC } from 'react'
+
 import { usePlayerState, usePlayerContext } from '../context'
 
 const NETWORK_LABELS = ['Empty', 'Idle', 'Loading', 'No Source'] as const
@@ -72,7 +73,9 @@ export const InfoPanel: FC = () => {
     >
       <div>Version: 1.0.0</div>
       <div>Duration: {state.duration.toFixed(2)}s</div>
-      <div>Resolution: {meta.width}&times;{meta.height}</div>
+      <div>
+        Resolution: {meta.width}&times;{meta.height}
+      </div>
       <div>Current: {state.currentTime.toFixed(2)}s</div>
       <div>Volume: {(state.volume * 100).toFixed(0)}%</div>
       <div>Rate: {state.playbackRate}x</div>

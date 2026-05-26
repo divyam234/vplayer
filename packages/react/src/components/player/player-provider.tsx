@@ -19,15 +19,16 @@
  * ```
  */
 
-import { useRef, useEffect, type FC, type ReactNode } from 'react'
-import { mergeLabels, mergeIcons } from '@vplayer/framework'
 import { defaultPlayerIcons, defaultPlayerLabels } from '@vplayer/core'
+import type { PlayerIcons, PlayerLabels } from '@vplayer/core'
+import { mergeLabels, mergeIcons } from '@vplayer/framework'
+import type { DeepPartial } from '@vplayer/framework'
+import { useRef, useEffect, type FC, type ReactNode } from 'react'
+
 import { PlayerContext } from './context'
 import { usePlayer } from './hooks/use-player'
 import { createPluginAPI } from './plugin-api'
-import type { PlayerIcons, PlayerLabels } from '@vplayer/core'
 import type { PlayerContextValue, PlayerSlots } from './types'
-import type { DeepPartial } from '@vplayer/framework'
 
 export interface PlayerProviderProps {
   options: Parameters<typeof usePlayer>[0]
@@ -98,9 +99,5 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
     createPluginAPI,
   }
 
-  return (
-    <PlayerContext.Provider value={ctx}>
-      {children}
-    </PlayerContext.Provider>
-  )
+  return <PlayerContext.Provider value={ctx}>{children}</PlayerContext.Provider>
 }

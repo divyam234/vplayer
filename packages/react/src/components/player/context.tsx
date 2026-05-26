@@ -1,6 +1,7 @@
-import { createContext, useContext } from 'react'
 import { useStore } from '@tanstack/react-store'
 import type { PluginAPI } from '@vplayer/core'
+import { createContext, useContext } from 'react'
+
 import type { MediaRemote, MediaState, PlayerContextValue } from './types'
 
 export const PlayerContext = createContext<PlayerContextValue | null>(null)
@@ -52,14 +53,29 @@ export function usePluginAPI(): PluginAPI {
       containerRef: ctx.containerRef,
       videoRef: ctx.videoRef,
     },
-    addControl: () => { console.warn('[vplayer] addControl only available during plugin setup'); return () => {} },
+    addControl: () => {
+      console.warn('[vplayer] addControl only available during plugin setup')
+      return () => {}
+    },
     removeControl: () => {},
-    addSetting: () => { console.warn('[vplayer] addSetting only available during plugin setup'); return () => {} },
+    addSetting: () => {
+      console.warn('[vplayer] addSetting only available during plugin setup')
+      return () => {}
+    },
     removeSetting: () => {},
-    addLayer: () => { console.warn('[vplayer] addLayer only available during plugin setup'); return () => {} },
+    addLayer: () => {
+      console.warn('[vplayer] addLayer only available during plugin setup')
+      return () => {}
+    },
     removeLayer: () => {},
-    addHotkey: () => { console.warn('[vplayer] addHotkey only available during plugin setup'); return () => {} },
-    addContextMenuItems: () => { console.warn('[vplayer] addContextMenuItems only available during plugin setup'); return () => {} },
+    addHotkey: () => {
+      console.warn('[vplayer] addHotkey only available during plugin setup')
+      return () => {}
+    },
+    addContextMenuItems: () => {
+      console.warn('[vplayer] addContextMenuItems only available during plugin setup')
+      return () => {}
+    },
     notify: () => {},
   }
 }

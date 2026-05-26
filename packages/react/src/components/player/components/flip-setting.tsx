@@ -1,6 +1,7 @@
-import { type FC } from 'react'
-import { usePlayerState } from '../context'
 import type { PluginAPI, FlipState } from '@vplayer/core'
+import { type FC } from 'react'
+
+import { usePlayerState } from '../context'
 
 const FLIP_OPTIONS: { value: FlipState; labelKey: string }[] = [
   { value: 'normal', labelKey: 'flipNormal' },

@@ -18,10 +18,7 @@ export type DeepPartial<T> = {
 /**
  * Merge user-provided labels over the defaults.
  */
-export function mergeLabels(
-  defaults: PlayerLabels,
-  overrides?: DeepPartial<PlayerLabels>,
-): PlayerLabels {
+export function mergeLabels(defaults: PlayerLabels, overrides?: DeepPartial<PlayerLabels>): PlayerLabels {
   return { ...defaults, ...overrides }
 }
 
@@ -29,9 +26,6 @@ export function mergeLabels(
  * Merge user-provided icon overrides over the defaults.
  * Icons are plain Iconify icon IDs — simple spread.
  */
-export function mergeIcons(
-  defaults: PlayerIcons,
-  overrides?: DeepPartial<PlayerIcons>,
-): PlayerIcons {
+export function mergeIcons(defaults: PlayerIcons, overrides?: DeepPartial<PlayerIcons>): PlayerIcons {
   return { ...defaults, ...overrides }
 }

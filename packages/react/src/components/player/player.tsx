@@ -1,30 +1,27 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useStore } from '@tanstack/react-store'
-import clsx from 'clsx'
-import { UNSAFE_PortalProvider } from 'react-aria'
-import { mergeLabels, mergeIcons } from '@vplayer/framework'
 import { defaultPlayerIcons, defaultPlayerLabels } from '@vplayer/core'
+import { mergeLabels, mergeIcons } from '@vplayer/framework'
+import clsx from 'clsx'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { UNSAFE_PortalProvider } from 'react-aria'
+
+import { AutoResumeOverlay } from './components/auto-resume-overlay'
+import { ContextMenu } from './components/context-menu'
+import { ErrorOverlay } from './components/error-overlay'
+import { InfoPanel } from './components/info-panel'
+import { MiniProgressBar } from './components/mini-progress-bar'
 import { PlayerContext } from './context'
-import { usePlayer } from './hooks/use-player'
 import { useControlsVisibility } from './hooks/use-controls-visibility'
 import { usePlayerGestures } from './hooks/use-mobile-gestures'
+import { usePlayer } from './hooks/use-player'
 import { DefaultVideoLayout } from './layout/default-video-layout'
 import { TopGradient } from './overlays'
-import { MiniProgressBar } from './components/mini-progress-bar'
-import { ErrorOverlay } from './components/error-overlay'
-import { ContextMenu } from './components/context-menu'
-import { InfoPanel } from './components/info-panel'
-import { AutoResumeOverlay } from './components/auto-resume-overlay'
-import type { PlayerProps, PlayerContextValue } from './types'
 import { createPluginAPI } from './plugin-api'
+import type { PlayerProps, PlayerContextValue } from './types'
 
-export function VideoPlayer({
-  className = '',
-  children,
-  ...options
-}: PlayerProps) {
+export function VideoPlayer({ className = '', children, ...options }: PlayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const src = options.src
@@ -79,7 +76,8 @@ export function VideoPlayer({
         event.target instanceof HTMLInputElement ||
         event.target instanceof HTMLTextAreaElement ||
         (event.target as HTMLElement).isContentEditable
-      ) return
+      )
+        return
       controls.showControls()
       instance.hotkeys.handleKeyDown(event as unknown as KeyboardEvent)
     },
@@ -87,14 +85,8 @@ export function VideoPlayer({
   )
 
   // ── Resolve labels, icons ──
-  const labels = useMemo(
-    () => mergeLabels(defaultPlayerLabels, labelsProp),
-    [labelsProp],
-  )
-  const iconMap = useMemo(
-    () => mergeIcons(defaultPlayerIcons, iconsProp),
-    [iconsProp],
-  )
+  const labels = useMemo(() => mergeLabels(defaultPlayerLabels, labelsProp), [labelsProp])
+  const iconMap = useMemo(() => mergeIcons(defaultPlayerIcons, iconsProp), [iconsProp])
 
   // ── Video element props ──
   const videoProps = useMemo(
@@ -122,14 +114,8 @@ export function VideoPlayer({
     },
     [controls, gestures],
   )
-  const onTouchMove = useCallback(
-    (e: React.TouchEvent) => gestures.onTouchMove(e as unknown as TouchEvent),
-    [gestures],
-  )
-  const onTouchEnd = useCallback(
-    (e: React.TouchEvent) => gestures.onTouchEnd(e as unknown as TouchEvent),
-    [gestures],
-  )
+  const onTouchMove = useCallback((e: React.TouchEvent) => gestures.onTouchMove(e as unknown as TouchEvent), [gestures])
+  const onTouchEnd = useCallback((e: React.TouchEvent) => gestures.onTouchEnd(e as unknown as TouchEvent), [gestures])
 
   // ── Context value ──
   const ctx: PlayerContextValue = useMemo(
@@ -165,11 +151,7 @@ export function VideoPlayer({
         onTouchEnd={onTouchEnd}
         onDoubleClick={instance.remote.toggleFullscreen}
       >
-        <UNSAFE_PortalProvider
-          getContainer={() =>
-            document.fullscreenElement ? containerRef.current : document.body
-          }
-        >
+        <UNSAFE_PortalProvider getContainer={() => (document.fullscreenElement ? containerRef.current : document.body)}>
           <video {...videoProps}>
             <source src={src ?? ''} />
           </video>
@@ -186,10 +168,7 @@ export function VideoPlayer({
 
           {/* Click layer to toggle play when controls are hidden */}
           <div
-            className={clsx(
-              'vplayer__click-layer',
-              controlsVisible && 'vplayer__click-layer--hidden',
-            )}
+            className={clsx('vplayer__click-layer', controlsVisible && 'vplayer__click-layer--hidden')}
             onClick={instance.remote.togglePlay}
           />
         </UNSAFE_PortalProvider>

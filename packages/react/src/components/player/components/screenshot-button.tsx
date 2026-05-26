@@ -1,6 +1,7 @@
-import { type FC } from 'react'
 import { Icon } from '@iconify/react'
+import { type FC } from 'react'
 import { Button, OverlayArrow, Tooltip, TooltipTrigger } from 'react-aria-components'
+
 import { usePlayerContext } from '../context'
 
 /**
@@ -12,11 +13,7 @@ export const ScreenshotButton: FC = () => {
 
   return (
     <TooltipTrigger delay={800}>
-      <Button
-        onPress={() => mediaRemote.takeScreenshot()}
-        aria-label={labels.screenshot}
-        className="vplayer__button"
-      >
+      <Button onPress={() => mediaRemote.takeScreenshot()} aria-label={labels.screenshot} className="vplayer__button">
         <Icon icon={icons.screenshot} width={16} />
       </Button>
       <Tooltip offset={2} className="vplayer__tooltip">

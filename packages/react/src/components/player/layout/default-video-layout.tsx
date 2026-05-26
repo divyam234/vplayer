@@ -1,4 +1,5 @@
 import type { FC } from 'react'
+
 import { usePlayerContext } from '../context'
 import { BufferingOverlay, EndOverlay, PauseOverlay } from '../overlays'
 import { PlayerChrome } from './player-chrome'

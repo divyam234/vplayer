@@ -1,6 +1,9 @@
-import type { FC, ReactNode } from 'react'
 import clsx from 'clsx'
+import type { FC, ReactNode } from 'react'
 import { Toolbar } from 'react-aria-components'
+
+import { ScreenshotButton } from '../components/screenshot-button'
+import { usePlayerState, usePlayerContext } from '../context'
 import {
   FullscreenButton,
   PiPButton,
@@ -11,8 +14,6 @@ import {
   TimeDisplay,
   VolumeControl,
 } from '../controls'
-import { usePlayerState, usePlayerContext } from '../context'
-import { ScreenshotButton } from '../components/screenshot-button'
 import {
   NotificationOverlay,
   PluginControlsCenter,

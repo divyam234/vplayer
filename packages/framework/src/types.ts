@@ -10,14 +10,7 @@
  */
 
 import type { Store } from '@tanstack/store'
-import type {
-  PlayerInstance,
-  PlayerOptions,
-  MediaState,
-  MediaRemote,
-  GestureHandlers,
-  PlayerLabels,
-} from '@vplayer/core'
+import type { PlayerInstance, PlayerOptions, MediaState, MediaRemote, PlayerLabels } from '@vplayer/core'
 
 // ── 1. usePlayer() result ──────────────────────────────────
 //

@@ -1,7 +1,8 @@
-import type { FC } from 'react'
-import clsx from 'clsx'
 import { Icon } from '@iconify/react'
+import clsx from 'clsx'
+import type { FC } from 'react'
 import { Button } from 'react-aria-components'
+
 import { usePlayerRemote, usePlayerState, usePlayerContext } from './context'
 
 export const TopGradient: FC = () => {
@@ -17,7 +18,9 @@ export const PauseOverlay: FC = () => {
   const show = !isPlaying && !isEnded && controlsVisible
   return (
     <div className={clsx('vplayer__overlay', !show && 'vplayer__overlay--hidden')}>
-      <div className="vplayer__pause-orb"><Icon icon={icons.play} className="vplayer__pause-icon" fill="currentColor" /></div>
+      <div className="vplayer__pause-orb">
+        <Icon icon={icons.play} className="vplayer__pause-icon" fill="currentColor" />
+      </div>
     </div>
   )
 }

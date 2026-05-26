@@ -72,8 +72,16 @@ export function createPluginAPIBuilder(): PluginAPIBuilder {
       hotkeys: ctx.hotkeys,
       i18n: ctx.i18n,
       context: {
-        containerRef: { get current() { return ctx.containerEl } },
-        videoRef: { get current() { return ctx.videoEl } },
+        containerRef: {
+          get current() {
+            return ctx.containerEl
+          },
+        },
+        videoRef: {
+          get current() {
+            return ctx.videoEl
+          },
+        },
       },
       addControl: (def) => {
         ctx.store.setState((prev) => ({
@@ -138,9 +146,7 @@ export function createPluginAPIBuilder(): PluginAPIBuilder {
         return () => {
           ctx.store.setState((prev) => ({
             ...prev,
-            contextMenuItems: prev.contextMenuItems.filter(
-              (existing) => !items.includes(existing),
-            ),
+            contextMenuItems: prev.contextMenuItems.filter((existing) => !items.includes(existing)),
           }))
         }
       },

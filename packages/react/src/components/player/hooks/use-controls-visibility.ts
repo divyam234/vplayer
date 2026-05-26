@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Store } from '@tanstack/store'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
+
 import type { MediaState } from '../types'
 
 export function useControlsVisibility(mediaStore: Store<MediaState>) {

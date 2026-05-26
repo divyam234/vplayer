@@ -1,3 +1,6 @@
+import type { Store } from '@tanstack/store'
+import { createGestureEngine } from '@vplayer/core'
+import type { GestureHandlers, MediaRemote, MediaState } from '@vplayer/core'
 /**
  * React adapter for the framework-agnostic GestureEngine from @vplayer/core.
  *
@@ -12,15 +15,10 @@
  * ```
  */
 import { useMemo } from 'react'
-import { createGestureEngine } from '@vplayer/core'
-import { usePlayerContext, usePlayerRemote } from '../context'
-import type { GestureHandlers, MediaRemote, MediaState } from '@vplayer/core'
-import type { Store } from '@tanstack/store'
 
-export function usePlayerGestures(
-  store?: Store<MediaState>,
-  remote?: MediaRemote,
-): GestureHandlers {
+import { usePlayerContext, usePlayerRemote } from '../context'
+
+export function usePlayerGestures(store?: Store<MediaState>, remote?: MediaRemote): GestureHandlers {
   // When called with args from inside VideoPlayer, usePlayerContext is
   // short-circuited by ?? — it's never evaluated. Only when called without
   // args from consumer components does it read from context.
