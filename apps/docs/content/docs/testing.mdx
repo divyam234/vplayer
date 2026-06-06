@@ -1,0 +1,69 @@
+---
+title: Testing
+description: Test VPlayer with Vitest, React Testing Library, jsdom, and Playwright.
+---
+
+# Testing
+
+The main testing stack is:
+
+```txt
+Vitest + React Testing Library + jsdom
+```
+
+This covers most app behavior: rendering, forms, buttons, routing, API states, error states, loading states, keyboard interactions, accessibility queries, focus behavior, and component state.
+
+## Unit tests
+
+Core tests should avoid real media decoding:
+
+```txt
+source resolver
+VTT parser
+thumbnail parser
+state transitions
+plugin lifecycle
+safe play rejection
+volume/seek clamping
+```
+
+## React tests
+
+React Testing Library should test user behavior:
+
+```tsx
+await user.keyboard('{Space}')
+expect(screen.getByRole('button', { name: /pause/i })).toBeInTheDocument()
+```
+
+Recommended React test coverage:
+
+- default player renders
+- custom controls can replace default controls
+- keyboard shortcuts work
+- shortcuts ignore inputs
+- fullscreen updates focus/state
+- mini-player uses compact controls
+- bottom progress only renders in mini mode
+- thumbnail preview sizing/gap is applied
+
+## Playwright tests
+
+Use Playwright for browser behavior that jsdom cannot prove:
+
+```txt
+Chromium desktop
+Firefox desktop
+WebKit desktop
+Mobile Chrome profile
+Mobile Safari profile
+```
+
+Run locally or in CI after installing browsers:
+
+```bash
+npx playwright install chromium firefox webkit
+npm run test:e2e
+```
+
+Keep Playwright smoke tests focused. Most behavior should stay in fast Vitest/RTL tests.

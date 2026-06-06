@@ -1,10 +1,10 @@
+/* oxlint-disable jsx-a11y/no-noninteractive-element-interactions -- Media-player root intentionally owns keyboard/mouse shortcuts while remaining focusable and labelled. */
 'use client'
 
 import { useStore } from '@tanstack/react-store'
 import { defaultPlayerIcons, defaultPlayerLabels } from '@vplayer/core'
-import { mergeLabels, mergeIcons } from '@vplayer/framework'
 import clsx from 'clsx'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from 'react'
 
 import { AutoResumeOverlay } from './components/auto-resume-overlay'
 import { ContextMenu } from './components/context-menu'
@@ -13,18 +13,48 @@ import { InfoPanel } from './components/info-panel'
 import { MiniProgressBar } from './components/mini-progress-bar'
 import { PlayerContext } from './context'
 import { useControlsVisibility } from './hooks/use-controls-visibility'
+import { useMiniPlayerState } from './hooks/use-mini-player-state'
 import { usePlayerGestures } from './hooks/use-mobile-gestures'
 import { usePlayer } from './hooks/use-player'
 import { DefaultVideoLayout } from './layout/default-video-layout'
 import { TopGradient } from './overlays'
 import { createPluginAPI } from './plugin-api'
-import type { PlayerProps, PlayerContextValue } from './types'
+import type {
+  NormalizedThumbnailPreviewOptions,
+  PlayerContextValue,
+  PlayerProps,
+  ThumbnailPreviewOptions,
+} from './types'
+import { mergeLabels, mergeIcons } from './utils/merge'
+
+function normalizeThumbnailPreviewOptions(
+  thumbnailPreview?: boolean | ThumbnailPreviewOptions,
+): NormalizedThumbnailPreviewOptions {
+  if (thumbnailPreview === false) {
+    return { enabled: false, width: 180, height: 101, gap: 10, showTime: true, fit: 'cover' }
+  }
+
+  if (thumbnailPreview === true || thumbnailPreview === undefined) {
+    return { enabled: true, width: 180, height: 101, gap: 10, showTime: true, fit: 'cover' }
+  }
+
+  return {
+    enabled: thumbnailPreview.enabled ?? true,
+    width: Math.max(96, Math.min(420, thumbnailPreview.width ?? 180)),
+    height: Math.max(54, Math.min(236, thumbnailPreview.height ?? 101)),
+    gap: Math.max(0, Math.min(48, thumbnailPreview.gap ?? 10)),
+    showTime: thumbnailPreview.showTime ?? true,
+    fit: thumbnailPreview.fit ?? 'cover',
+  }
+}
 
 export function VideoPlayer({ className = '', children, ...options }: PlayerProps) {
+  const anchorRef = useRef<HTMLDivElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const src = options.src
   const poster = options.poster
+  const type = options.type
   const autoPlay = options.autoPlay
   const subtitles = options.subtitles
   const qualities = options.qualities
@@ -33,6 +63,8 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const labelsProp = options.labels
   const iconsProp = options.icons
   const slots = options.slots ?? {}
+  const miniPlayerProp = options.miniPlayer
+  const thumbnailPreviewProp = options.thumbnailPreview
 
   // ── Core player via contract hook ──
   const player = usePlayer(options)
@@ -52,12 +84,8 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
 
   // ── Sync reactive props to core ──
   useEffect(() => {
-    instance.updateOptions({ subtitles, qualities })
-  }, [subtitles, qualities, instance])
-
-  useEffect(() => {
-    instance.setThumbnails(thumbnails)
-  }, [thumbnails, instance])
+    instance.updateOptions({ src, type, subtitles, qualities, thumbnails, autoPlay })
+  }, [src, type, subtitles, qualities, thumbnails, autoPlay, instance])
 
   // ── Initialize plugins ──
   useEffect(() => {
@@ -67,6 +95,33 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   // ── Controls auto-hide (UI concern) ──
   const controls = useControlsVisibility(instance.store)
   const controlsVisible = useStore(instance.store, (s) => s.controlsVisible)
+  const isPlaying = useStore(instance.store, (s) => s.isPlaying)
+  const miniPlayer = useMiniPlayerState(anchorRef, miniPlayerProp)
+  const thumbnailPreview = useMemo(() => normalizeThumbnailPreviewOptions(thumbnailPreviewProp), [thumbnailPreviewProp])
+
+  useEffect(() => {
+    if (miniPlayer.active) {
+      controls.showControls()
+      controls.scheduleHide(1400)
+    }
+  }, [controls, miniPlayer.active])
+
+  useEffect(() => {
+    if (!isPlaying) {
+      controls.showControls()
+      return
+    }
+
+    const delay = miniPlayer.active ? 1400 : 3000
+    controls.scheduleHide(delay)
+    const id = setTimeout(() => {
+      if (instance.store.state.isPlaying) {
+        instance.store.setState((prev) => ({ ...prev, controlsVisible: false }))
+      }
+    }, delay)
+
+    return () => clearTimeout(id)
+  }, [controls, instance.store, isPlaying, miniPlayer.active])
 
   // ── Keyboard events through core's hotkey registry ──
   const onKeyDown = useCallback(
@@ -135,43 +190,73 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       engine: instance.engine,
       instance,
       createPluginAPI,
+      miniPlayer,
+      thumbnailPreview,
     }),
-    [instance, labels, iconMap, slots, createPluginAPI],
+    [instance, labels, iconMap, slots, miniPlayer, thumbnailPreview],
   )
+
+  const miniPlayerStyle = useMemo(
+    () => ({
+      '--vplayer-mini-width': typeof miniPlayer.width === 'number' ? `${miniPlayer.width}px` : miniPlayer.width,
+      '--vplayer-thumbnail-width': `${thumbnailPreview.width}px`,
+      '--vplayer-thumbnail-height': `${thumbnailPreview.height}px`,
+      '--vplayer-thumbnail-gap': `${thumbnailPreview.gap}px`,
+    }),
+    [miniPlayer.width, thumbnailPreview.gap, thumbnailPreview.height, thumbnailPreview.width],
+  ) as CSSProperties
 
   return (
     <PlayerContext.Provider value={ctx}>
-      <div
-        ref={containerRef}
-        tabIndex={0}
-        className={clsx('vplayer', !controlsVisible && 'vplayer--controls-hidden', className)}
-        onKeyDown={onKeyDown}
-        onMouseMove={controls.rootHandlers.onMouseMove}
-        onMouseEnter={controls.rootHandlers.onMouseEnter}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        onDoubleClick={instance.remote.toggleFullscreen}
-      >
-        <video {...videoProps}>
-          <source src={src ?? ''} />
-        </video>
-
-        {children ?? <DefaultVideoLayout />}
-        <TopGradient />
-
-        {/* Overlays & floating UI */}
-        <MiniProgressBar />
-        <ErrorOverlay />
-        <AutoResumeOverlay />
-        <ContextMenu />
-        <InfoPanel />
-
-        {/* Click layer to toggle play when controls are hidden */}
+      <div ref={anchorRef} className="vplayer__anchor">
         <div
-          className={clsx('vplayer__click-layer', controlsVisible && 'vplayer__click-layer--hidden')}
-          onClick={instance.remote.togglePlay}
-        />
+          ref={containerRef}
+          tabIndex={0}
+          role="application"
+          aria-label="Video player"
+          data-testid="vplayer-root"
+          data-mini-player={miniPlayer.active ? 'true' : 'false'}
+          data-mini-player-position={miniPlayer.position}
+          className={clsx(
+            'vplayer',
+            !controlsVisible && 'vplayer--controls-hidden',
+            miniPlayer.enabled && 'vplayer--mini-enabled',
+            miniPlayer.active && 'vplayer--mini',
+            miniPlayer.active && `vplayer--mini-${miniPlayer.position}`,
+            className,
+          )}
+          style={miniPlayerStyle}
+          onKeyDown={onKeyDown}
+          onMouseMove={controls.rootHandlers.onMouseMove}
+          onMouseEnter={controls.rootHandlers.onMouseEnter}
+          onMouseLeave={controls.rootHandlers.onMouseLeave}
+          onFocus={controls.rootHandlers.onFocus}
+          onBlur={controls.rootHandlers.onBlur}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onDoubleClick={instance.remote.toggleFullscreen}
+        >
+          <div className="vplayer__media-viewport" data-testid="vplayer-media-viewport">
+            <video {...videoProps} />
+          </div>
+
+          {children ?? <DefaultVideoLayout />}
+          <TopGradient />
+
+          {/* Overlays & floating UI */}
+          {miniPlayer.active && <MiniProgressBar />}
+          <ErrorOverlay />
+          <AutoResumeOverlay />
+          <ContextMenu />
+          <InfoPanel />
+
+          {/* Click layer to toggle play when controls are hidden */}
+          <div
+            className={clsx('vplayer__click-layer', controlsVisible && 'vplayer__click-layer--hidden')}
+            onClick={instance.remote.togglePlay}
+          />
+        </div>
       </div>
     </PlayerContext.Provider>
   )

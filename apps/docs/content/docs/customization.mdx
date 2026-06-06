@@ -1,0 +1,52 @@
+---
+title: Customization
+description: Customize the player with classes, CSS variables, labels, icons, and layout modes.
+---
+
+# Customization
+
+VPlayer keeps customization simple: one stylesheet, stable classes, and CSS variables.
+
+## CSS variables
+
+```css
+.vplayer {
+  --vplayer-accent: oklch(0.83 0.17 84);
+  --vplayer-radius: 18px;
+  --vplayer-control-bg: rgba(0, 0, 0, 0.64);
+}
+```
+
+## Class overrides
+
+```css
+.vplayer__controls {
+  backdrop-filter: blur(18px);
+}
+
+.vplayer__button {
+  transition: transform 160ms ease;
+}
+
+.vplayer__button:hover {
+  transform: scale(1.05);
+}
+```
+
+## Why there is no skin API
+
+A skin prop creates another styling abstraction that users eventually fight. VPlayer exposes classes and variables instead, so apps can use their own design system without waiting for a new built-in skin.
+
+## Labels and icons
+
+The React package exposes defaults that can be overridden when you need different wording, localization, or custom icon components.
+
+```tsx
+<VideoPlayer
+  src="/video.mp4"
+  labels={{
+    play: 'Play video',
+    pause: 'Pause video',
+  }}
+/>
+```

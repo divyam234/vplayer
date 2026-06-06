@@ -2,7 +2,7 @@ import { useStore } from '@tanstack/react-store'
 import type { PluginAPI } from '@vplayer/core'
 import { createContext, useContext } from 'react'
 
-import type { MediaRemote, MediaState, PlayerContextValue } from './types'
+import type { MediaRemote, MediaState, MiniPlayerState, PlayerContextValue } from './types'
 
 export const PlayerContext = createContext<PlayerContextValue | null>(null)
 
@@ -30,6 +30,10 @@ export function usePlayerState<K extends keyof MediaState, TSelected>(
 
 export function usePlayerRemote(): MediaRemote {
   return usePlayerContext().mediaRemote
+}
+
+export function useMiniPlayer(): MiniPlayerState {
+  return usePlayerContext().miniPlayer
 }
 
 /**

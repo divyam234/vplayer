@@ -26,8 +26,20 @@ export abstract class BaseMediaEngine implements MediaEngine {
   async play(): Promise<void> {
     try {
       await this.element.play()
-    } catch {
-      // AbortError is expected when play() is interrupted by pause()
+    } catch (error) {
+      const err = error instanceof DOMException || error instanceof Error ? error : new Error(String(error))
+      this.emit('playblocked', {
+        name: err.name,
+        message: err.message || 'Playback was blocked by the browser',
+      })
+
+      // AbortError is expected when play() is interrupted by pause()/src changes.
+      // Other failures should surface through the core error state.
+      if (err.name !== 'AbortError') {
+        this.emit('error', {
+          message: err.message || 'Playback failed',
+        })
+      }
     }
   }
 
@@ -36,11 +48,13 @@ export abstract class BaseMediaEngine implements MediaEngine {
   }
 
   seek(time: number): void {
-    this.element.currentTime = time
+    const duration = Number.isFinite(this.element.duration) ? this.element.duration : Number.POSITIVE_INFINITY
+    const nextTime = Math.max(0, Math.min(time, duration))
+    this.element.currentTime = nextTime
   }
 
   setVolume(volume: number): void {
-    this.element.volume = volume
+    this.element.volume = Math.max(0, Math.min(1, volume))
   }
 
   setMuted(muted: boolean): void {
@@ -48,6 +62,7 @@ export abstract class BaseMediaEngine implements MediaEngine {
   }
 
   setPlaybackRate(rate: number): void {
+    if (!Number.isFinite(rate) || rate <= 0) return
     this.element.playbackRate = rate
   }
 
@@ -60,18 +75,20 @@ export abstract class BaseMediaEngine implements MediaEngine {
   }
 
   async requestPictureInPicture(): Promise<void> {
+    if (!('requestPictureInPicture' in this.element)) return
     try {
       await this.element.requestPictureInPicture()
     } catch {
-      // Browser may reject PiP
+      // Browser may reject PiP. This is non-fatal UI capability behavior.
     }
   }
 
   async exitPictureInPicture(): Promise<void> {
+    if (typeof document === 'undefined' || !('exitPictureInPicture' in document)) return
     try {
       await document.exitPictureInPicture()
     } catch {
-      // May not be in PiP mode
+      // May not be in PiP mode.
     }
   }
 
@@ -176,9 +193,18 @@ export abstract class BaseMediaEngine implements MediaEngine {
       ['ended', 'ended'],
       ['timeupdate', 'timeupdate'],
       ['loadedmetadata', 'loadedmetadata'],
+      ['loadeddata', 'loadeddata'],
+      ['durationchange', 'durationchange'],
       ['progress', 'progress'],
+      ['seeking', 'seeking'],
+      ['seeked', 'seeked'],
       ['waiting', 'waiting'],
+      ['stalled', 'stalled'],
+      ['playing', 'playing'],
       ['canplay', 'canplay'],
+      ['canplaythrough', 'canplaythrough'],
+      ['volumechange', 'volumechange'],
+      ['ratechange', 'ratechange'],
       ['error', 'error'],
     ]
 

@@ -1,5 +1,5 @@
 /**
- * usePlayer — Low-level hook per @vplayer/framework adapter contract.
+ * usePlayer — Low-level hook per @vplayer/react adapter contract.
  *
  * Creates a PlayerInstance and subscribes to state via
  * @tanstack/react-store's useStore. Returns a UsePlayerResult.
@@ -34,8 +34,9 @@
 import { useStore } from '@tanstack/react-store'
 import { createPlayer } from '@vplayer/core'
 import type { PlayerOptions, PlayerPlugin } from '@vplayer/core'
-import type { UsePlayerResult } from '@vplayer/framework'
 import { useCallback, useEffect, useMemo } from 'react'
+
+import type { UsePlayerResult } from '../adapter-types'
 
 export function usePlayer(options: PlayerOptions): UsePlayerResult {
   const player = useMemo(() => createPlayer(options), [])
@@ -61,11 +62,8 @@ export function usePlayer(options: PlayerOptions): UsePlayerResult {
   )
 
   const updateOptions = useCallback(
-    (opts: PlayerOptions) => {
-      player.updateOptions({
-        subtitles: opts.subtitles,
-        qualities: opts.qualities,
-      })
+    (opts: Partial<PlayerOptions>) => {
+      player.updateOptions(opts)
     },
     [player],
   )

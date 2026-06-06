@@ -13,7 +13,7 @@ export interface SubtitleTrack {
 }
 
 /** Parse HH:MM:SS.mmm or HH:MM:SS,mmm timestamp → total seconds */
-function parseTimestamp(ts: string): number {
+export function parseTimestamp(ts: string): number {
   const cleaned = ts.replace(',', '.')
   const parts = cleaned.split(':')
   if (parts.length === 3) {
@@ -74,7 +74,7 @@ export function parseVTT(content: string): SubtitleCue[] {
       const timeMatch = lines[timeLineIndex].match(/(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/)
       if (!timeMatch) return null
 
-      const textLines = lines.slice(timeLineIndex + 1).filter((l) => !l.startsWith(''))
+      const textLines = lines.slice(timeLineIndex + 1).filter((l) => l.trim().length > 0)
       if (textLines.length === 0) return null
 
       index++
@@ -168,27 +168,52 @@ export function parseThumbnailVTT(content: string): ThumbnailCue[] {
       const urlLine = lines.slice(timeLineIndex + 1).find((l) => l.trim().length > 0)
       if (!urlLine) return null
 
-      const fragment = parseSpriteFragment(urlLine.trim())
-      if (!fragment) return null
+      const rawUrl = urlLine.trim()
+      const fragment = parseSpriteFragment(rawUrl)
+      const start = parseTimestamp(timeMatch[1])
+      const end = parseTimestamp(timeMatch[2])
+      if (fragment) {
+        return {
+          start,
+          end,
+          src: fragment.src,
+          x: fragment.x,
+          y: fragment.y,
+          w: fragment.w,
+          h: fragment.h,
+        }
+      }
 
       return {
-        start: parseTimestamp(timeMatch[1]),
-        end: parseTimestamp(timeMatch[2]),
-        src: fragment.src,
-        x: fragment.x,
-        y: fragment.y,
-        w: fragment.w,
-        h: fragment.h,
+        start,
+        end,
+        src: rawUrl,
+        x: 0,
+        y: 0,
+        w: 160,
+        h: 90,
       }
     })
     .filter((c): c is ThumbnailCue => c !== null)
 }
 
 /** Fetch and parse a VTT thumbnail file */
-export async function fetchThumbnails(url: string): Promise<ThumbnailCue[]> {
-  const resp = await fetch(url)
+function resolveUrl(value: string, baseUrl: string): string {
+  try {
+    return new URL(value, baseUrl).toString()
+  } catch {
+    return value
+  }
+}
+
+export async function fetchThumbnails(url: string, signal?: AbortSignal): Promise<ThumbnailCue[]> {
+  const resp = await fetch(url, { signal })
+  if (!resp.ok) throw new Error(`Failed to fetch thumbnail VTT: ${resp.status}`)
   const text = await resp.text()
-  return parseThumbnailVTT(text)
+  return parseThumbnailVTT(text).map((cue) => {
+    cue.src = resolveUrl(cue.src, resp.url || url)
+    return cue
+  })
 }
 
 /** Find the matching thumbnail cue for a given time */

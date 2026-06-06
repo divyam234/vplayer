@@ -1,0 +1,47 @@
+---
+title: Accessibility
+description: Build accessible video experiences with labels, focus management, and reduced-motion safety.
+---
+
+# Accessibility
+
+A video player is interactive UI, not just media. Treat every control as part of your app's accessibility surface.
+
+## Baseline rules
+
+- Every button needs an accessible label.
+- The player root should be focusable when keyboard shortcuts are enabled.
+- Menus must trap and restore focus correctly.
+- Fullscreen should return focus to the player root after state changes.
+- Disabled controls must be visibly and semantically disabled.
+- Do not hide controls from keyboard users just because pointer controls auto-hide.
+
+## Captions
+
+Provide captions where possible:
+
+```tsx
+<VideoPlayer
+  src="/video.mp4"
+  textTracks={[
+    {
+      id: 'en',
+      src: '/captions.en.vtt',
+      kind: 'subtitles',
+      label: 'English',
+      language: 'en',
+      default: true,
+    },
+  ]}
+/>
+```
+
+## Testing accessibility behavior
+
+Use React Testing Library queries by role and accessible name:
+
+```tsx
+expect(screen.getByRole('button', { name: /play/i })).toBeVisible()
+```
+
+This catches broken labels earlier than visual-only tests.

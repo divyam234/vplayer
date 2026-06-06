@@ -13,13 +13,28 @@
 
 import { Store } from '@tanstack/store'
 
+import type { MediaCapabilitiesSnapshot } from '../media-capabilities'
 import type { ControlRegistration, ContextMenuItem, FlipState, AspectRatioState } from '../plugin-api'
 import type { LayerRegistration, SettingRegistration } from '../plugin-api'
+import type { PlayerSource } from '../source-resolver'
 import type { SubtitleTrack, ThumbnailCue } from '../subtitle-parser'
+
+export type PlaybackStatus =
+  | 'idle'
+  | 'loading'
+  | 'ready'
+  | 'playing'
+  | 'paused'
+  | 'buffering'
+  | 'seeking'
+  | 'ended'
+  | 'error'
 
 // ── Slice 1: Media playback ───────────────────────────────
 
 export interface MediaSlice {
+  status: PlaybackStatus
+  source: PlayerSource | null
   isPlaying: boolean
   isPaused: boolean
   isBuffering: boolean
@@ -28,6 +43,7 @@ export interface MediaSlice {
   duration: number
   bufferedPercent: number
   playbackRate: number
+  isLive: boolean
 }
 
 // ── Slice 2: Audio ────────────────────────────────────────
@@ -53,6 +69,7 @@ export interface PreferencesSlice {
 
 export interface UISlice {
   controlsVisible: boolean
+  capabilities: MediaCapabilitiesSnapshot
   isFullscreen: boolean
   infoPanelVisible: boolean
   notification: { message: string; duration: number } | null
@@ -102,6 +119,8 @@ export function createMediaStore(): PlayerStore {
 export function getInitialMediaState(): MediaState {
   return {
     // Media
+    status: 'idle',
+    source: null,
     isPlaying: false,
     isPaused: true,
     isBuffering: false,
@@ -110,6 +129,7 @@ export function getInitialMediaState(): MediaState {
     duration: 0,
     bufferedPercent: 0,
     playbackRate: 1,
+    isLive: false,
 
     // Audio
     volume: 1,
@@ -126,6 +146,13 @@ export function getInitialMediaState(): MediaState {
 
     // UI
     controlsVisible: true,
+    capabilities: {
+      mse: false,
+      nativeHls: false,
+      fullscreen: false,
+      pictureInPicture: false,
+      textTracks: false,
+    },
     isFullscreen: false,
     infoPanelVisible: false,
     notification: null,
@@ -150,6 +177,8 @@ export function getInitialMediaState(): MediaState {
 // Consumers use them with useStore(store, selector) or store.subscribe().
 
 export const selectMedia = (s: MediaState) => ({
+  status: s.status,
+  source: s.source,
   isPlaying: s.isPlaying,
   isPaused: s.isPaused,
   isBuffering: s.isBuffering,
@@ -158,6 +187,7 @@ export const selectMedia = (s: MediaState) => ({
   duration: s.duration,
   bufferedPercent: s.bufferedPercent,
   playbackRate: s.playbackRate,
+  isLive: s.isLive,
 })
 
 export const selectAudio = (s: MediaState) => ({ volume: s.volume, isMuted: s.isMuted })
@@ -172,6 +202,7 @@ export const selectPreferences = (s: MediaState) => ({
 })
 export const selectUI = (s: MediaState) => ({
   controlsVisible: s.controlsVisible,
+  capabilities: s.capabilities,
   isFullscreen: s.isFullscreen,
   infoPanelVisible: s.infoPanelVisible,
   notification: s.notification,

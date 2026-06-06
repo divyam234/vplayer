@@ -1,0 +1,33 @@
+---
+title: VPlayer
+description: Build, customize, and test a production-grade React video player.
+---
+
+# VPlayer
+
+VPlayer is a React video player built around a simple principle: **the core owns media behavior, React owns the UI**.
+
+It is designed for apps that need more than a native `<video>` tag but do not want a giant untestable player component. The default UI includes a polished layout, mini-player mode, thumbnails, captions, keyboard shortcuts, aspect ratio controls, and extension points for custom controls.
+
+## What you get
+
+- A headless TypeScript core for media state, source switching, tracks, thumbnails, fullscreen, PiP, and keyboard behavior.
+- A React package with default UI, compound-style customization, and test-friendly hooks.
+- A `/playground` route inside the docs app for trying real values before shipping them.
+- A docs app built with Next.js and Fumadocs for public documentation, search, and LLM-friendly output.
+
+## Recommended package layout
+
+```txt
+packages/core   # framework-independent media engine
+packages/react  # React UI and hooks
+apps/docs/app/playground # live player playground route
+apps/docs       # Next.js + Fumadocs documentation
+```
+
+## Start here
+
+1. Read [Installation](./installation.mdx).
+2. Build your first player with [Getting Started](./getting-started.mdx).
+3. Learn how the architecture works in [Architecture](./architecture.mdx).
+4. Configure thumbnails, mini-player, hotkeys, and testing from the feature guides.

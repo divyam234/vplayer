@@ -5,13 +5,15 @@ import { BufferingOverlay, EndOverlay, PauseOverlay } from '../overlays'
 import { PlayerChrome } from './player-chrome'
 
 export const DefaultVideoLayout: FC = () => {
-  const { slots } = usePlayerContext()
+  const { slots, miniPlayer } = usePlayerContext()
+  const compactMini = miniPlayer.active
+
   return (
     <>
       <PlayerChrome />
-      {slots.pauseOverlay ?? <PauseOverlay />}
-      {slots.bufferingOverlay ?? <BufferingOverlay />}
-      {slots.endOverlay ?? <EndOverlay />}
+      {!compactMini && (slots.pauseOverlay ?? <PauseOverlay />)}
+      {!compactMini && (slots.bufferingOverlay ?? <BufferingOverlay />)}
+      {!compactMini && (slots.endOverlay ?? <EndOverlay />)}
     </>
   )
 }

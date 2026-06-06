@@ -1,0 +1,43 @@
+---
+title: React API
+description: Public React component props, hooks, and extension points.
+---
+
+# React API
+
+## `VideoPlayer`
+
+```tsx
+<VideoPlayer src="/video.mp4" poster="/poster.jpg" thumbnails="/thumbnails.vtt" miniPlayer={{ enabled: true }} />
+```
+
+Common props:
+
+| Prop               | Type                | Description                                   |
+| ------------------ | ------------------- | --------------------------------------------- |
+| `src`              | `string`            | Primary media URL.                            |
+| `poster`           | `string`            | Poster image.                                 |
+| `autoplay`         | `boolean`           | Request autoplay. Browser may block it.       |
+| `muted`            | `boolean`           | Initial muted state.                          |
+| `thumbnails`       | `string`            | Thumbnail WebVTT URL.                         |
+| `thumbnailPreview` | `object`            | Preview size, gap, fit, and time pill config. |
+| `textTracks`       | `array`             | Captions/subtitles tracks.                    |
+| `miniPlayer`       | `boolean \| object` | Enable compact floating mini-player.          |
+| `hotkeys`          | `boolean`           | Enable keyboard shortcuts.                    |
+
+## Hooks
+
+```tsx
+const remote = usePlayerRemote()
+const status = usePlayerState((state) => state.status)
+```
+
+Use hooks inside player context only.
+
+## CSS entry
+
+```tsx
+import '@vplayer/react/player.css'
+```
+
+The stylesheet is intentionally singular. Override classes and variables in your own CSS.

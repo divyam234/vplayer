@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -8,6 +9,17 @@ const ROOT = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig(({ command }) => ({
   plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: resolve(ROOT, 'src/__tests__/setup.ts'),
+    css: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.test.{ts,tsx}', 'src/__tests__/**'],
+    },
+  },
   build:
     command === 'build'
       ? {

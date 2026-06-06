@@ -3,9 +3,12 @@ import type { Store } from '@tanstack/store'
 import type { EventBus } from './event-bus'
 import type { HotkeyRegistry } from './hotkey-registry'
 import type { I18n } from './i18n'
-import type { MediaEngine } from './media-engine'
+import type { MediaCapabilitiesSnapshot } from './media-capabilities'
+import type { DashMediaEngineOptions, HlsMediaEngineOptions, MediaEngine } from './media-engine'
 import type { PlayerPlugin } from './plugin-api'
 import type { AspectRatioState, FlipState } from './plugin-api'
+import type { PlayerSource } from './source-resolver'
+import type { PlaybackStatus } from './state/slices'
 import type { MediaState } from './state/slices'
 import type { Storage } from './storage'
 import type { SubtitleTrack } from './subtitle-parser'
@@ -31,6 +34,8 @@ export interface PlayerIcons {
   volumeOff: SvgIcon
   settings: SvgIcon
   pip: SvgIcon
+  miniPlayer: SvgIcon
+  close: SvgIcon
   fullscreen: SvgIcon
   fullscreenExit: SvgIcon
   chevronLeft: SvgIcon
@@ -45,6 +50,8 @@ export interface PlayerIcons {
 
 export interface PlayerOptions {
   src: string
+  /** MIME/content type hint used by source provider selection. */
+  type?: string
   poster?: string
   subtitles?: SubtitleTrack[]
   qualities?: string[]
@@ -57,6 +64,10 @@ export interface PlayerOptions {
   defaultHotkeys?: boolean
   reconnectMax?: number
   reconnectSleep?: number
+  /** Optional hls.js config passed when an .m3u8 source needs Media Source Extensions. */
+  hlsConfig?: HlsMediaEngineOptions['hlsConfig']
+  /** Optional dash.js config passed when an .mpd source is used. */
+  dashConfig?: DashMediaEngineOptions['dashConfig']
   onTimeUpdate?: (time: number) => void
   onEnded?: () => void
   onError?: (message: string) => void
@@ -86,6 +97,10 @@ export interface PlayerOptions {
   engine?: MediaEngine | ((video: HTMLVideoElement) => MediaEngine)
 }
 
+export type { PlaybackStatus }
+
+export type { MediaCapabilitiesSnapshot, PlayerSource }
+
 export interface PlayerError {
   message: string
   reconnectAttempt: number
@@ -108,6 +123,7 @@ export interface MediaRemote {
   takeScreenshot: () => void
   setFlip: (flip: FlipState) => void
   setAspectRatio: (ratio: AspectRatioState) => void
+  cycleAspectRatio: () => void
   toggleLoop: () => void
   toggleInfoPanel: () => void
 }
@@ -121,6 +137,8 @@ export interface PlayerLabels {
   settings: string
   pip: string
   pipExit: string
+  miniPlayer: string
+  exitMiniPlayer: string
   fullscreen: string
   fullscreenExit: string
   speed: string
@@ -138,6 +156,8 @@ export interface PlayerLabels {
   aspectRatio16: string
   aspectRatio4: string
   aspectRatioFill: string
+  aspectRatioCover: string
+  aspectRatio21: string
   continue: string
   continuePlay: string
   continueStartOver: string
@@ -164,9 +184,13 @@ export interface PlayerInstance {
   storage: Storage
   i18n: I18n
   hotkeys: HotkeyRegistry
-  /** The active media engine — swap to change source type (native, HLS, DASH). */
-  engine: MediaEngine
-  updateOptions(opts: { subtitles?: SubtitleTrack[]; qualities?: string[] }): void
+  /** The active media engine. Null before mount and after unmount. */
+  engine: MediaEngine | null
+  updateOptions(
+    opts: Partial<
+      Pick<PlayerOptions, 'src' | 'type' | 'poster' | 'autoPlay' | 'subtitles' | 'qualities' | 'thumbnails'>
+    >,
+  ): void
   setThumbnails(url?: string): void
   initPlugins(plugins: PlayerPlugin[]): () => void
   mount(videoEl: HTMLVideoElement, containerEl: HTMLDivElement): void

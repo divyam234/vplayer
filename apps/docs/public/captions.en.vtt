@@ -1,0 +1,10 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:04.000
+Welcome to the VPlayer interactive playground.
+
+00:00:04.000 --> 00:00:08.000
+Use the side controls to test captions, thumbnails, hotkeys, layouts, and mini-player mode.
+
+00:00:08.000 --> 00:00:14.000
+This local fixture proves that WebVTT loading and caption selection are wired into the demo.

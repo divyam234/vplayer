@@ -1,0 +1,52 @@
+---
+title: Installation
+description: Install VPlayer packages and configure CSS, workspaces, and docs.
+---
+
+# Installation
+
+## Package install
+
+For consumers:
+
+```bash
+npm install @vplayer/react
+```
+
+Then import the component and CSS:
+
+```tsx
+import { VideoPlayer } from '@vplayer/react'
+import '@vplayer/react/player.css'
+```
+
+## Monorepo install
+
+For this repository:
+
+```bash
+npm install
+```
+
+Useful scripts:
+
+```bash
+npm run dev:docs       # Next.js + Fumadocs docs and /playground
+npm run typecheck
+npm run test
+npm run build
+```
+
+## CSS
+
+VPlayer intentionally ships one main CSS entry:
+
+```tsx
+import '@vplayer/react/player.css'
+```
+
+Do not create a skin package for every visual style. Override the stable classes and CSS variables from your app stylesheet.
+
+## Browser support
+
+VPlayer targets modern Chromium, Firefox, Safari/WebKit, iOS Safari, Android Chrome, and Edge. Browser-specific features such as fullscreen, PiP, autoplay, and media type support are detected at runtime.

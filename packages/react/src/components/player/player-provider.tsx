@@ -1,5 +1,5 @@
 /**
- * PlayerProvider — Standalone context provider per @vplayer/framework contract.
+ * PlayerProvider — Standalone context provider per @vplayer/react contract.
  *
  * Creates a PlayerInstance via usePlayer() and makes it available
  * to all descendant components via PlayerContext.
@@ -21,14 +21,15 @@
 
 import { defaultPlayerIcons, defaultPlayerLabels } from '@vplayer/core'
 import type { PlayerIcons, PlayerLabels } from '@vplayer/core'
-import { mergeLabels, mergeIcons } from '@vplayer/framework'
-import type { DeepPartial } from '@vplayer/framework'
-import { useRef, useEffect, type FC, type ReactNode } from 'react'
+import { useRef, useEffect, useMemo, type FC, type ReactNode } from 'react'
 
 import { PlayerContext } from './context'
+import { createDisabledMiniPlayerState } from './hooks/use-mini-player-state'
 import { usePlayer } from './hooks/use-player'
 import { createPluginAPI } from './plugin-api'
 import type { PlayerContextValue, PlayerSlots } from './types'
+import { mergeLabels, mergeIcons } from './utils/merge'
+import type { DeepPartial } from './utils/merge'
 
 export interface PlayerProviderProps {
   options: Parameters<typeof usePlayer>[0]
@@ -50,6 +51,9 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
 
+  const src = options.src
+  const type = options.type
+  const autoPlay = options.autoPlay
   const subtitles = options.subtitles
   const qualities = options.qualities
   const thumbnails = options.thumbnails
@@ -67,12 +71,8 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
 
   // ── Sync reactive props to core ──
   useEffect(() => {
-    instance.updateOptions({ subtitles, qualities })
-  }, [subtitles, qualities, instance])
-
-  useEffect(() => {
-    instance.setThumbnails(thumbnails)
-  }, [thumbnails, instance])
+    instance.updateOptions({ src, type, autoPlay, subtitles, qualities, thumbnails })
+  }, [src, type, autoPlay, subtitles, qualities, thumbnails, instance])
 
   // ── Initialize plugins ──
   useEffect(() => {
@@ -82,6 +82,11 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   // ── Resolve labels, icons ──
   const labels = mergeLabels(defaultPlayerLabels, labelOverrides)
   const icons = mergeIcons(defaultPlayerIcons, iconOverrides)
+  const miniPlayer = useMemo(() => createDisabledMiniPlayerState(), [])
+  const thumbnailPreview = useMemo(
+    () => ({ enabled: true, width: 180, height: 101, gap: 10, showTime: true, fit: 'cover' as const }),
+    [],
+  )
 
   const ctx: PlayerContextValue = {
     containerRef,
@@ -98,6 +103,8 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
     engine: instance.engine,
     instance,
     createPluginAPI,
+    miniPlayer,
+    thumbnailPreview,
   }
 
   return <PlayerContext.Provider value={ctx}>{children}</PlayerContext.Provider>

@@ -25,8 +25,9 @@ import type {
   PluginAPI,
   SettingRegistration,
 } from '@vplayer/core'
-import type { PluginAPIBuilder } from '@vplayer/framework'
 import type { ReactNode, RefObject } from 'react'
+
+import type { PluginAPIBuilder } from './adapter-types'
 
 export type { MediaState, MediaRemote, PlayerIcons, PlayerLabels, PlayerOptions, SvgIcon }
 export type {
@@ -47,6 +48,7 @@ export interface PlayerSlots {
   volumeControl?: ReactNode
   timeDisplay?: ReactNode
   settingsButton?: ReactNode
+  miniPlayerButton?: ReactNode
   settingsMenu?: ReactNode
   fullscreenButton?: ReactNode
   pipButton?: ReactNode
@@ -55,12 +57,62 @@ export interface PlayerSlots {
   endOverlay?: ReactNode
 }
 
+export type MiniPlayerPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+
+export interface MiniPlayerOptions {
+  /** Enables YouTube-like floating mini-player mode. */
+  enabled?: boolean
+  /** Automatically enter mini-player when the player leaves the viewport. Defaults to false. */
+  auto?: boolean
+  /** Floating corner. Defaults to bottom-right. */
+  position?: MiniPlayerPosition
+  /** CSS width for the mini player. Defaults to 360px. */
+  width?: number | string
+}
+
+export interface ThumbnailPreviewOptions {
+  /** Enables seekbar thumbnail previews. Defaults to true when thumbnails are configured. */
+  enabled?: boolean
+  /** Preview viewport width in pixels. Defaults to 180. */
+  width?: number
+  /** Preview viewport height in pixels. Defaults to 101. */
+  height?: number
+  /** Gap from the seekbar in pixels. Defaults to 10. */
+  gap?: number
+  /** Show the time pill under the preview. Defaults to true. */
+  showTime?: boolean
+  /** How scaled sprite regions should fit the preview viewport. Defaults to cover. */
+  fit?: 'cover' | 'contain'
+}
+
+export interface NormalizedThumbnailPreviewOptions {
+  enabled: boolean
+  width: number
+  height: number
+  gap: number
+  showTime: boolean
+  fit: 'cover' | 'contain'
+}
+
+export interface MiniPlayerState {
+  enabled: boolean
+  active: boolean
+  auto: boolean
+  position: MiniPlayerPosition
+  width: number | string
+  enter: () => void
+  exit: () => void
+  toggle: () => void
+}
+
 export interface PlayerProps extends PlayerOptions {
   className?: string
   children?: ReactNode
   labels?: Partial<PlayerLabels>
   icons?: Partial<PlayerIcons>
   slots?: PlayerSlots
+  miniPlayer?: boolean | MiniPlayerOptions
+  thumbnailPreview?: boolean | ThumbnailPreviewOptions
 }
 
 export interface PlayerContextValue {
@@ -78,4 +130,6 @@ export interface PlayerContextValue {
   engine: MediaEngine | null
   instance: PlayerInstance
   createPluginAPI: PluginAPIBuilder
+  miniPlayer: MiniPlayerState
+  thumbnailPreview: NormalizedThumbnailPreviewOptions
 }

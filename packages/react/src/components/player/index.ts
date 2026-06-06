@@ -17,11 +17,12 @@ export {
   SettingsTrigger,
   PiPButton,
   FullscreenButton,
+  MiniPlayerButton,
 } from './controls'
 
 export { TopGradient, PauseOverlay, BufferingOverlay, EndOverlay } from './overlays'
 
-export { usePlayerContext, usePlayerState, usePlayerRemote, usePluginAPI } from './context'
+export { usePlayerContext, usePlayerState, usePlayerRemote, useMiniPlayer, usePluginAPI } from './context'
 
 export { usePlayerGestures } from './hooks/use-mobile-gestures'
 
@@ -37,13 +38,18 @@ export type {
   MediaState,
   MediaRemote,
   PlayerContextValue,
+  MiniPlayerOptions,
+  MiniPlayerPosition,
+  MiniPlayerState,
+  ThumbnailPreviewOptions,
+  NormalizedThumbnailPreviewOptions,
 } from './types'
 
-export type { UsePlayerResult } from '@vplayer/framework'
+export type { UsePlayerResult, PluginAPIBuilder, PluginAPIContext } from './adapter-types'
 
 // ── Framework contract helpers ──────────────────────────────
-export { createPluginAPIBuilder } from '@vplayer/framework'
-export type { PluginAPIBuilder, PluginAPIContext } from '@vplayer/framework'
+export { createPluginAPIBuilder } from './plugin-api'
+
 export { createPluginAPI } from './plugin-api'
 
 // ── Core re-exports (framework-agnostic) ────────────────────

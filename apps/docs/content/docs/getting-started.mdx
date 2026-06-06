@@ -1,0 +1,94 @@
+---
+title: Getting Started
+description: Create your first VPlayer instance and learn the default React API.
+---
+
+# Getting Started
+
+The fastest path is the React component API:
+
+```tsx
+import { VideoPlayer } from '@vplayer/react'
+import '@vplayer/react/player.css'
+
+export function WatchPage() {
+  return (
+    <VideoPlayer
+      src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+      poster="/poster.jpg"
+      thumbnails="/thumbnails.vtt"
+      textTracks={[
+        {
+          id: 'en',
+          src: '/captions.en.vtt',
+          kind: 'subtitles',
+          label: 'English',
+          language: 'en',
+          default: true,
+        },
+      ]}
+    />
+  )
+}
+```
+
+## Minimal player
+
+```tsx
+<VideoPlayer src="/video.mp4" />
+```
+
+## With mini-player
+
+```tsx
+<VideoPlayer
+  src="/video.mp4"
+  miniPlayer={{
+    enabled: true,
+    auto: true,
+    position: 'bottom-right',
+    width: 360,
+  }}
+/>
+```
+
+## With thumbnail preview tuning
+
+```tsx
+<VideoPlayer
+  src="/video.mp4"
+  thumbnails="/thumbnails.vtt"
+  thumbnailPreview={{
+    width: 180,
+    height: 100,
+    gap: 8,
+    fit: 'cover',
+    showTime: true,
+  }}
+/>
+```
+
+## With custom CSS overrides
+
+VPlayer has one main stylesheet. Users can override classes and CSS variables instead of importing separate skins.
+
+```css
+.vplayer {
+  --vplayer-accent: oklch(0.82 0.17 85);
+  --vplayer-radius: 18px;
+}
+
+.vplayer__button {
+  border-radius: 9999px;
+}
+```
+
+## Development workflow
+
+```bash
+npm install
+npm run dev:docs
+npm run dev:docs
+npm run test
+npm run build
+```

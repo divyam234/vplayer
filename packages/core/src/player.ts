@@ -19,28 +19,67 @@
 import { EventBus } from './event-bus'
 import { HotkeyRegistry } from './hotkey-registry'
 import { I18n } from './i18n'
-import { NativeVideoEngine } from './media-engine'
+import { getMediaCapabilities, isFiniteDuration } from './media-capabilities'
 import type { MediaEngine } from './media-engine'
 import type { PluginAPI, PlayerPlugin, ContextMenuItem, FlipState, AspectRatioState, RemoteRef } from './plugin-api'
+import { createResolvedMediaEngine, toPlayerSource } from './source-resolver'
 import { createMediaStore } from './state/slices'
 import { Storage, STORAGE_KEYS } from './storage'
 import { fetchThumbnails } from './subtitle-parser'
-import type { SubtitleTrack } from './subtitle-parser'
 import type { PlayerOptions, MediaRemote, PlayerInstance } from './types'
+
+const ASPECT_RATIO_CYCLE: AspectRatioState[] = ['default', '16:9', '4:3', '21:9', 'cover', 'fill']
+
+const ASPECT_RATIO_CSS: Partial<Record<AspectRatioState, string>> = {
+  '16:9': '16 / 9',
+  '4:3': '4 / 3',
+  '21:9': '21 / 9',
+}
+
+const ASPECT_RATIO_CLASS: Record<AspectRatioState, string> = {
+  default: 'default',
+  '16:9': '16-9',
+  '4:3': '4-3',
+  '21:9': '21-9',
+  cover: 'cover',
+  fill: 'fill',
+}
+
+function clearAspectRatioClasses(el: HTMLDivElement): void {
+  el.classList.remove(
+    'vplayer--media-default',
+    'vplayer--media-16-9',
+    'vplayer--media-4-3',
+    'vplayer--media-21-9',
+    'vplayer--media-cover',
+    'vplayer--media-fill',
+  )
+}
+
+function normalizeAspectRatio(ratio: unknown): AspectRatioState {
+  return typeof ratio === 'string' && ratio in ASPECT_RATIO_CLASS ? (ratio as AspectRatioState) : 'default'
+}
+
+function objectFitForAspectRatio(ratio: AspectRatioState): 'contain' | 'cover' | 'fill' {
+  if (ratio === 'cover') return 'cover'
+  if (ratio === 'fill') return 'fill'
+  return 'contain'
+}
 
 export function createPlayer(options: PlayerOptions): PlayerInstance {
   // ── Core services ──────────────────────────────────────────
   const store = createMediaStore()
+  let currentOptions: PlayerOptions = { ...options }
   const events = new EventBus()
   const storage = new Storage()
-  const i18n = new I18n(options.lang)
-  if (options.translations) {
-    i18n.addTranslations(options.lang ?? 'en', options.translations)
+  const i18n = new I18n(currentOptions.lang)
+  if (currentOptions.translations) {
+    i18n.addTranslations(currentOptions.lang ?? 'en', currentOptions.translations)
   }
   const hotkeys = new HotkeyRegistry()
 
-  const reconnectMax = options.reconnectMax ?? 3
-  const reconnectSleep = options.reconnectSleep ?? 1500
+  const reconnectMax = currentOptions.reconnectMax ?? 3
+  const reconnectSleep = currentOptions.reconnectSleep ?? 1500
 
   // ── Mutable state (not in store — engine refs, timers) ────
   let containerEl: HTMLDivElement | null = null
@@ -49,13 +88,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   let progressTimer: ReturnType<typeof setInterval> | null = null
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let reconnectAttempt = 0
-  let thumbnailAbort = false
-
-  // ── Helper: safe engine access ───────────────────────────
-  function getEngine(): MediaEngine {
-    if (!engine) throw new Error('[vplayer] Player not mounted — engine unavailable')
-    return engine
-  }
+  let thumbnailAbortController: AbortController | null = null
 
   // ── Default keyboard shortcuts ────────────────────────────
   function registerDefaultHotkeys(): void {
@@ -97,6 +130,14 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       handler: (e) => {
         e.preventDefault()
         remote.toggleFullscreen()
+      },
+    })
+    hotkeys.register({
+      key: 'KeyA',
+      description: 'Cycle aspect ratio',
+      handler: (e) => {
+        e.preventDefault()
+        remote.cycleAspectRatio()
       },
     })
     hotkeys.register({
@@ -142,31 +183,45 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       },
     })
   }
-  if (options.defaultHotkeys !== false) registerDefaultHotkeys()
+  if (currentOptions.defaultHotkeys !== false) registerDefaultHotkeys()
+
+  function syncFullscreenState(): void {
+    if (typeof document === 'undefined') return
+    const webkitDocument = document as Document & { webkitFullscreenElement?: Element | null }
+    store.setState((prev) => ({
+      ...prev,
+      isFullscreen: Boolean(document.fullscreenElement || webkitDocument.webkitFullscreenElement),
+      capabilities: getMediaCapabilities((engine?.element as HTMLVideoElement | null) ?? undefined, containerEl),
+    }))
+  }
 
   // ── Remote: commands that translate to engine calls ───────
   const remote: MediaRemote = {
-    play: () => getEngine().play(),
-    pause: () => getEngine().pause(),
+    play: () => {
+      void engine?.play()
+    },
+    pause: () => engine?.pause(),
     togglePlay: () => {
       const e = engine
       if (!e) return
-      if (e.paused || e.ended) e.play()
+      if (e.paused || e.ended) void e.play()
       else e.pause()
     },
-    seek: (time: number) => getEngine().seek(time),
+    seek: (time: number) => engine?.seek(time),
     skip: (seconds: number) => {
       const e = engine
       if (!e) return
-      const newTime = Math.max(0, Math.min(e.currentTime + seconds, e.duration || 0))
+      const duration = isFiniteDuration(e.duration) ? e.duration : Number.POSITIVE_INFINITY
+      const newTime = Math.max(0, Math.min(e.currentTime + seconds, duration))
       e.seek(newTime)
     },
     setVolume: (v: number) => {
       const e = engine
       if (!e) return
-      e.setVolume(v)
-      if (v > 0) e.setMuted(false)
-      store.setState((prev) => ({ ...prev, volume: v, isMuted: e.muted }))
+      const volume = Math.max(0, Math.min(1, v))
+      e.setVolume(volume)
+      if (volume > 0) e.setMuted(false)
+      store.setState((prev) => ({ ...prev, volume, isMuted: e.muted }))
     },
     toggleMute: () => {
       const e = engine
@@ -175,24 +230,40 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       store.setState((prev) => ({ ...prev, isMuted: e.muted }))
     },
     setPlaybackRate: (rate: number) => {
-      getEngine().setPlaybackRate(rate)
-      store.setState((prev) => ({ ...prev, playbackRate: rate }))
+      const e = engine
+      if (!e) return
+      e.setPlaybackRate(rate)
+      store.setState((prev) => ({ ...prev, playbackRate: e.playbackRate }))
     },
     toggleFullscreen: () => {
-      if (!containerEl) return
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {})
-      } else {
-        containerEl.requestFullscreen().catch(() => {})
+      if (!containerEl || typeof document === 'undefined') return
+      const webkitContainer = containerEl as HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> | void }
+      const webkitDocument = document as Document & {
+        webkitFullscreenElement?: Element | null
+        webkitExitFullscreen?: () => Promise<void> | void
       }
+      const isFullscreen = Boolean(document.fullscreenElement || webkitDocument.webkitFullscreenElement)
+      const onSettled = () => {
+        containerEl?.focus({ preventScroll: true })
+        syncFullscreenState()
+      }
+      const request = isFullscreen
+        ? typeof document.exitFullscreen === 'function'
+          ? document.exitFullscreen()
+          : webkitDocument.webkitExitFullscreen?.()
+        : typeof containerEl.requestFullscreen === 'function'
+          ? containerEl.requestFullscreen()
+          : webkitContainer.webkitRequestFullscreen?.()
+
+      Promise.resolve(request).then(onSettled, onSettled)
     },
     togglePiP: () => {
       const e = engine
-      if (!e) return
+      if (!e || typeof document === 'undefined') return
       if (document.pictureInPictureElement) {
-        e.exitPictureInPicture()
+        void e.exitPictureInPicture()
       } else {
-        e.requestPictureInPicture()
+        void e.requestPictureInPicture()
       }
     },
     setActiveSubtitle: (track) => {
@@ -223,17 +294,28 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       store.setState((prev) => ({ ...prev, flip }))
     },
     setAspectRatio: (ratio: AspectRatioState) => {
+      const normalizedRatio = normalizeAspectRatio(ratio)
       const el = engine?.element as HTMLVideoElement | null
       if (!el) return
-      let objectFit = 'contain'
-      if (ratio === 'fill') objectFit = 'fill'
-      if (ratio === '16:9' || ratio === '4:3') {
-        el.style.aspectRatio = ratio
+      const cssRatio = ASPECT_RATIO_CSS[normalizedRatio]
+      if (cssRatio) {
+        el.style.setProperty('--vplayer-media-aspect-ratio', cssRatio)
       } else {
-        el.style.aspectRatio = ''
+        el.style.removeProperty('--vplayer-media-aspect-ratio')
       }
-      el.style.objectFit = objectFit
-      store.setState((prev) => ({ ...prev, aspectRatio: ratio }))
+      el.style.objectFit = objectFitForAspectRatio(normalizedRatio)
+      el.style.setProperty('--vplayer-media-object-fit', objectFitForAspectRatio(normalizedRatio))
+      if (containerEl) {
+        clearAspectRatioClasses(containerEl)
+        containerEl.classList.add(`vplayer--media-${ASPECT_RATIO_CLASS[normalizedRatio]}`)
+      }
+      store.setState((prev) => ({ ...prev, aspectRatio: normalizedRatio }))
+    },
+    cycleAspectRatio: () => {
+      const current = store.state.aspectRatio
+      const index = ASPECT_RATIO_CYCLE.indexOf(current)
+      const next = ASPECT_RATIO_CYCLE[(index + 1) % ASPECT_RATIO_CYCLE.length] ?? 'default'
+      remote.setAspectRatio(next)
     },
     toggleLoop: () => {
       const e = engine
@@ -256,8 +338,10 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       eng.on('play', () => {
         store.setState((prev) => ({
           ...prev,
+          status: 'playing',
           isPlaying: true,
           isPaused: false,
+          isBuffering: false,
           isEnded: false,
           error: null,
         }))
@@ -267,8 +351,10 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       eng.on('pause', () => {
         store.setState((prev) => ({
           ...prev,
+          status: prev.isEnded ? 'ended' : 'paused',
           isPlaying: false,
           isPaused: !prev.isEnded,
+          isBuffering: false,
           controlsVisible: true,
         }))
       }),
@@ -276,23 +362,27 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       eng.on('ended', () => {
         store.setState((prev) => ({
           ...prev,
+          status: 'ended',
           isPlaying: false,
           isPaused: false,
+          isBuffering: false,
           isEnded: true,
           controlsVisible: true,
         }))
-        options.onEnded?.()
+        currentOptions.onEnded?.()
       }),
 
       eng.on('timeupdate', () => {
         store.setState((prev) => ({ ...prev, currentTime: eng.currentTime }))
-        options.onTimeUpdate?.(eng.currentTime)
+        currentOptions.onTimeUpdate?.(eng.currentTime)
       }),
 
       eng.on('loadedmetadata', () => {
         store.setState((prev) => ({
           ...prev,
-          duration: eng.duration,
+          status: prev.status === 'idle' || prev.status === 'loading' ? 'ready' : prev.status,
+          duration: isFiniteDuration(eng.duration) ? eng.duration : 0,
+          isLive: !isFiniteDuration(eng.duration),
           volume: eng.volume,
           isMuted: eng.muted,
           playbackRate: eng.playbackRate,
@@ -305,16 +395,54 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
         const end = buf.end(buf.length - 1)
         store.setState((prev) => ({
           ...prev,
-          bufferedPercent: eng.duration > 0 ? (end / eng.duration) * 100 : 0,
+          bufferedPercent: isFiniteDuration(eng.duration) ? (end / eng.duration) * 100 : 0,
         }))
       }),
 
       eng.on('waiting', () => {
-        store.setState((prev) => ({ ...prev, isBuffering: true }))
+        store.setState((prev) => ({ ...prev, status: 'buffering', isBuffering: true }))
       }),
 
       eng.on('canplay', () => {
-        store.setState((prev) => ({ ...prev, isBuffering: false }))
+        store.setState((prev) => ({ ...prev, status: prev.isPlaying ? 'playing' : 'ready', isBuffering: false }))
+      }),
+
+      eng.on('durationchange', () => {
+        store.setState((prev) => ({
+          ...prev,
+          duration: isFiniteDuration(eng.duration) ? eng.duration : 0,
+          isLive: !isFiniteDuration(eng.duration),
+        }))
+      }),
+
+      eng.on('seeking', () => {
+        store.setState((prev) => ({ ...prev, status: 'seeking' }))
+      }),
+
+      eng.on('seeked', () => {
+        store.setState((prev) => ({ ...prev, status: prev.isPlaying ? 'playing' : 'ready' }))
+      }),
+
+      eng.on('playing', () => {
+        store.setState((prev) => ({ ...prev, status: 'playing', isPlaying: true, isPaused: false, isBuffering: false }))
+      }),
+
+      eng.on('volumechange', () => {
+        store.setState((prev) => ({ ...prev, volume: eng.volume, isMuted: eng.muted }))
+      }),
+
+      eng.on('ratechange', () => {
+        store.setState((prev) => ({ ...prev, playbackRate: eng.playbackRate }))
+      }),
+
+      eng.on('playblocked', (err) => {
+        const message = err?.message ?? 'Playback was blocked by the browser'
+        store.setState((prev) => ({
+          ...prev,
+          status: prev.isPlaying ? prev.status : 'paused',
+          error: { message, reconnectAttempt, isReconnecting: false },
+        }))
+        currentOptions.onError?.(message)
       }),
 
       eng.on('error', () => {
@@ -322,9 +450,10 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
         const message = err?.message ?? 'Video playback error'
         store.setState((prev) => ({
           ...prev,
+          status: 'error',
           error: { message, reconnectAttempt, isReconnecting: false },
         }))
-        options.onError?.(message)
+        currentOptions.onError?.(message)
         events.emit('video:error', { message })
 
         // Auto-reconnect with backoff
@@ -384,7 +513,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   let unsubPersist: (() => void) | null = null
 
   function setupPreferencePersistence(): void {
-    if (!options.persistPreferences) return
+    if (!currentOptions.persistPreferences) return
 
     const volume = storage.get<number>(STORAGE_KEYS.VOLUME)
     const muted = storage.get<boolean>(STORAGE_KEYS.MUTED)
@@ -399,7 +528,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       playbackRate: rate ?? prev.playbackRate,
       isLooping: loop ?? prev.isLooping,
       flip: flip ?? prev.flip,
-      aspectRatio: aspectRatio ?? prev.aspectRatio,
+      aspectRatio: normalizeAspectRatio(aspectRatio),
     }))
 
     unsubPersist = store.subscribe(() => {
@@ -425,20 +554,25 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
   // ── Thumbnail fetching ───────────────────────────────────
   function doFetchThumbnails(url?: string): void {
-    thumbnailAbort = true
+    thumbnailAbortController?.abort()
+    thumbnailAbortController = null
+
     if (!url) {
       store.setState((prev) => ({ ...prev, thumbnailCues: [] }))
       return
     }
-    thumbnailAbort = false
-    fetchThumbnails(url)
+
+    const controller = new AbortController()
+    thumbnailAbortController = controller
+    fetchThumbnails(url, controller.signal)
       .then((cues) => {
-        if (!thumbnailAbort) {
+        if (!controller.signal.aborted) {
           store.setState((prev) => ({ ...prev, thumbnailCues: cues }))
         }
       })
-      .catch(() => {
-        if (!thumbnailAbort) {
+      .catch((err) => {
+        if (!controller.signal.aborted) {
+          console.warn('[vplayer] thumbnail VTT failed:', err)
           store.setState((prev) => ({ ...prev, thumbnailCues: [] }))
         }
       })
@@ -542,6 +676,62 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     }
   }
 
+  // ── Engine lifecycle helpers ─────────────────────────────
+  let engineEventCleanups: Array<() => void> = []
+
+  function cleanupEngine(): void {
+    for (const cleanup of engineEventCleanups) cleanup()
+    engineEventCleanups = []
+
+    if (engine) {
+      engine.destroy()
+      engine = null
+      player.engine = null
+    }
+  }
+
+  function mountEngine(video: HTMLVideoElement): void {
+    const source = toPlayerSource(currentOptions)
+    const eng = createResolvedMediaEngine(video, currentOptions)
+    engine = eng
+    player.engine = eng
+    engineEventCleanups = wireEngineEvents(eng)
+
+    video.playsInline = true
+    video.autoplay = Boolean(currentOptions.autoPlay)
+    video.preload = video.preload || 'metadata'
+
+    store.setState((prev) => ({
+      ...prev,
+      status: 'loading',
+      source,
+      isPlaying: false,
+      isPaused: true,
+      isBuffering: false,
+      isEnded: false,
+      currentTime: 0,
+      duration: 0,
+      bufferedPercent: 0,
+      capabilities: getMediaCapabilities(video, containerEl),
+      error: null,
+    }))
+
+    if (currentOptions.autoPlay) {
+      void eng.play()
+    }
+  }
+
+  function replaceEngineForCurrentSource(): void {
+    const video = engine?.element as HTMLVideoElement | null
+    if (!video) return
+    cleanupEngine()
+    video.pause()
+    video.removeAttribute('src')
+    while (video.firstChild) video.removeChild(video.firstChild)
+    video.load()
+    mountEngine(video)
+  }
+
   // ── Player lifecycle ─────────────────────────────────────
   const player: PlayerInstance = {
     store,
@@ -550,9 +740,13 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     storage,
     i18n,
     hotkeys,
-    engine: null as unknown as MediaEngine, // populated after mount
+    engine: null,
 
-    updateOptions(opts: { subtitles?: SubtitleTrack[]; qualities?: string[] }): void {
+    updateOptions(opts): void {
+      const srcChanged = typeof opts.src === 'string' && opts.src !== currentOptions.src
+      const typeChanged = Object.hasOwn(opts, 'type') && opts.type !== currentOptions.type
+      currentOptions = { ...currentOptions, ...opts }
+
       store.setState((prev) => {
         const subtitleTracks = opts.subtitles ?? prev.subtitleTracks
         const qualities = opts.qualities ?? prev.qualities
@@ -572,9 +766,18 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
             : prev.activeQuality,
         }
       })
+
+      if (Object.hasOwn(opts, 'thumbnails')) {
+        doFetchThumbnails(opts.thumbnails)
+      }
+
+      if (srcChanged || typeChanged) {
+        replaceEngineForCurrentSource()
+      }
     },
 
     setThumbnails(url?: string): void {
+      currentOptions = { ...currentOptions, thumbnails: url }
       doFetchThumbnails(url)
     },
 
@@ -602,49 +805,26 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     },
 
     mount(video: HTMLVideoElement, container: HTMLDivElement): void {
+      if (engine) this.unmount()
       containerEl = container
 
-      // Create the media engine (custom or default NativeVideoEngine)
-      const eng = options.engine
-        ? typeof options.engine === 'function'
-          ? (options.engine as (v: HTMLVideoElement) => MediaEngine)(video)
-          : (options.engine as MediaEngine)
-        : new NativeVideoEngine(video)
-      engine = eng
-      ;(player as any).engine = eng
+      mountEngine(video)
 
-      // Wire engine events → store updates
-      const cleanups = wireEngineEvents(eng)
-      engineEventCleanups = cleanups
-
-      // Track fullscreen state
-      fullscreenHandler = () => {
-        store.setState((prev) => ({ ...prev, isFullscreen: !!document.fullscreenElement }))
-      }
+      fullscreenHandler = syncFullscreenState
       document.addEventListener('fullscreenchange', fullscreenHandler)
+      document.addEventListener('webkitfullscreenchange', fullscreenHandler as EventListener)
 
-      // Auto-fetch thumbnails
-      doFetchThumbnails(options.thumbnails)
-
-      // Preference persistence (opt-in)
+      doFetchThumbnails(currentOptions.thumbnails)
       setupPreferencePersistence()
+      remote.setAspectRatio(store.state.aspectRatio)
     },
 
     unmount(): void {
-      // Clean up engine event wiring
-      for (const cleanup of engineEventCleanups) cleanup()
-      engineEventCleanups = []
-
-      // Destroy engine
-      if (engine) {
-        engine.destroy()
-        engine = null
-        ;(player as any).engine = null
-      }
-
+      cleanupEngine()
       containerEl = null
       stopProgressSave()
-      thumbnailAbort = true
+      thumbnailAbortController?.abort()
+      thumbnailAbortController = null
       teardownPreferencePersistence()
 
       if (reconnectTimer !== null) {
@@ -653,8 +833,18 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       }
       if (fullscreenHandler) {
         document.removeEventListener('fullscreenchange', fullscreenHandler)
+        document.removeEventListener('webkitfullscreenchange', fullscreenHandler as EventListener)
         fullscreenHandler = null
       }
+
+      store.setState((prev) => ({
+        ...prev,
+        status: 'idle',
+        isPlaying: false,
+        isPaused: true,
+        isBuffering: false,
+        isEnded: false,
+      }))
     },
 
     destroy(): void {
@@ -663,9 +853,6 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       events.clear()
     },
   }
-
-  // ── Engine event cleanup tracker ────────────────────────
-  let engineEventCleanups: Array<() => void> = []
 
   return player
 }

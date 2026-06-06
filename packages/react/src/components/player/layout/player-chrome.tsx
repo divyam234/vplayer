@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react'
 import clsx from 'clsx'
 import type { FC, ReactNode } from 'react'
 
@@ -5,6 +6,7 @@ import { ScreenshotButton } from '../components/screenshot-button'
 import { usePlayerState, usePlayerContext } from '../context'
 import {
   FullscreenButton,
+  MiniPlayerButton,
   PiPButton,
   PlayButton,
   SeekBar,
@@ -34,8 +36,49 @@ export const ControlsBar: FC<{ children?: ReactNode }> = ({ children }) => {
 
 export const Spacer: FC = () => <div className="vplayer__spacer" />
 
+export const MiniPlayerChrome: FC = () => {
+  const controlsVisible = usePlayerState('controlsVisible')
+  const isPlaying = usePlayerState('isPlaying')
+  const isEnded = usePlayerState('isEnded')
+  const { labels, icons, slots, miniPlayer } = usePlayerContext()
+
+  return (
+    <>
+      <PluginControlsTop />
+      <div
+        className={clsx(
+          'vplayer__mini-chrome',
+          !controlsVisible && isPlaying && 'vplayer__mini-chrome--hidden',
+          isEnded && 'vplayer__mini-chrome--ended',
+        )}
+      >
+        <div className="vplayer__mini-topbar">
+          <span className="vplayer__mini-title">{labels.miniPlayer}</span>
+          <button
+            type="button"
+            aria-label={labels.exitMiniPlayer}
+            className="vplayer__mini-close"
+            onClick={miniPlayer.exit}
+          >
+            <Icon icon={icons.close} width={16} />
+          </button>
+        </div>
+        <div role="toolbar" aria-label="Mini player controls" className="vplayer__mini-center-controls">
+          {slots.playButton ?? <PlayButton size={24} />}
+        </div>
+        <div className="vplayer__mini-bottom-controls">{slots.seekBar ?? <SeekBar />}</div>
+      </div>
+      <PluginLayers />
+      <NotificationOverlay />
+    </>
+  )
+}
+
 export const PlayerChrome: FC = () => {
-  const { slots } = usePlayerContext()
+  const { slots, miniPlayer } = usePlayerContext()
+
+  if (miniPlayer.active) return <MiniPlayerChrome />
+
   return (
     <>
       {/* Top-zone plugin controls (e.g. progress bar additions) */}
@@ -55,6 +98,7 @@ export const PlayerChrome: FC = () => {
           {slots.timeDisplay ?? <TimeDisplay />}
           <ScreenshotButton />
           {slots.settingsButton ?? <SettingsTrigger />}
+          {slots.miniPlayerButton ?? <MiniPlayerButton />}
           <PluginControlsRight />
           {slots.pipButton ?? <PiPButton />}
           {slots.fullscreenButton ?? <FullscreenButton />}

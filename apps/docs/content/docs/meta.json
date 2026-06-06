@@ -1,0 +1,19 @@
+{
+  "title": "VPlayer",
+  "pages": [
+    "index",
+    "getting-started",
+    "installation",
+    "architecture",
+    "react-player",
+    "customization",
+    "mini-player",
+    "thumbnails",
+    "keyboard-shortcuts",
+    "accessibility",
+    "testing",
+    "troubleshooting",
+    "api",
+    "migration"
+  ]
+}

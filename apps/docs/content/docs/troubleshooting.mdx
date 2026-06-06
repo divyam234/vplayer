@@ -1,0 +1,51 @@
+---
+title: Troubleshooting
+description: Fix common playback, styling, thumbnail, fullscreen, and testing issues.
+---
+
+# Troubleshooting
+
+## The video does not autoplay
+
+Modern browsers usually block autoplay with sound. Use muted autoplay or wait for a user gesture.
+
+```tsx
+<VideoPlayer src="/video.mp4" autoplay muted />
+```
+
+## Fullscreen button is disabled
+
+Fullscreen is feature-detected. The button disables when the browser or environment does not expose a compatible fullscreen API.
+
+## PiP button is disabled
+
+Picture-in-picture support varies by browser and platform. The button disables when unsupported.
+
+## Thumbnail preview has too much gap
+
+Use `thumbnailPreview.gap`:
+
+```tsx
+<VideoPlayer src="/video.mp4" thumbnails="/thumbnails.vtt" thumbnailPreview={{ gap: 6 }} />
+```
+
+## Mini-player shows too many controls
+
+Mini mode should render compact controls only. If your app still shows full controls, check for custom controls rendered outside the normal player layout.
+
+## CSS overrides are not applying
+
+Make sure your override CSS loads after the VPlayer CSS:
+
+```tsx
+import '@vplayer/react/player.css'
+import './player-overrides.css'
+```
+
+## Playwright fails because browser binaries are missing
+
+Install them once locally or in CI:
+
+```bash
+npx playwright install chromium firefox webkit
+```

@@ -1,0 +1,55 @@
+---
+title: Thumbnail Previews
+description: Configure WebVTT thumbnail previews, sprites, sizing, and seekbar gap.
+---
+
+# Thumbnail Previews
+
+VPlayer supports WebVTT thumbnail preview cues for timeline hover previews.
+
+## Plain thumbnail VTT
+
+```text
+WEBVTT
+
+00:00:00.000 --> 00:00:05.000
+/thumbs/thumb-1.jpg
+
+00:00:05.000 --> 00:00:10.000
+/thumbs/thumb-2.jpg
+```
+
+## Sprite thumbnail VTT
+
+```text
+WEBVTT
+
+00:00:00.000 --> 00:00:05.000
+/thumbs/sprite.jpg#xywh=0,0,160,90
+
+00:00:05.000 --> 00:00:10.000
+/thumbs/sprite.jpg#xywh=160,0,160,90
+```
+
+## Configure preview size
+
+```tsx
+<VideoPlayer
+  src="/video.mp4"
+  thumbnails="/thumbnails.vtt"
+  thumbnailPreview={{
+    width: 180,
+    height: 100,
+    gap: 8,
+    fit: 'cover',
+    showTime: true,
+  }}
+/>
+```
+
+## Notes
+
+- Relative image URLs resolve against the VTT file URL.
+- Loading uses `AbortController` so unmount and source changes do not leak work.
+- The preview gap is configurable and should stay close to the seekbar.
+- Use sprite sheets for large catalogs to reduce network requests.

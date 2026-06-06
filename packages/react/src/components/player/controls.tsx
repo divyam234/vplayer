@@ -6,19 +6,28 @@ import { getThumbnailAtTime, formatTime } from '@vplayer/core'
 import clsx from 'clsx'
 import { useCallback, useEffect, useState, type FC, type PointerEvent, type ReactNode } from 'react'
 
-import { usePlayerRemote, usePlayerState, usePlayerContext } from './context'
+import { useMiniPlayer, usePlayerRemote, usePlayerState, usePlayerContext } from './context'
+import type { PlayerLabels } from './types'
 
 interface IconButtonProps {
   label: string
   tooltip: string
   children: ReactNode
   onClick?: () => void
+  disabled?: boolean
 }
 
-function IconButton({ label, tooltip, children, onClick }: IconButtonProps) {
+function IconButton({ label, tooltip, children, onClick, disabled = false }: IconButtonProps) {
   return (
     <Tooltip.Root openDelay={400} closeDelay={150}>
-      <Tooltip.Trigger onClick={onClick} aria-label={label} className="vplayer__button">
+      <Tooltip.Trigger
+        type="button"
+        onClick={disabled ? undefined : onClick}
+        aria-label={label}
+        aria-disabled={disabled}
+        disabled={disabled}
+        className="vplayer__button"
+      >
         {children}
       </Tooltip.Trigger>
       <Tooltip.Positioner>
@@ -39,12 +48,21 @@ interface IconToggleProps {
   selected: boolean
   onChange: () => void
   children: ReactNode
+  disabled?: boolean
 }
 
-function IconToggle({ label, tooltip, selected, onChange, children }: IconToggleProps) {
+function IconToggle({ label, tooltip, selected, onChange, children, disabled = false }: IconToggleProps) {
   return (
     <Tooltip.Root openDelay={400} closeDelay={150}>
-      <Tooltip.Trigger onClick={onChange} aria-label={label} aria-pressed={selected} className="vplayer__button">
+      <Tooltip.Trigger
+        type="button"
+        onClick={disabled ? undefined : onChange}
+        aria-label={label}
+        aria-pressed={selected}
+        aria-disabled={disabled}
+        disabled={disabled}
+        className="vplayer__button"
+      >
         {children}
       </Tooltip.Trigger>
       <Tooltip.Positioner>
@@ -64,14 +82,24 @@ export const SeekBar: FC = () => {
   const duration = usePlayerState('duration')
   const bufferedPercent = usePlayerState('bufferedPercent')
   const thumbnailCues = usePlayerState('thumbnailCues')
+  const { thumbnailPreview } = usePlayerContext()
   const remote = usePlayerRemote()
   const [hoverPercent, setHoverPercent] = useState<number | null>(null)
   const [overrideValue, setOverrideValue] = useState<number | null>(null)
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+  const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0
+  const progress = safeDuration > 0 ? (currentTime / safeDuration) * 100 : 0
   const displayValue = overrideValue ?? progress
-  const hoverTime = hoverPercent !== null ? hoverPercent * duration : null
-  const thumbnailCue = hoverTime !== null ? getThumbnailAtTime(thumbnailCues, hoverTime) : null
+  const hoverTime = hoverPercent !== null && safeDuration > 0 ? hoverPercent * safeDuration : null
+  const thumbnailCue =
+    thumbnailPreview.enabled && hoverTime !== null ? getThumbnailAtTime(thumbnailCues, hoverTime) : null
+  const thumbnailScale = thumbnailCue
+    ? thumbnailPreview.fit === 'contain'
+      ? Math.min(thumbnailPreview.width / thumbnailCue.w, thumbnailPreview.height / thumbnailCue.h)
+      : Math.max(thumbnailPreview.width / thumbnailCue.w, thumbnailPreview.height / thumbnailCue.h)
+    : 1
+  const scaledThumbnailWidth = thumbnailCue ? thumbnailCue.w * thumbnailScale : 0
+  const scaledThumbnailHeight = thumbnailCue ? thumbnailCue.h * thumbnailScale : 0
 
   useEffect(() => {
     if (overrideValue !== null && Math.abs(progress - overrideValue) <= 0.5) {
@@ -90,18 +118,27 @@ export const SeekBar: FC = () => {
       {hoverPercent !== null && thumbnailCue && (
         <div className="vplayer__seek-preview" style={{ left: `${hoverPercent * 100}%` }}>
           <div className="vplayer__seek-preview-inner">
-            <div className="vplayer__seek-preview-image">
+            <div
+              className="vplayer__seek-preview-frame"
+              style={{
+                width: thumbnailPreview.width,
+                height: thumbnailPreview.height,
+              }}
+            >
               <div
-                className="vplayer__seek-preview-image"
+                className="vplayer__seek-preview-sprite"
                 style={{
                   width: thumbnailCue.w,
                   height: thumbnailCue.h,
                   backgroundImage: `url(${thumbnailCue.src})`,
                   backgroundPosition: `-${thumbnailCue.x}px -${thumbnailCue.y}px`,
+                  transform: `translate(${(thumbnailPreview.width - scaledThumbnailWidth) / 2}px, ${(thumbnailPreview.height - scaledThumbnailHeight) / 2}px) scale(${thumbnailScale})`,
                 }}
               />
             </div>
-            <span className="vplayer__seek-preview-time">{formatTime(hoverTime ?? 0)}</span>
+            {thumbnailPreview.showTime && (
+              <span className="vplayer__seek-preview-time">{formatTime(hoverTime ?? 0)}</span>
+            )}
             <div className="vplayer__seek-preview-arrow" />
           </div>
         </div>
@@ -110,7 +147,7 @@ export const SeekBar: FC = () => {
       <Slider.Root
         value={[displayValue]}
         onValueChange={(d) => setOverrideValue(d.value[0])}
-        onValueChangeEnd={(d) => remote.seek((d.value[0] / 100) * duration)}
+        onValueChangeEnd={(d) => remote.seek(safeDuration ? (d.value[0] / 100) * safeDuration : currentTime)}
         min={0}
         max={100}
         step={0.01}
@@ -223,6 +260,17 @@ export const VolumeControl: FC = () => {
   )
 }
 
+const ASPECT_RATIO_OPTIONS = ['default', '16:9', '4:3', '21:9', 'cover', 'fill'] as const
+
+function getAspectRatioLabel(labels: PlayerLabels, value: (typeof ASPECT_RATIO_OPTIONS)[number]) {
+  if (value === 'default') return labels.aspectRatioDefault
+  if (value === '16:9') return labels.aspectRatio16
+  if (value === '4:3') return labels.aspectRatio4
+  if (value === '21:9') return labels.aspectRatio21
+  if (value === 'cover') return labels.aspectRatioCover
+  return labels.aspectRatioFill
+}
+
 export const SettingsTrigger: FC = () => {
   const { labels, icons } = usePlayerContext()
   const remote = usePlayerRemote()
@@ -280,7 +328,7 @@ export const SettingsTrigger: FC = () => {
               <Menu.Item value="aspectRatio" onSelect={() => setView('aspectRatio')} className="vplayer__menu-item">
                 <Icon icon={icons.aspectRatio} width={14} className="vplayer__menu-icon" />
                 <span className="vplayer__menu-label">{labels.aspectRatio}</span>
-                <span className="vplayer__menu-value">{labels.aspectRatioDefault}</span>
+                <span className="vplayer__menu-value">{getAspectRatioLabel(labels, aspectRatio)}</span>
               </Menu.Item>
             </>
           )}
@@ -374,7 +422,7 @@ export const SettingsTrigger: FC = () => {
                 <span className="vplayer__menu-label">{labels.aspectRatio}</span>
               </Menu.Item>
               <Menu.Separator className="vplayer__menu-separator" />
-              {(['default', '16:9', '4:3', 'fill'] as const).map((val) => (
+              {ASPECT_RATIO_OPTIONS.map((val) => (
                 <Menu.Item
                   key={val}
                   value={`aspect-${val}`}
@@ -387,13 +435,7 @@ export const SettingsTrigger: FC = () => {
                   <span
                     className={aspectRatio === val ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}
                   >
-                    {val === 'default'
-                      ? labels.aspectRatioDefault
-                      : val === '16:9'
-                        ? labels.aspectRatio16
-                        : val === '4:3'
-                          ? labels.aspectRatio4
-                          : labels.aspectRatioFill}
+                    {getAspectRatioLabel(labels, val)}
                   </span>
                   {aspectRatio === val && <Icon icon={icons.check} width={14} className="vplayer__menu-check" />}
                 </Menu.Item>
@@ -452,8 +494,27 @@ export const SettingsTrigger: FC = () => {
   )
 }
 
+export const MiniPlayerButton: FC = () => {
+  const { labels, icons } = usePlayerContext()
+  const miniPlayer = useMiniPlayer()
+
+  if (!miniPlayer.enabled) return null
+
+  return (
+    <IconToggle
+      selected={miniPlayer.active}
+      onChange={miniPlayer.toggle}
+      label={miniPlayer.active ? labels.exitMiniPlayer : labels.miniPlayer}
+      tooltip={miniPlayer.active ? labels.exitMiniPlayer : labels.miniPlayer}
+    >
+      <Icon icon={miniPlayer.active ? icons.close : icons.miniPlayer} width={16} />
+    </IconToggle>
+  )
+}
+
 export const PiPButton: FC = () => {
   const { labels, icons } = usePlayerContext()
+  const capabilities = usePlayerState('capabilities')
   const remote = usePlayerRemote()
   const active = typeof document !== 'undefined' && !!document.pictureInPictureElement
   return (
@@ -462,6 +523,7 @@ export const PiPButton: FC = () => {
       onChange={remote.togglePiP}
       label={active ? labels.pipExit : labels.pip}
       tooltip={active ? labels.pipExit : labels.pip}
+      disabled={!capabilities.pictureInPicture}
     >
       <Icon icon={icons.pip} width={16} />
     </IconToggle>
@@ -470,6 +532,7 @@ export const PiPButton: FC = () => {
 
 export const FullscreenButton: FC = () => {
   const isFullscreen = usePlayerState('isFullscreen')
+  const capabilities = usePlayerState('capabilities')
   const { labels, icons } = usePlayerContext()
   const remote = usePlayerRemote()
   return (
@@ -478,6 +541,7 @@ export const FullscreenButton: FC = () => {
       onChange={remote.toggleFullscreen}
       label={isFullscreen ? labels.fullscreenExit : labels.fullscreen}
       tooltip={isFullscreen ? `${labels.fullscreenExit} (f)` : `${labels.fullscreen} (f)`}
+      disabled={!capabilities.fullscreen}
     >
       <Icon icon={isFullscreen ? icons.fullscreenExit : icons.fullscreen} width={18} />
     </IconToggle>

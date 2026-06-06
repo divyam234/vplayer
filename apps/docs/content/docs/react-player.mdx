@@ -1,0 +1,52 @@
+---
+title: React Player
+description: Use the VideoPlayer component, custom controls, hooks, and extension points.
+---
+
+# React Player
+
+## Default component
+
+```tsx
+<VideoPlayer src="/video.mp4" />
+```
+
+The default component is the easiest path for most apps. It includes play/pause, timeline, volume, settings, aspect ratio, fullscreen, PiP detection, captions, thumbnails, and mini-player support.
+
+## Custom controls
+
+Use the lower-level player components and hooks when you need a custom layout.
+
+```tsx
+import { PlayerRoot, PlayerVideo, PlayerControls, usePlayerRemote, usePlayerState } from '@vplayer/react'
+import '@vplayer/react/player.css'
+
+function CustomPlayButton() {
+  const remote = usePlayerRemote()
+  const status = usePlayerState((state) => state.status)
+
+  return (
+    <button onClick={() => (status === 'playing' ? remote.pause() : remote.play())}>
+      {status === 'playing' ? 'Pause' : 'Play'}
+    </button>
+  )
+}
+
+export function WatchPage() {
+  return (
+    <PlayerRoot src="/video.mp4">
+      <PlayerVideo />
+      <PlayerControls>
+        <CustomPlayButton />
+      </PlayerControls>
+    </PlayerRoot>
+  )
+}
+```
+
+## Rules for custom controls
+
+- Use public hooks and remote commands.
+- Do not mutate video element state directly unless you are building a provider.
+- Keep buttons accessible with labels.
+- Let the core handle source switching and cleanup.

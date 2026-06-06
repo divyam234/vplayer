@@ -1,0 +1,73 @@
+---
+title: Architecture
+description: Understand the headless core, React adapter, media providers, and testing layers.
+---
+
+# Architecture
+
+VPlayer uses a scalable pattern:
+
+```txt
+Headless Core + React Adapter + Extensible Controls + Focused Tests
+```
+
+## Why this design
+
+A production player needs to support source switching, subtitles, thumbnails, mini-player state, fullscreen, PiP, keyboard shortcuts, accessibility, and browser edge cases. Putting all of that into one React component makes the code hard to test and hard to extend.
+
+VPlayer splits responsibilities:
+
+```txt
+@vplayer/core
+  media state
+  source loading
+  event bus
+  text tracks
+  thumbnails
+  feature detection
+  keyboard rules
+  provider selection
+
+@vplayer/react
+  React UI
+  hooks
+  default controls
+  mini-player chrome
+  focus handling
+  class/CSS variable styling
+```
+
+## Source handling
+
+The core decides how to load media:
+
+```txt
+mp4/webm/ogg -> native provider
+m3u8         -> native HLS on Safari, HLS provider where supported
+mpd          -> DASH provider later/custom provider
+```
+
+The React layer renders the video element and passes it to the core. This keeps source switching and cleanup in one place.
+
+## State model
+
+The core keeps a single state object instead of scattered booleans:
+
+```ts
+type PlaybackStatus = 'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'buffering' | 'seeking' | 'ended' | 'error'
+```
+
+This prevents impossible states like `isPlaying` and `isPaused` both being true.
+
+## Testing layers
+
+```txt
+Vitest core tests
+  parsers, source resolver, player state, provider logic
+
+React Testing Library tests
+  controls, keyboard, focus, fullscreen, mini-player, custom controls
+
+Playwright e2e
+  browser smoke tests across Chromium, Firefox, WebKit, and mobile profiles
+```

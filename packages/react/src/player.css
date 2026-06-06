@@ -19,6 +19,9 @@
   --vplayer-tooltip-bg: rgb(0 0 0 / 0.9);
   --vplayer-tooltip-border: rgb(255 255 255 / 0.1);
   --vplayer-tooltip-fg: rgb(248 250 252);
+  --vplayer-thumbnail-width: 180px;
+  --vplayer-thumbnail-height: 101px;
+  --vplayer-thumbnail-gap: 10px;
 }
 
 @layer components {
@@ -45,8 +48,44 @@
     cursor: none;
   }
 
+  .vplayer__media-viewport {
+    @apply absolute inset-0 flex items-center justify-center overflow-hidden;
+  }
+
   .vplayer__video {
-    @apply absolute inset-0 size-full object-contain;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: var(--vplayer-media-object-fit, contain);
+  }
+
+  .vplayer--media-16-9 .vplayer__media-viewport,
+  .vplayer--media-default .vplayer__media-viewport {
+    width: 100%;
+    height: 100%;
+  }
+
+  .vplayer--media-4-3 .vplayer__media-viewport {
+    width: 75%;
+    height: 100%;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
+  .vplayer--media-21-9 .vplayer__media-viewport {
+    width: 100%;
+    height: 76.1905%;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+  }
+
+  .vplayer--media-cover .vplayer__media-viewport,
+  .vplayer--media-fill .vplayer__media-viewport {
+    width: 100%;
+    height: 100%;
   }
 
   .vplayer__click-layer {
@@ -132,22 +171,29 @@
     @apply scale-125 opacity-100;
   }
   .vplayer__seek-tooltip {
-    @apply pointer-events-none absolute -top-8 -translate-x-1/2 rounded px-2 py-0.5 text-xs tabular-nums;
+    @apply pointer-events-none absolute -translate-x-1/2 rounded px-2 py-0.5 text-xs tabular-nums;
+    bottom: calc(100% + 8px);
     background: color-mix(in srgb, black 75%, transparent);
   }
   .vplayer__seek-preview {
-    @apply pointer-events-none absolute -top-[136px] z-50 -translate-x-1/2;
+    @apply pointer-events-none absolute z-50 -translate-x-1/2;
+    bottom: calc(100% + var(--vplayer-thumbnail-gap));
   }
   .vplayer__seek-preview-inner {
     @apply flex flex-col items-center gap-1;
   }
-  .vplayer__seek-preview-image {
-    @apply overflow-hidden rounded-md border bg-black shadow-2xl;
+  .vplayer__seek-preview-frame {
+    @apply relative overflow-hidden rounded-lg border bg-black shadow-2xl;
+    width: var(--vplayer-thumbnail-width);
+    height: var(--vplayer-thumbnail-height);
     border-color: color-mix(in srgb, white 24%, transparent);
-    max-width: 240px;
-    max-height: 135px;
+  }
+  .vplayer__seek-preview-sprite {
+    @apply absolute top-0 left-0;
     background-repeat: no-repeat;
     background-size: auto;
+    transform-origin: top left;
+    will-change: transform;
   }
   .vplayer__seek-preview-time {
     @apply rounded px-1.5 py-0.5 text-[11px] tabular-nums;
@@ -343,7 +389,10 @@
 
   /* ── Mini Progress Bar ─────────────────────────────────────── */
   .vplayer__mini-progress {
-    @apply pointer-events-none absolute right-0 bottom-0 left-0 z-30 h-[3px] transition-opacity duration-300;
+    @apply pointer-events-none absolute right-0 bottom-0 left-0 z-30 hidden h-[3px] transition-opacity duration-300;
+  }
+  .vplayer--mini .vplayer__mini-progress {
+    display: block;
   }
   .vplayer__mini-progress-buffered {
     @apply absolute inset-0 rounded-full;
@@ -467,5 +516,184 @@
   }
   .vplayer__aspect-ratio-option--active {
     color: var(--vplayer-fg);
+  }
+}
+
+@layer components {
+  .vplayer__anchor {
+    @apply relative;
+  }
+
+  .vplayer--mini {
+    position: fixed;
+    z-index: 2147483000;
+    width: min(var(--vplayer-mini-width, 360px), calc(100vw - 24px));
+    max-height: none;
+    border-radius: 14px;
+    box-shadow: 0 24px 80px color-mix(in srgb, black 62%, transparent);
+    animation: vplayer-mini-enter 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .vplayer--mini-bottom-right {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .vplayer--mini-bottom-left {
+    left: max(12px, env(safe-area-inset-left));
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .vplayer--mini-top-right {
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+  }
+
+  .vplayer--mini-top-left {
+    top: max(12px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
+  }
+
+  .vplayer--mini .vplayer__controls-content {
+    @apply gap-1 px-2 pt-8 pb-2;
+  }
+
+  .vplayer--mini.vplayer--controls-hidden .vplayer__controls {
+    @apply translate-y-2 opacity-0;
+  }
+
+  .vplayer--mini.vplayer--controls-hidden .vplayer__top-gradient {
+    @apply opacity-0;
+  }
+
+  .vplayer--mini .vplayer__controls-row {
+    @apply gap-1 px-1 py-0;
+  }
+
+  .vplayer--mini .vplayer__time,
+  .vplayer--mini .vplayer__volume,
+  .vplayer--mini .vplayer__seek-preview,
+  .vplayer--mini .vplayer__seek-tooltip {
+    display: none;
+  }
+
+  .vplayer--mini .vplayer__button {
+    @apply p-1;
+  }
+
+  .vplayer__button:disabled,
+  .vplayer__button[aria-disabled='true'] {
+    cursor: not-allowed;
+    opacity: 0.38;
+    transform: none;
+  }
+}
+
+@keyframes vplayer-mini-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (max-width: 520px) {
+  @layer components {
+    .vplayer--mini {
+      width: calc(100vw - 24px);
+    }
+  }
+}
+
+@layer components {
+  /* Compact YouTube-like mini-player mode: no full toolbar, no giant overlay button. */
+  .vplayer__mini-chrome {
+    @apply pointer-events-none absolute inset-0 z-40 transition-opacity duration-200;
+  }
+
+  .vplayer__mini-chrome--hidden {
+    @apply opacity-0;
+  }
+
+  .vplayer__mini-topbar {
+    @apply absolute top-0 right-0 left-0 flex items-center justify-between px-2 py-2;
+    background: linear-gradient(180deg, color-mix(in srgb, black 70%, transparent), transparent);
+  }
+
+  .vplayer__mini-title {
+    @apply max-w-40 truncate text-[11px] font-medium tracking-wide;
+    color: color-mix(in srgb, white 72%, transparent);
+  }
+
+  .vplayer__mini-close {
+    @apply pointer-events-auto inline-flex size-7 items-center justify-center rounded-full transition-all outline-none;
+    color: var(--vplayer-fg);
+    background: color-mix(in srgb, black 42%, transparent);
+    border: 1px solid color-mix(in srgb, white 14%, transparent);
+  }
+
+  .vplayer__mini-close:hover,
+  .vplayer__mini-close:focus-visible {
+    background: color-mix(in srgb, white 18%, transparent);
+  }
+
+  .vplayer__mini-center-controls {
+    @apply absolute inset-0 flex items-center justify-center;
+  }
+
+  .vplayer__mini-center-controls .vplayer__button {
+    @apply pointer-events-auto size-12 rounded-full p-0;
+    color: var(--vplayer-fg);
+    background: color-mix(in srgb, black 52%, transparent);
+    border: 1px solid color-mix(in srgb, white 16%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  .vplayer__mini-center-controls .vplayer__button:hover,
+  .vplayer__mini-center-controls .vplayer__button:focus-visible {
+    transform: scale(1.04);
+    background: color-mix(in srgb, black 36%, transparent);
+  }
+
+  .vplayer__mini-bottom-controls {
+    @apply pointer-events-auto absolute right-2 bottom-2 left-2;
+  }
+
+  .vplayer--mini .vplayer__mini-bottom-controls .vplayer__seek {
+    @apply mb-0;
+  }
+
+  .vplayer--mini .vplayer__mini-bottom-controls .vplayer__seek-slider-control {
+    height: 18px;
+  }
+
+  .vplayer--mini .vplayer__mini-bottom-controls .vplayer__seek-track {
+    height: 3px;
+  }
+
+  .vplayer--mini .vplayer__mini-bottom-controls .vplayer__seek-thumb {
+    @apply size-2 opacity-0;
+  }
+
+  .vplayer--mini .vplayer__mini-bottom-controls .vplayer__seek:hover .vplayer__seek-thumb,
+  .vplayer--mini .vplayer__mini-bottom-controls .vplayer__seek-slider-control[data-focus] .vplayer__seek-thumb {
+    @apply opacity-100;
+  }
+
+  .vplayer--mini .vplayer__pause-orb,
+  .vplayer--mini .vplayer__ended-title,
+  .vplayer--mini .vplayer__ended-button {
+    display: none;
+  }
+
+  .vplayer--mini .vplayer__top-gradient {
+    display: none;
+  }
+
+  .vplayer--mini .vplayer__mini-progress {
+    z-index: 38;
   }
 }

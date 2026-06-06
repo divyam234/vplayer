@@ -1,453 +1,266 @@
 # VPlayer
 
-**Framework-agnostic video player with a pluggable media engine architecture.**
-
-Built for React and Solid. Designed for extensibility — swap the media source, add plugins, customize every control.
-
-```tsx
-<VideoPlayer src="https://example.com/video.mp4" />
-```
-
----
-
-## Features
-
-- **🎮 Dual framework** — React and Solid packages with matching APIs
-- **🎨 Fully customizable** — Slots, labels, icons, accent color, CSS custom properties
-- **🔌 Plugin system** — Register controls, settings, layers, hotkeys, context menu items
-- **🎬 Swappable MediaEngine** — Native video, HLS, DASH, or a mock engine for tests
-- **📜 Subtitles & thumbnails** — SRT/VTT parsing, thumbnail previews on seek
-- **⌨️ Keyboard shortcuts** — Play/pause, seek, volume, fullscreen, PiP, loop
-- **📱 Touch gestures** — Swipe to seek, vertical volume, double-tap skip
-- **💾 Preference persistence** — Volume, playback rate, subtitles, aspect ratio (opt-in)
-- **🔄 Auto-reconnect** — Exponential backoff on playback errors
-- **🎞️ Picture-in-Picture** — Browser PiP support
-- **📸 Screenshot capture** — Frame-accurate canvas snapshots
-
----
-
-## Architecture
-
-```
-@vplayer/core          → Pure logic. Zero framework imports.
-@vplayer/framework     → Adapter contract types + helpers.
-@vplayer/react         → React components, hooks, context.
-@vplayer/solid         → Solid components, hooks, context.
-```
-
-### Core layers
-
-```
-PlayerInstance
- ├── store        → Reactive state (TanStack Store, organized into slices)
- ├── engine       → Media playback abstraction (MediaEngine)
- ├── events       → Typed event bus for plugin communication
- ├── storage      → Persistence layer (localStorage + fallback)
- ├── i18n         → Internationalization
- └── hotkeys      → Keyboard shortcut registry
-```
-
-The player delegates all media I/O to a **MediaEngine** — a strategy interface that wraps the underlying media source. The default `NativeVideoEngine` wraps `<video>`. Custom engines (HLS.js, DASH.js, mock) can be injected for testing or advanced playback.
-
----
-
-## Packages
-
-| Package              | Description                                                                   |
-| -------------------- | ----------------------------------------------------------------------------- |
-| `@vplayer/core`      | Player factory, state management, plugin API, subtitle parser, gesture engine |
-| `@vplayer/framework` | Adapter contract types and helpers                                            |
-| `@vplayer/react`     | React `<VideoPlayer>`, `usePlayer` hook, context, controls                    |
-| `@vplayer/solid`     | Solid `<VideoPlayer>`, `usePlayer` hook, context, controls                    |
-
----
-
-## Quick Start
-
-### React
-
-```bash
-bun add @vplayer/react
-```
+A React-first video player with a browser-safe headless TypeScript core.
 
 ```tsx
 import { VideoPlayer } from '@vplayer/react'
 import '@vplayer/react/player.css'
 
-function App() {
-  return (
-    <VideoPlayer
-      src="https://example.com/video.mp4"
-      poster="https://example.com/poster.jpg"
-      qualities={['Auto', '1080p', '720p', '480p']}
-      onEnded={() => console.log('Done!')}
-    />
-  )
+export function App() {
+  return <VideoPlayer src="/video.mp4" poster="/poster.jpg" thumbnails="/thumbs.vtt" />
 }
 ```
 
-### Solid
+## Architecture
+
+```txt
+@vplayer/core   -> headless playback/state/events/providers/parsers/plugins
+@vplayer/react  -> React provider, hooks, default UI, custom controls
+apps/docs       -> Next.js + Fumadocs documentation site and /playground lab
+```
+
+Removed intentionally:
+
+```txt
+@vplayer/framework
+@vplayer/solid
+Bun lockfiles/config assumptions
+```
+
+The rule is simple: **core owns behavior, React owns rendering**. Core never renders buttons, menus, sliders, icons, or CSS. React renders the UI and talks to core through the stable remote/store/plugin API.
+
+## Features
+
+- Native `<video>` engine with automatic source setup.
+- HLS/DASH provider selection via source extension/MIME hints.
+- Browser capability detection for MSE, native HLS, fullscreen, PiP, and text tracks.
+- Safe `play()` handling for autoplay/user-gesture rejections.
+- Nullable engine contract before mount and after unmount.
+- VTT/SRT subtitle parsing.
+- Thumbnail VTT preview parsing, including sprite URLs with `#xywh=x,y,w,h` and plain image cues.
+- AbortController cleanup for thumbnail fetch changes/unmounts.
+- Plugin registration for controls, settings, layers, hotkeys, notifications, and context menu items.
+- React slots and children for custom controls while preserving the current default UI.
+- Compact YouTube-like mini-player layout with auto-hiding controls.
+- Single default stylesheet with stable class names and CSS variables for app-level overrides.
+- Vitest unit/component tests and Playwright cross-browser smoke-test config.
+
+## Quick start
 
 ```bash
-bun add @vplayer/solid
+npm install
+npm run dev:docs
 ```
 
-```tsx
-import { VideoPlayer } from '@vplayer/solid'
-import '@vplayer/solid/player.css'
+## Scripts
 
-function App() {
-  return (
-    <VideoPlayer
-      src="https://example.com/video.mp4"
-      poster="https://example.com/poster.jpg"
-      qualities={['Auto', '1080p', '720p', '480p']}
-    />
-  )
-}
+```bash
+npm run typecheck   # TypeScript for core, React, docs
+npm run test        # Vitest unit/component tests
+npm run lint        # oxlint
+npm run build       # production builds for packages and docs
+npm run test:e2e    # Playwright Chromium/Firefox/WebKit/mobile matrix
+npm run test:all    # typecheck + tests + build + e2e
 ```
 
----
+Before running Playwright locally or in CI, install browsers once:
 
-## Usage
+```bash
+npx playwright install chromium firefox webkit
+```
 
-### `<VideoPlayer>` (full UI)
+## Documentation site
 
-The simplest way to get a player with all built-in controls (play/pause, seek bar, volume, quality, subtitles, fullscreen, PiP, settings):
+This repo includes a Fumadocs-powered Next.js docs app for public documentation:
+
+```bash
+npm run dev:docs
+```
+
+The docs live in `apps/docs/content/docs` and include installation, architecture, React API, core API, customization, mini-player, thumbnails, hotkeys, accessibility, testing, troubleshooting, and migration guides. The interactive playground now lives at `/playground` inside the same docs app. The docs app also exposes search, Open Graph images, `llms.txt`, `llms-full.txt`, and per-page Markdown output.
+
+## React default UI
 
 ```tsx
 <VideoPlayer
-  src="video.mp4"
-  poster="poster.jpg"
-  autoPlay
-  qualities={['Auto', '1080p', '720p']}
-  subtitles={[
-    { lang: 'en', label: 'English', src: '/subtitles/en.vtt', default: true },
-    { lang: 'es', label: 'Español', src: '/subtitles/es.vtt' },
-  ]}
-  thumbnails="/thumbnails.vtt"
-  lang="en"
-  translations={{ play: 'Spielen' }}
-  plugins={[myPlugin]}
-  persistPreferences
-  onTimeUpdate={(t) => console.log(t)}
-  onEnded={() => console.log('finished')}
-  onError={(msg) => console.error(msg)}
+  src="/video.mp4"
+  type="video/mp4"
+  poster="/poster.jpg"
+  qualities={['Auto', '1080p', '720p', '480p']}
+  subtitles={[{ lang: 'en', label: 'English', src: '/subs/en.vtt', default: true }]}
+  thumbnails="/thumbs.vtt"
+  onTimeUpdate={(time) => console.log(time)}
+  onEnded={() => console.log('ended')}
+  onError={(message) => console.error(message)}
 />
 ```
 
-### Layout variants
+## Styling
+
+Import the single base stylesheet:
 
 ```tsx
-import { DefaultVideoLayout, CompactVideoLayout, LargeVideoLayout } from '@vplayer/react'
-
-;<VideoPlayer src="video.mp4">
-  <CompactVideoLayout />
-</VideoPlayer>
+import '@vplayer/react/player.css'
 ```
 
-### Slots (custom controls)
+There is no built-in skin prop or extra skin bundle. Consumers can override the stable `.vplayer*` classes and CSS variables from their app stylesheet:
 
-Replace individual controls:
+```css
+.vplayer {
+  --vplayer-accent: #ff0033;
+  --vplayer-radius: 12px;
+}
+
+.vplayer__button {
+  border-radius: 9999px;
+}
+```
+
+## Mini-player
+
+The default layout switches to a compact mini-player chrome when mini mode is active. It does not render the big play overlay, skip buttons, volume slider, settings, screenshot, PiP, or fullscreen controls. It keeps only:
+
+```txt
+close / restore button
+center play-pause button
+compact seekbar
+bottom mini progress
+```
+
+```tsx
+<VideoPlayer src="/video.mp4" miniPlayer={{ enabled: true, auto: true, position: 'bottom-right', width: 360 }} />
+```
+
+## Custom controls
+
+Pass children to replace the default layout while keeping the internal video element, provider, overlays, and player lifecycle.
+
+```tsx
+import { VideoPlayer, usePlayerRemote, usePlayerState } from '@vplayer/react'
+
+function MyControls() {
+  const isPlaying = usePlayerState('isPlaying')
+  const remote = usePlayerRemote()
+
+  return (
+    <div className="my-controls">
+      <button onClick={remote.togglePlay}>{isPlaying ? 'Pause' : 'Play'}</button>
+      <button onClick={() => remote.skip(-10)}>Back 10s</button>
+      <button onClick={() => remote.skip(10)}>Forward 10s</button>
+    </div>
+  )
+}
+
+export function CustomPlayer() {
+  return (
+    <VideoPlayer src="/video.mp4">
+      <MyControls />
+    </VideoPlayer>
+  )
+}
+```
+
+## Slots
+
+Replace individual default controls without replacing the whole layout.
 
 ```tsx
 <VideoPlayer
-  src="video.mp4"
+  src="/video.mp4"
   slots={{
     playButton: <MyPlayButton />,
     seekBar: <MySeekBar />,
     volumeControl: <MyVolume />,
-    timeDisplay: <MyTimeDisplay />,
-    fullscreenButton: <MyFsButton />,
-    settingsButton: <MySettings />,
-    pipButton: <MyPipButton />,
+    fullscreenButton: <MyFullscreen />,
   }}
 />
 ```
 
-### `usePlayer` hook (headless)
+## Headless hook
 
-Full control over rendering:
+Use `usePlayer` when you want to own all markup, including the `<video>` element.
 
 ```tsx
 import { usePlayer } from '@vplayer/react'
 import { useEffect, useRef } from 'react'
 
-function CustomPlayer({ src }: { src: string }) {
+function HeadlessPlayer({ src }: { src: string }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const { state, remote, attach, detach } = usePlayer({ src })
+  const { state, remote, attach, detach, updateOptions } = usePlayer({ src })
 
   useEffect(() => {
     attach(containerRef.current!, videoRef.current!)
     return () => detach()
   }, [attach, detach])
 
+  useEffect(() => {
+    updateOptions({ src })
+  }, [src, updateOptions])
+
   return (
     <div ref={containerRef}>
-      <video ref={videoRef} />
-      <button onClick={() => remote.togglePlay()}>{state.isPlaying ? 'Pause' : 'Play'}</button>
-      <span>
-        {formatTime(state.currentTime)} / {formatTime(state.duration)}
-      </span>
+      <video ref={videoRef} playsInline />
+      <button onClick={remote.togglePlay}>{state.isPlaying ? 'Pause' : 'Play'}</button>
     </div>
   )
 }
 ```
 
-### `PlayerProvider` (context + custom UI)
+## Thumbnail VTT
 
-```tsx
-import { PlayerProvider, DefaultVideoLayout } from '@vplayer/react'
+Sprite thumbnails:
 
-;<PlayerProvider options={{ src: 'video.mp4', qualities: ['Auto', '1080p'] }}>
-  <DefaultVideoLayout />
-</PlayerProvider>
+```vtt
+WEBVTT
+
+00:00:00.000 --> 00:00:05.000
+thumbs.jpg#xywh=0,0,160,90
+
+00:00:05.000 --> 00:00:10.000
+thumbs.jpg#xywh=160,0,160,90
 ```
 
----
+Plain image thumbnails are also accepted:
 
-## Player Options
+```vtt
+WEBVTT
 
-| Prop                 | Type                                                    | Default    | Description                        |
-| -------------------- | ------------------------------------------------------- | ---------- | ---------------------------------- |
-| `src`                | `string`                                                | —          | Video source URL                   |
-| `poster`             | `string`                                                | —          | Poster image URL                   |
-| `autoPlay`           | `boolean`                                               | `false`    | Auto-start playback                |
-| `qualities`          | `string[]`                                              | `[]`       | Available quality levels           |
-| `subtitles`          | `SubtitleTrack[]`                                       | `[]`       | Subtitle tracks                    |
-| `thumbnails`         | `string`                                                | —          | Thumbnail VTT URL                  |
-| `lang`               | `string`                                                | `'en'`     | UI language                        |
-| `translations`       | `Record<string, string>`                                | —          | Translation overrides              |
-| `plugins`            | `PlayerPlugin[]`                                        | `[]`       | Plugin registrations               |
-| `engine`             | `MediaEngine \| ((video: HTMLVideoElement) => MediaEngine)` | —      | Custom media engine (HLS, DASH)    |
-| `persistPreferences` | `boolean`                                               | `false`    | Persist volume, rate, etc.         |
-| `defaultHotkeys`     | `boolean`                                               | `true`     | Enable default keyboard shortcuts  |
-| `reconnectMax`       | `number`                                                | `3`        | Max auto-reconnect attempts        |
-| `reconnectSleep`     | `number`                                                | `1500`     | Base delay between reconnects (ms) |
-| `onTimeUpdate`       | `(time: number) => void`                                | —          | Current time callback              |
-| `onEnded`            | `() => void`                                            | —          | Playback ended callback            |
-| `onError`            | `(message: string) => void`                             | —          | Error callback                     |
-
----
-
-## Styling
-
-VPlayer uses CSS custom properties for theming. Override them at the player container level:
-
-```css
-.vplayer {
-  --vplayer-accent: oklch(0.75 0.12 78);
-  --vplayer-radius: 18px;
-  --vplayer-bg: oklch(0.05 0.02 240);
-}
+00:00:00.000 --> 00:00:05.000
+thumb-0001.jpg
 ```
 
-Import the stylesheet:
+Relative thumbnail URLs are resolved against the VTT file URL.
 
-```tsx
-// React
-import '@vplayer/react/player.css'
+## Provider/source behavior
 
-// Solid
-import '@vplayer/solid/player.css'
+```txt
+.mp4/.webm/.ogg or video/* -> native video
+.m3u8 / MPEGURL type       -> native HLS on Safari, hls.js elsewhere
+.mpd / DASH type           -> dash.js provider
+custom engine              -> supplied engine/factory
 ```
 
----
+The active `player.engine` is `null` before mount and after unmount. This avoids pretending the media element exists before React refs are available.
 
-## Plugin System
+## Testing coverage added
 
-Plugins register controls, settings, layers, hotkeys, and context menu items during their `setup()` callback:
+Core Vitest:
 
-```typescript
-import type { PlayerPlugin } from '@vplayer/core'
+- VTT parser regression for the previous `startsWith('')` bug.
+- Timestamp parser coverage.
+- Thumbnail sprite and plain-image cue parsing.
+- Source resolver native/HLS/DASH detection.
+- Player mount/unmount nullable engine contract.
+- Engine event to store-state updates.
+- Thumbnail request abort behavior.
 
-const myPlugin: PlayerPlugin = {
-  name: 'my-plugin',
-  setup: (api) => {
-    // Add a custom control button
-    const dispose = api.addControl({
-      name: 'my-button',
-      position: 'right',
-      index: 10,
-      render: <button onClick={() => api.notify('Hello!')}>Hi</button>,
-    })
+React Vitest:
 
-    // Add a keyboard shortcut
-    api.addHotkey({
-      key: 'KeyH',
-      description: 'Say hello',
-      handler: () => api.notify('Hello!'),
-    })
+- Custom children can replace the default layout and control the player through hooks.
 
-    // Cleanup on plugin teardown
-    return () => dispose()
-  },
-}
-```
+Playwright:
 
-### Plugin API
-
-| Method                       | Description                                       |
-| ---------------------------- | ------------------------------------------------- |
-| `addControl(def)`            | Register a control button (returns disposer)      |
-| `removeControl(name)`        | Remove a control by name                          |
-| `addSetting(def)`            | Register a settings menu entry (returns disposer) |
-| `removeSetting(name)`        | Remove a setting by name                          |
-| `addLayer(def)`              | Register a UI layer (returns disposer)            |
-| `removeLayer(name)`          | Remove a layer by name                            |
-| `addHotkey(binding)`         | Register a keyboard shortcut (returns disposer)   |
-| `addContextMenuItems(items)` | Add context menu entries (returns disposer)       |
-| `notify(message, duration?)` | Show a notification toast                         |
-
----
-
-## MediaEngine (Custom Engines)
-
-The `MediaEngine` interface abstracts the media source. Built-in engines:
-
-| Engine              | Use case                 | Source                    |
-| ------------------- | ------------------------ | ------------------------- |
-| `NativeVideoEngine` | Native `<video>` (MP4)   | Default (auto-created)    |
-| `HlsMediaEngine`    | HLS streams (.m3u8)      | `@vplayer/core`           |
-| `DashMediaEngine`   | DASH streams (.mpd)      | `@vplayer/core`           |
-
-### HLS
-
-```tsx
-import { HlsMediaEngine } from '@vplayer/core'
-import { VideoPlayer } from '@vplayer/react'
-
-<VideoPlayer
-  engine={(video) => new HlsMediaEngine(video, {
-    src: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
-  })}
-/>
-```
-
-### DASH
-
-```tsx
-import { DashMediaEngine } from '@vplayer/core'
-
-<VideoPlayer
-  engine={(video) => new DashMediaEngine(video, {
-    src: 'https://dash.akamaized.net/dash264/TestCases/1a/sony/SNE_DASH_SD_1.mpd',
-  })}
-/>
-```
-
-### Headless usage
-
-```typescript
-import { createPlayer, HlsMediaEngine } from '@vplayer/core'
-
-const player = createPlayer({
-  engine: (video) => new HlsMediaEngine(video, {
-    src: 'https://example.com/stream.m3u8',
-  }),
-})
-
-player.mount(videoElement, containerElement)
-```
-
-### Custom engine
-
-Pass a factory that returns any `MediaEngine` implementation:
-
-```typescript
-import type { MediaEngine } from '@vplayer/core'
-
-createPlayer({
-  engine: (video) => new MyCustomEngine(video),
-})
-```
-
----
-
-## Keyboard Shortcuts
-
-| Key           | Action            |
-| ------------- | ----------------- |
-| `Space` / `K` | Toggle play/pause |
-| `F`           | Toggle fullscreen |
-| `M`           | Toggle mute       |
-| `L`           | Toggle loop       |
-| `I`           | Toggle info panel |
-| `ArrowLeft`   | Seek back 5s      |
-| `ArrowRight`  | Seek forward 5s   |
-| `ArrowUp`     | Volume up 10%     |
-| `ArrowDown`   | Volume down 10%   |
-
----
-
-## State Selectors
-
-State is organized into logical slices for granular subscriptions:
-
-```typescript
-import { selectMedia, selectAudio, selectUI } from '@vplayer/core'
-
-// In a component:
-const { currentTime, isPlaying } = useStore(store, selectMedia)
-const { volume, isMuted } = useStore(store, selectAudio)
-```
-
-Available selectors:
-
-| Selector            | Returns                                                                               |
-| ------------------- | ------------------------------------------------------------------------------------- |
-| `selectMedia`       | `isPlaying`, `isPaused`, `currentTime`, `duration`, `bufferedPercent`, `playbackRate` |
-| `selectAudio`       | `volume`, `isMuted`                                                                   |
-| `selectPreferences` | `isLooping`, `flip`, `aspectRatio`, subtitle, quality                                 |
-| `selectUI`          | `controlsVisible`, `isFullscreen`, `infoPanelVisible`, `notification`                 |
-| `selectPlugins`     | `controls`, `settings`, `layers`, `contextMenuItems`                                  |
-| `selectThumbnails`  | `thumbnailCues`                                                                       |
-| `selectError`       | `error` (or `null`)                                                                   |
-
----
-
-## Development
-
-```bash
-# Install dependencies
-bun install
-
-# Run typecheck across all packages
-bun run typecheck
-
-# Build all packages
-bun run build
-
-# Start the demo app
-bun run dev
-
-# Lint
-bun run lint
-
-# Format
-bun run format
-```
-
-### Package structure
-
-```
-apps/
-  demo/                        React demo app
-packages/
-  core/src/                    Player factory, types, engine
-    media-engine/              MediaEngine interface + Native/HLS/DASH engines
-    state/                     State slices and selectors
-  framework/src/               Adapter contract types + helpers
-  react/src/                   React components + hooks
-    components/player/         VideoPlayer, controls, overlays
-  solid/src/                   Solid components + hooks
-    components/                VideoPlayer, controls, overlays
-  components/                  Shared UI components (WIP)
-```
-
----
-
-## License
-
-MIT
+- Demo smoke test.
+- Playground setting toggle interaction.
+- Configured for Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari emulation.

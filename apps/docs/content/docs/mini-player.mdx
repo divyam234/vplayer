@@ -1,0 +1,60 @@
+---
+title: Mini Player
+description: Configure YouTube-like compact mini-player behavior and edge cases.
+---
+
+# Mini Player
+
+The mini-player is a compact player, not a scaled copy of the full player. In mini mode, VPlayer hides the large center overlay and full toolbar, then shows only compact controls.
+
+## Enable mini-player
+
+```tsx
+<VideoPlayer
+  src="/video.mp4"
+  miniPlayer={{
+    enabled: true,
+    position: 'bottom-right',
+    width: 360,
+  }}
+/>
+```
+
+## Auto mini-player
+
+```tsx
+<VideoPlayer
+  src="/video.mp4"
+  miniPlayer={{
+    enabled: true,
+    auto: true,
+    position: 'bottom-right',
+  }}
+/>
+```
+
+## Compact control rules
+
+In mini mode VPlayer keeps only:
+
+- restore/close action
+- compact play/pause
+- compact seekbar
+- bottom progress indicator
+
+It hides:
+
+- large center play/pause orb
+- skip buttons
+- volume panel
+- settings menu
+- screenshot button
+- PiP button
+- fullscreen button
+
+## Edge cases
+
+- Controls appear on pointer movement, touch, keyboard focus, and pause.
+- Controls auto-hide during playback.
+- The bottom progress indicator only renders in mini-player mode.
+- Restore returns to the normal layout without losing player state.

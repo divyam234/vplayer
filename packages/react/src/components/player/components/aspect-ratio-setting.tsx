@@ -7,13 +7,15 @@ const ASPECT_RATIO_OPTIONS: { value: AspectRatioState; labelKey: string }[] = [
   { value: 'default', labelKey: 'aspectRatioDefault' },
   { value: '16:9', labelKey: 'aspectRatio16' },
   { value: '4:3', labelKey: 'aspectRatio4' },
+  { value: '21:9', labelKey: 'aspectRatio21' },
+  { value: 'cover', labelKey: 'aspectRatioCover' },
   { value: 'fill', labelKey: 'aspectRatioFill' },
 ]
 
 /**
  * Settings panel item for video aspect ratio.
  *
- * Renders four radio-style options (Default / 16:9 / 4:3 / Fill)
+ * Renders common VLC-style radio options (Default / 16:9 / 4:3 / 21:9 / cover / fill).
  * and calls `api.remote.setAspectRatio()` on change.
  *
  * Designed to be registered via `api.addSetting()` from a plugin.

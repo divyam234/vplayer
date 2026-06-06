@@ -1,0 +1,48 @@
+---
+title: Core API
+description: Headless player concepts for advanced integrations and contributors.
+---
+
+# Core API
+
+The core package is framework independent. React uses it, but the core should not import React, JSX, browser UI components, or CSS.
+
+## Responsibilities
+
+```txt
+media attachment
+source resolution
+state store
+event dispatch
+feature detection
+text tracks
+thumbnail parsing
+fullscreen/PiP remote commands
+safe cleanup
+```
+
+## Remote commands
+
+The React layer calls remote commands rather than mutating the media element directly:
+
+```ts
+player.remote.play()
+player.remote.pause()
+player.remote.seek(120)
+player.remote.setVolume(0.8)
+player.remote.toggleFullscreen()
+```
+
+## Provider model
+
+Providers wrap browser media capabilities:
+
+```txt
+NativeProvider  -> normal HTMLMediaElement sources
+HlsProvider     -> HLS when available
+DashProvider    -> future/custom DASH integration
+```
+
+## Contributor rule
+
+If a feature changes playback behavior, put it in core. If a feature changes visual layout, put it in React.

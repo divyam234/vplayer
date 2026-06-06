@@ -19,6 +19,7 @@ export interface RemoteRef {
   takeScreenshot: () => void
   setFlip: (flip: FlipState) => void
   setAspectRatio: (ratio: AspectRatioState) => void
+  cycleAspectRatio: () => void
   toggleLoop: () => void
   toggleInfoPanel: () => void
 }
@@ -65,7 +66,7 @@ export interface ContextMenuRegistration {
 }
 
 export type FlipState = 'normal' | 'horizontal' | 'vertical'
-export type AspectRatioState = 'default' | '16:9' | '4:3' | 'fill'
+export type AspectRatioState = 'default' | '16:9' | '4:3' | '21:9' | 'cover' | 'fill'
 
 export interface PluginAPI {
   readonly name: string

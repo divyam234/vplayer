@@ -1,0 +1,45 @@
+---
+title: Keyboard Shortcuts
+description: Supported hotkeys, VLC-style aspect cycling, and focus safety rules.
+---
+
+# Keyboard Shortcuts
+
+VPlayer hotkeys are designed to feel familiar while staying safe for forms and editable UI.
+
+## Defaults
+
+| Key         | Action                                   |
+| ----------- | ---------------------------------------- |
+| Space / K   | Toggle play                              |
+| Arrow Left  | Seek backward                            |
+| Arrow Right | Seek forward                             |
+| Arrow Up    | Volume up                                |
+| Arrow Down  | Volume down                              |
+| M           | Mute                                     |
+| F           | Toggle fullscreen                        |
+| P           | Toggle picture-in-picture when available |
+| A           | Cycle aspect ratio like VLC              |
+| Escape      | Exit menus or active transient UI        |
+
+## Aspect ratio cycling
+
+The `A` key cycles only the useful aspect modes:
+
+```txt
+Default -> 16:9 -> 4:3 -> 21:9 -> Crop/Cover -> Fill -> Default
+```
+
+Aspect ratio affects only the media viewport/video area, not the whole player shell.
+
+## Focus safety
+
+Keyboard shortcuts are ignored when focus is inside:
+
+- input
+- textarea
+- select
+- contenteditable
+- elements marked as editable controls
+
+This prevents the player from stealing keyboard input from forms, comments, search boxes, and custom menus.

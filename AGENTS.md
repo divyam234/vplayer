@@ -3,15 +3,15 @@
 ## Monorepo Commands
 
 ```sh
-bun run dev           # demo app only (React)
-bun run build         # core → react → solid → demo (order matters)
-bun run typecheck     # all 5 packages sequentially
-bun run lint          # oxlint (root only)
-bun run format        # oxfmt
+npm run dev           # demo app only (React)
+npm run build         # core → react → solid → demo (order matters)
+npm run typecheck     # all 5 packages sequentially
+npm run lint          # oxlint (root only)
+npm run format        # oxfmt
 ```
 
-- All commands run from root via `bun run --filter @vplayer/<name>`
-- To check a single package: `bun run --filter @vplayer/core typecheck`
+- All commands run from root via `npm run <script> --workspace @vplayer/<name>`
+- To check a single package: `npm run typecheck --workspace @vplayer/core`
 
 ## Package Boundaries
 
@@ -53,7 +53,7 @@ No test runner or tests exist. Any test setup is from scratch.
 | -------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
 | TypeScript 6   | Per-package `tsconfig.json`  | `moduleResolution: "Bundler"`, `strict: true`, `--noEmit` for typecheck              |
 | oxlint         | Root `.oxlintrc.json`        | Many jsx-a11y/react rules explicitly disabled; `correctness` + `suspicious` as error |
-| oxfmt          | Root `.oxfmtric.json`        | Run via `bun run format`                                                             |
+| oxfmt          | Root `.oxfmtric.json`        | Run via `npm run format`                                                             |
 | TailwindCSS v4 | Root `postcss.config.mjs`    | Uses `@tailwindcss/postcss` plugin                                                   |
 | Vite 8         | Per-package `vite.config.ts` | Each library package builds as ESM                                                   |
 

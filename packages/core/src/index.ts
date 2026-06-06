@@ -16,8 +16,21 @@ export {
   fetchThumbnails,
   parseThumbnailVTT,
   getThumbnailAtTime,
+  parseTimestamp,
 } from './subtitle-parser'
 export type { SubtitleCue, SubtitleTrack, ThumbnailCue } from './subtitle-parser'
+export { detectSourceKind, toPlayerSource, createResolvedMediaEngine } from './source-resolver'
+export type { PlayerSource, SourceKind } from './source-resolver'
+export {
+  canUseMSE,
+  canUseNativeHLS,
+  canUseFullscreen,
+  canUsePictureInPicture,
+  canUseTextTracks,
+  getMediaCapabilities,
+  isFiniteDuration,
+} from './media-capabilities'
+export type { MediaCapabilitiesSnapshot } from './media-capabilities'
 export { formatTime } from './utils'
 export { defaultPlayerLabels, defaultPlayerIcons } from './defaults'
 
@@ -28,6 +41,7 @@ export type {
   MediaEngineDimensions,
   MediaEngineError,
   MediaEngineEvent,
+  MediaEngineEventHandler,
   HlsMediaEngineOptions,
   DashMediaEngineOptions,
 } from './media-engine'
@@ -56,6 +70,7 @@ export type {
   PlayerInstance,
   PlayerSystems,
   PlayerError,
+  PlaybackStatus,
 } from './types'
 
 export type {
