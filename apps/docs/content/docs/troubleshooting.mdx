@@ -7,10 +7,20 @@ description: Fix common playback, styling, thumbnail, fullscreen, and testing is
 
 ## The video does not autoplay
 
-Modern browsers usually block autoplay with sound. Use muted autoplay or wait for a user gesture.
+Modern browsers usually block autoplay with sound. Use media that starts muted through your integration layer, or wait for a user gesture.
 
 ```tsx
-<VideoPlayer src="/video.mp4" autoplay muted />
+<VideoPlayer src="/video.mp4" autoPlay />
+```
+
+The component prop is `autoPlay`, not `autoplay`. `muted` is not currently a public `VideoPlayer` prop.
+
+## Captions do not appear
+
+Use `subtitles`, not `textTracks`.
+
+```tsx
+<VideoPlayer src="/video.mp4" subtitles={[{ src: '/captions.en.vtt', lang: 'en', label: 'English' }]} />
 ```
 
 ## Fullscreen button is disabled
@@ -41,6 +51,22 @@ Make sure your override CSS loads after the VPlayer CSS:
 import '@vplayer/react/player.css'
 import './player-overrides.css'
 ```
+
+## HLS or DASH does not load
+
+Check `src` and `type`. HLS is detected from `.m3u8`, `mpegurl`, or `hls`. DASH is detected from `.mpd` or DASH MIME hints. If your URL does not include a useful extension, pass a `type` hint.
+
+```tsx
+<VideoPlayer src="/stream" type="application/vnd.apple.mpegurl" />
+```
+
+## A custom control cannot read player state
+
+Hooks such as `usePlayerState()` and `usePlayerRemote()` must render below `VideoPlayer` or `PlayerProvider`. If a hook throws, move the component inside the player tree.
+
+## A plugin registration does nothing
+
+Register controls, settings, layers, context-menu items, and hotkeys during plugin `setup()`. The `usePluginAPI()` hook intentionally warns when registration methods are called outside setup.
 
 ## Playwright fails because browser binaries are missing
 

@@ -1,6 +1,6 @@
 ---
 title: Keyboard Shortcuts
-description: Supported hotkeys, VLC-style aspect cycling, and focus safety rules.
+description: Supported hotkeys, VLC-style aspect cycling, loop/info shortcuts, and focus safety rules.
 ---
 
 # Keyboard Shortcuts
@@ -18,9 +18,9 @@ VPlayer hotkeys are designed to feel familiar while staying safe for forms and e
 | Arrow Down  | Volume down                              |
 | M           | Mute                                     |
 | F           | Toggle fullscreen                        |
-| P           | Toggle picture-in-picture when available |
 | A           | Cycle aspect ratio like VLC              |
-| Escape      | Exit menus or active transient UI        |
+| L           | Toggle loop                              |
+| I           | Toggle info panel                        |
 
 ## Aspect ratio cycling
 
@@ -38,8 +38,34 @@ Keyboard shortcuts are ignored when focus is inside:
 
 - input
 - textarea
-- select
 - contenteditable
-- elements marked as editable controls
 
 This prevents the player from stealing keyboard input from forms, comments, search boxes, and custom menus.
+
+## Disable Built-In Hotkeys
+
+```tsx
+<VideoPlayer src="/video.mp4" defaultHotkeys={false} />
+```
+
+## Add Custom Hotkeys
+
+Plugins can register hotkeys during setup.
+
+```ts
+const plugin = {
+  name: 'jump-to-start',
+  setup(api) {
+    return api.addHotkey({
+      key: 'Home',
+      description: 'Jump to start',
+      handler: (event) => {
+        event.preventDefault()
+        api.remote.seek(0)
+      },
+    })
+  },
+}
+```
+
+Use `KeyboardEvent.code` values such as `Space`, `KeyK`, `ArrowLeft`, or `Home`.

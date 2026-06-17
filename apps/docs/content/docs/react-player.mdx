@@ -1,52 +1,170 @@
 ---
 title: React Player
-description: Use the VideoPlayer component, custom controls, hooks, and extension points.
+description: Use VideoPlayer, slots, custom children, hooks, PlayerProvider, and the low-level usePlayer hook.
 ---
 
 # React Player
 
-## Default component
+## Default Component
 
 ```tsx
 <VideoPlayer src="/video.mp4" />
 ```
 
-The default component is the easiest path for most apps. It includes play/pause, timeline, volume, settings, aspect ratio, fullscreen, PiP detection, captions, thumbnails, and mini-player support.
+The default component is the easiest path for most apps. It renders the internal `<video>` element, default controls, overlays, settings UI, context menu, error overlay, info panel, thumbnail previews, gesture handling, keyboard handling, and optional mini-player mode.
 
-## Custom controls
+## Correct Prop Names
 
-Use the lower-level player components and hooks when you need a custom layout.
+Use React and VPlayer's actual option names:
+
+| Use | Do not use |
+| --- | --- |
+| `autoPlay` | `autoplay` |
+| `subtitles` | `textTracks` |
+| `defaultHotkeys` | `hotkeys` |
 
 ```tsx
-import { PlayerRoot, PlayerVideo, PlayerControls, usePlayerRemote, usePlayerState } from '@vplayer/react'
+<VideoPlayer
+  src="/video.mp4"
+  autoPlay
+  subtitles={[{ src: '/captions.en.vtt', lang: 'en', label: 'English', default: true }]}
+  defaultHotkeys={false}
+/>
+```
+
+`muted` is not a `VideoPlayer` prop. Set initial muted behavior through a custom engine, persisted preference, or a custom control after mount.
+
+## Replace Individual Controls With Slots
+
+Slots replace parts of the default layout while preserving the rest of the player.
+
+```tsx
+<VideoPlayer
+  src="/video.mp4"
+  slots={{
+    playButton: <MyPlayButton />,
+    seekBar: <MySeekBar />,
+    volumeControl: <MyVolumeControl />,
+    fullscreenButton: <MyFullscreenButton />,
+  }}
+/>
+```
+
+Available slots are `playButton`, `seekBar`, `volumeControl`, `timeDisplay`, `settingsButton`, `miniPlayerButton`, `settingsMenu`, `fullscreenButton`, `pipButton`, `bufferingOverlay`, `pauseOverlay`, and `endOverlay`.
+
+## Replace The Default Layout With Children
+
+Passing children replaces `DefaultVideoLayout` but keeps the internal video element, player lifecycle, provider, overlays, context menu, and hooks.
+
+```tsx
+import { VideoPlayer, usePlayerRemote, usePlayerState } from '@vplayer/react'
 import '@vplayer/react/player.css'
 
 function CustomPlayButton() {
   const remote = usePlayerRemote()
-  const status = usePlayerState((state) => state.status)
+  const isPlaying = usePlayerState('isPlaying')
 
   return (
-    <button onClick={() => (status === 'playing' ? remote.pause() : remote.play())}>
-      {status === 'playing' ? 'Pause' : 'Play'}
+    <button type="button" onClick={remote.togglePlay}>
+      {isPlaying ? 'Pause' : 'Play'}
     </button>
   )
 }
 
 export function WatchPage() {
   return (
-    <PlayerRoot src="/video.mp4">
-      <PlayerVideo />
-      <PlayerControls>
+    <VideoPlayer src="/video.mp4">
+      <div className="my-controls">
         <CustomPlayButton />
-      </PlayerControls>
-    </PlayerRoot>
+      </div>
+    </VideoPlayer>
   )
 }
 ```
 
-## Rules for custom controls
+## Hooks
+
+Hooks must be called below `VideoPlayer` or `PlayerProvider`.
+
+```tsx
+const state = usePlayerState()
+const status = usePlayerState('status')
+const currentTime = usePlayerState((state) => state.currentTime)
+const remote = usePlayerRemote()
+const miniPlayer = useMiniPlayer()
+const api = usePluginAPI()
+```
+
+`usePluginAPI()` is for internal or advanced components that need read access to the plugin context. Registration methods such as `addControl` and `addSetting` intentionally warn when called outside plugin setup.
+
+## PlayerProvider
+
+Use `PlayerProvider` when you want VPlayer context without the default `VideoPlayer` wrapper. It creates the player context and owns option/plugin syncing, but it does not render the player shell or video element for you. Render elements that use `containerRef` and `videoRef` from `usePlayerContext()`.
+
+```tsx
+import { PlayerProvider, DefaultVideoLayout, usePlayerContext } from '@vplayer/react'
+
+function Shell() {
+  const { containerRef, videoRef } = usePlayerContext()
+
+  return (
+    <div ref={containerRef} className="vplayer" tabIndex={0} role="application" aria-label="Video player">
+      <div className="vplayer__media-viewport">
+        <video ref={videoRef} className="vplayer__video" playsInline />
+      </div>
+      <DefaultVideoLayout />
+    </div>
+  )
+}
+
+export function CustomShell() {
+  return (
+    <PlayerProvider options={{ src: '/video.mp4' }}>
+      <Shell />
+    </PlayerProvider>
+  )
+}
+```
+
+For full control over the container and `<video>` element, use `usePlayer` directly.
+
+## Low-Level usePlayer
+
+`usePlayer(options)` creates a core player instance, subscribes to its store, and returns the state, remote, lifecycle methods, plugin initializer, option updater, and instance.
+
+```tsx
+import { usePlayer } from '@vplayer/react'
+import { useEffect, useRef } from 'react'
+
+export function HeadlessPlayer({ src }: { src: string }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const player = usePlayer({ src })
+
+  useEffect(() => {
+    if (!containerRef.current || !videoRef.current) return
+    player.attach(containerRef.current, videoRef.current)
+    return () => player.detach()
+  }, [player.attach, player.detach])
+
+  useEffect(() => {
+    player.updateOptions({ src })
+  }, [src, player.updateOptions])
+
+  return (
+    <div ref={containerRef}>
+      <video ref={videoRef} playsInline />
+      <button type="button" onClick={player.remote.togglePlay}>
+        {player.state.isPlaying ? 'Pause' : 'Play'}
+      </button>
+    </div>
+  )
+}
+```
+
+## Rules For Custom Controls
 
 - Use public hooks and remote commands.
-- Do not mutate video element state directly unless you are building a provider.
+- Do not mutate video element state directly unless you are building a custom media engine.
 - Keep buttons accessible with labels.
 - Let the core handle source switching and cleanup.

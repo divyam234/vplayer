@@ -107,6 +107,8 @@ export function PlaygroundClient() {
   const [subtitleLang, setSubtitleLang] = useState('en')
   const [thumbnailUrl, setThumbnailUrl] = useState(LOCAL_THUMBNAILS)
   const [qualitiesText, setQualitiesText] = useState('Auto,1080p,720p,480p')
+  const [captionsEnabled, setCaptionsEnabled] = useState(true)
+  const [thumbnailsEnabled, setThumbnailsEnabled] = useState(true)
   const [autoPlay, setAutoPlay] = useState(false)
   const [showPoster, setShowPoster] = useState(true)
   const [defaultHotkeys, setDefaultHotkeys] = useState(true)
@@ -121,12 +123,12 @@ export function PlaygroundClient() {
   const [thumbnailPreviewGap, setThumbnailPreviewGap] = useState(8)
   const [thumbnailPreviewShowTime, setThumbnailPreviewShowTime] = useState(true)
   const [thumbnailPreviewFit, setThumbnailPreviewFit] = useState<'cover' | 'contain'>('cover')
-  const [layout, setLayout] = useState<LayoutMode>('debug')
+  const [layout, setLayout] = useState<LayoutMode>('default')
   const [theme, setTheme] = useState<ThemeMode>('obsidian')
   const [accent, setAccent] = useState(THEME_MAP.obsidian.accent)
   const [radius, setRadius] = useState(THEME_MAP.obsidian.radius)
   const [endedTitle, setEndedTitle] = useState('Thanks for watching')
-  const [showDebugHud, setShowDebugHud] = useState(true)
+  const [showDebugHud, setShowDebugHud] = useState(false)
   const [eventLog, setEventLog] = useState<string[]>([])
 
   const qualities = useMemo(
@@ -139,17 +141,17 @@ export function PlaygroundClient() {
   )
 
   const subtitles = useMemo<SubtitleTrack[]>(() => {
+    if (!captionsEnabled) return []
     if (!subtitleUrl.trim()) return []
     return [
       {
-        id: 'demo-subtitle',
         src: subtitleUrl.trim(),
         label: subtitleLabel.trim() || 'Custom subtitles',
         lang: subtitleLang.trim() || 'en',
         default: true,
       },
     ]
-  }, [subtitleUrl, subtitleLabel, subtitleLang])
+  }, [captionsEnabled, subtitleUrl, subtitleLabel, subtitleLang])
 
   const thumbnailPreview = useMemo<ThumbnailPreviewOptions>(
     () => ({
@@ -183,7 +185,7 @@ export function PlaygroundClient() {
     defaultHotkeys,
     persistPreferences,
     subtitles,
-    thumbnails: thumbnailUrl.trim() || undefined,
+    thumbnails: thumbnailsEnabled ? thumbnailUrl.trim() || undefined : undefined,
     thumbnailPreview,
     qualities,
     miniPlayer: {
@@ -212,6 +214,8 @@ export function PlaygroundClient() {
     setPoster(preset.poster)
     setSubtitleUrl(preset.subtitles)
     setThumbnailUrl(preset.thumbnails)
+    setCaptionsEnabled(Boolean(preset.subtitles))
+    setThumbnailsEnabled(Boolean(preset.thumbnails))
     setQualitiesText(preset.qualities)
     log(`preset ${preset.label}`)
   }
@@ -234,7 +238,7 @@ export function PlaygroundClient() {
     type,
     poster: showPoster ? poster : '',
     subtitles,
-    thumbnailUrl,
+    thumbnailUrl: thumbnailsEnabled ? thumbnailUrl : '',
     qualities,
     autoPlay,
     miniEnabled,
@@ -250,228 +254,198 @@ export function PlaygroundClient() {
         <a className="demo-brand" href="#playground" aria-label="VPlayer playground home">
           <span className="demo-brand-mark">▶</span>
           <span>
-            <span className="demo-eyebrow">Interactive lab</span>
+            <span className="demo-eyebrow">Player lab</span>
             <strong>VPlayer Playground</strong>
           </span>
         </a>
         <nav className="demo-nav" aria-label="Demo sections">
-          <a href="#presets">Presets</a>
-          <a href="#config">Configure</a>
+          <a href="#stage">Stage</a>
+          <a href="#settings">Settings</a>
           <a href="#inspect">Inspect</a>
         </nav>
       </header>
 
       <section className="hero" id="playground">
         <div className="hero-copy">
-          <span className="hero-kicker">Production demo surface</span>
-          <h1>Configure every important player path from one page.</h1>
-          <p>
-            Change source URLs, captions, thumbnail VTT, quality labels, layout mode, mini-player settings, theme
-            tokens, hotkeys, and persistence. The live player, event log, state HUD, and generated JSX update together.
-          </p>
-        </div>
-        <div className="hero-scorecard" aria-label="Demo coverage summary">
-          <Metric label="Inputs" value="25+" />
-          <Metric label="Layouts" value="4" />
-          <Metric label="Fixtures" value="VTT" />
+          <span className="hero-kicker">Quiet control room</span>
+          <h1>Test the player without fighting the controls.</h1>
+          <p>Pick a fixture, tune the visible essentials, and open advanced settings only when you need them.</p>
         </div>
       </section>
 
-      <section className="player-lab" aria-label="Player preview">
-        <div className="stage-card" style={themeTokens}>
-          <div className="stage-toolbar">
-            <div>
-              <span className="section-kicker">Live preview</span>
-              <h2>Player stage</h2>
-            </div>
-            <div className="stage-pills" aria-label="Active player options">
-              <span>{layout}</span>
-              <span>{miniEnabled ? 'mini on' : 'mini off'}</span>
-              <span>{subtitles.length ? 'captions' : 'no captions'}</span>
-              <span>{thumbnailUrl ? 'thumbnails' : 'no thumbs'}</span>
-            </div>
-          </div>
-
-          <VideoPlayer key={playerKey} {...playerProps}>
-            {renderLayout(layout)}
-            {(showDebugHud || layout === 'debug') && <PlayerStateHud />}
-          </VideoPlayer>
-        </div>
-      </section>
-
-      <section className="demo-grid" id="presets">
-        <Panel title="Presets" description="One click paths for normal playback, clean native mode, and errors.">
-          <div className="preset-grid">
+      <section className="playground-board" id="stage">
+        <div className="stage-column">
+          <div className="preset-strip" aria-label="Preset sources">
             {PRESETS.map((preset) => (
-              <button key={preset.id} type="button" className="preset-card" onClick={() => applyPreset(preset)}>
+              <button key={preset.id} type="button" className="preset-chip" onClick={() => applyPreset(preset)}>
                 <strong>{preset.label}</strong>
                 <span>{preset.description}</span>
               </button>
             ))}
           </div>
-        </Panel>
 
-        <Panel
-          title="Layout"
-          description="Switch between the default UI, debug overlay, cinema shell, and custom controls."
-        >
-          <SegmentedControl
-            label="Layout mode"
-            value={layout}
-            options={[
-              ['default', 'Default'],
-              ['debug', 'Debug'],
-              ['cinema', 'Cinema'],
-              ['minimal', 'Minimal'],
-            ]}
-            onChange={(value) => setLayout(value as LayoutMode)}
-          />
-          <Toggle checked={showDebugHud} label="Show state HUD" onChange={setShowDebugHud} />
-        </Panel>
-      </section>
+          <div className="stage-card" style={themeTokens}>
+            <div className="stage-toolbar">
+              <div>
+                <span className="section-kicker">Live stage</span>
+                <h2>{layout === 'debug' ? 'Debug player' : 'Player preview'}</h2>
+              </div>
+              <div className="stage-pills" aria-label="Active player options">
+                <span>{layout}</span>
+                <span>{miniEnabled ? 'mini' : 'no mini'}</span>
+                <span>{subtitles.length ? 'captions' : 'no captions'}</span>
+                <span>{thumbnailsEnabled && thumbnailUrl ? 'thumbs' : 'no thumbs'}</span>
+              </div>
+            </div>
 
-      <section className="config-grid" id="config">
-        <Panel title="Source" description="Paste your own MP4, WebM, HLS, DASH, poster, caption, and thumbnail files.">
-          <TextField label="Video URL" value={src} onChange={setSrc} placeholder="https://example.com/video.mp4" />
-          <TextField
-            label="MIME type"
-            value={type}
-            onChange={setType}
-            placeholder="video/mp4 or application/x-mpegURL"
-          />
-          <TextField
-            label="Poster URL"
-            value={poster}
-            onChange={setPoster}
-            placeholder="https://example.com/poster.jpg"
-          />
-          <TextField
-            label="Subtitle VTT URL"
-            value={subtitleUrl}
-            onChange={setSubtitleUrl}
-            placeholder="/captions.en.vtt"
-          />
-          <div className="two-column-fields">
-            <TextField label="Subtitle label" value={subtitleLabel} onChange={setSubtitleLabel} />
-            <TextField label="Subtitle lang" value={subtitleLang} onChange={setSubtitleLang} />
+            <VideoPlayer key={playerKey} {...playerProps}>
+              {renderLayout(layout)}
+              <PlayerStatusStrip />
+              {(showDebugHud || layout === 'debug') && <PlayerStateHud />}
+            </VideoPlayer>
           </div>
-          <TextField
-            label="Thumbnail VTT URL"
-            value={thumbnailUrl}
-            onChange={setThumbnailUrl}
-            placeholder="/thumbnails.vtt"
-          />
-          <TextField
-            label="Quality labels"
-            value={qualitiesText}
-            onChange={setQualitiesText}
-            placeholder="Auto,1080p,720p"
-          />
-        </Panel>
+        </div>
 
-        <Panel
-          title="Behavior"
-          description="Exercise autoplay, mini-player, hotkeys, persistence, and poster behavior."
-        >
-          <Toggle
-            checked={autoPlay}
-            label="Autoplay"
-            help="May be blocked by the browser unless muted/user initiated."
-            onChange={setAutoPlay}
-          />
-          <Toggle checked={showPoster} label="Show poster" onChange={setShowPoster} />
-          <Toggle checked={defaultHotkeys} label="Default keyboard shortcuts" onChange={setDefaultHotkeys} />
-          <Toggle checked={persistPreferences} label="Persist preferences" onChange={setPersistPreferences} />
-          <Toggle checked={miniEnabled} label="Enable mini-player button" onChange={setMiniEnabled} />
-          <Toggle checked={miniAuto} label="Auto mini-player when offscreen" onChange={setMiniAuto} />
-          <SegmentedControl
-            label="Mini-player corner"
-            value={miniPosition}
-            options={[
-              ['bottom-right', 'Bottom right'],
-              ['bottom-left', 'Bottom left'],
-              ['top-right', 'Top right'],
-              ['top-left', 'Top left'],
-            ]}
-            onChange={(value) => setMiniPosition(value as MiniPosition)}
-          />
-          <RangeField
-            label="Mini-player width"
-            min={260}
-            max={520}
-            step={10}
-            value={miniWidth}
-            onChange={setMiniWidth}
-          />
-        </Panel>
-
-        <Panel
-          title="Thumbnail preview"
-          description="Tune seekbar preview size, sprite fit, time pill, and distance from the seekbar."
-        >
-          <Toggle
-            checked={thumbnailPreviewEnabled}
-            label="Enable thumbnail previews"
-            onChange={setThumbnailPreviewEnabled}
-          />
-          <div className="two-column-fields">
-            <RangeField
-              label="Thumbnail width"
-              min={96}
-              max={420}
-              step={4}
-              value={thumbnailPreviewWidth}
-              onChange={setThumbnailPreviewWidth}
+        <aside className="settings-rail" id="settings" aria-label="Playground settings">
+          <Panel title="Quick settings" description="The controls people actually need first.">
+            <SegmentedControl
+              label="Layout"
+              value={layout}
+              options={[
+                ['default', 'Default'],
+                ['cinema', 'Cinema'],
+                ['minimal', 'Minimal'],
+                ['debug', 'Debug'],
+              ]}
+              onChange={(value) => setLayout(value as LayoutMode)}
             />
-            <RangeField
-              label="Thumbnail height"
-              min={54}
-              max={236}
-              step={4}
-              value={thumbnailPreviewHeight}
-              onChange={setThumbnailPreviewHeight}
-            />
-          </div>
-          <RangeField
-            label="Seekbar gap"
-            min={0}
-            max={36}
-            step={1}
-            value={thumbnailPreviewGap}
-            onChange={setThumbnailPreviewGap}
-          />
-          <Toggle
-            checked={thumbnailPreviewShowTime}
-            label="Show preview time pill"
-            onChange={setThumbnailPreviewShowTime}
-          />
-          <SegmentedControl
-            label="Thumbnail fit"
-            value={thumbnailPreviewFit}
-            options={[
-              ['cover', 'Cover'],
-              ['contain', 'Contain'],
-            ]}
-            onChange={(value) => setThumbnailPreviewFit(value as 'cover' | 'contain')}
-          />
-        </Panel>
+            <TextField label="Video URL" value={src} onChange={setSrc} placeholder="https://example.com/video.mp4" />
+            <TextField label="Poster URL" value={poster} onChange={setPoster} placeholder="https://example.com/poster.jpg" />
+            <div className="quick-toggle-grid">
+              <Toggle checked={captionsEnabled} label="Captions" onChange={setCaptionsEnabled} />
+              <Toggle checked={thumbnailsEnabled} label="Thumbnails" onChange={setThumbnailsEnabled} />
+              <Toggle checked={autoPlay} label="Autoplay" onChange={setAutoPlay} />
+              <Toggle checked={defaultHotkeys} label="Hotkeys" onChange={setDefaultHotkeys} />
+              <Toggle checked={miniEnabled} label="Mini-player" onChange={setMiniEnabled} />
+              <Toggle checked={showDebugHud} label="State HUD" onChange={setShowDebugHud} />
+            </div>
+          </Panel>
 
-        <Panel title="Theme tokens" description="Edit real CSS variables and labels used by the player component.">
-          <SegmentedControl
-            label="Token preset"
-            value={theme}
-            options={[
-              ['obsidian', 'Obsidian'],
-              ['aurora', 'Aurora'],
-              ['zinc', 'Zinc'],
-              ['ember', 'Ember'],
-            ]}
-            onChange={(value) => applyTheme(value as ThemeMode)}
-          />
-          <TextField label="Accent OKLCH" value={accent} onChange={setAccent} />
-          <TextField label="Corner radius" value={radius} onChange={setRadius} />
-          <TextField label="Ended title" value={endedTitle} onChange={setEndedTitle} />
-        </Panel>
+          <details className="advanced-settings">
+            <summary>Advanced settings</summary>
+            <div className="advanced-settings__body">
+              <TextField
+                label="MIME type"
+                value={type}
+                onChange={setType}
+                placeholder="video/mp4 or application/x-mpegURL"
+              />
+              <TextField
+                label="Subtitle VTT URL"
+                value={subtitleUrl}
+                onChange={setSubtitleUrl}
+                placeholder="/captions.en.vtt"
+              />
+              <div className="two-column-fields">
+                <TextField label="Subtitle label" value={subtitleLabel} onChange={setSubtitleLabel} />
+                <TextField label="Lang" value={subtitleLang} onChange={setSubtitleLang} />
+              </div>
+              <TextField
+                label="Thumbnail VTT URL"
+                value={thumbnailUrl}
+                onChange={setThumbnailUrl}
+                placeholder="/thumbnails.vtt"
+              />
+              <TextField
+                label="Quality labels"
+                value={qualitiesText}
+                onChange={setQualitiesText}
+                placeholder="Auto,1080p,720p"
+              />
+              <Toggle checked={showPoster} label="Show poster" onChange={setShowPoster} />
+              <Toggle checked={persistPreferences} label="Persist preferences" onChange={setPersistPreferences} />
+              <Toggle checked={miniAuto} label="Auto mini-player offscreen" onChange={setMiniAuto} />
+              <SegmentedControl
+                label="Mini-player corner"
+                value={miniPosition}
+                options={[
+                  ['bottom-right', 'Bottom right'],
+                  ['bottom-left', 'Bottom left'],
+                  ['top-right', 'Top right'],
+                  ['top-left', 'Top left'],
+                ]}
+                onChange={(value) => setMiniPosition(value as MiniPosition)}
+              />
+              <RangeField
+                label="Mini-player width"
+                min={260}
+                max={520}
+                step={10}
+                value={miniWidth}
+                onChange={setMiniWidth}
+              />
+              <Toggle
+                checked={thumbnailPreviewEnabled}
+                label="Thumbnail previews"
+                onChange={setThumbnailPreviewEnabled}
+              />
+              <div className="two-column-fields">
+                <RangeField
+                  label="Thumb width"
+                  min={96}
+                  max={420}
+                  step={4}
+                  value={thumbnailPreviewWidth}
+                  onChange={setThumbnailPreviewWidth}
+                />
+                <RangeField
+                  label="Thumb height"
+                  min={54}
+                  max={236}
+                  step={4}
+                  value={thumbnailPreviewHeight}
+                  onChange={setThumbnailPreviewHeight}
+                />
+              </div>
+              <RangeField
+                label="Seekbar gap"
+                min={0}
+                max={36}
+                step={1}
+                value={thumbnailPreviewGap}
+                onChange={setThumbnailPreviewGap}
+              />
+              <Toggle
+                checked={thumbnailPreviewShowTime}
+                label="Preview time pill"
+                onChange={setThumbnailPreviewShowTime}
+              />
+              <SegmentedControl
+                label="Thumbnail fit"
+                value={thumbnailPreviewFit}
+                options={[
+                  ['cover', 'Cover'],
+                  ['contain', 'Contain'],
+                ]}
+                onChange={(value) => setThumbnailPreviewFit(value as 'cover' | 'contain')}
+              />
+              <SegmentedControl
+                label="Theme"
+                value={theme}
+                options={[
+                  ['obsidian', 'Obsidian'],
+                  ['aurora', 'Aurora'],
+                  ['zinc', 'Zinc'],
+                  ['ember', 'Ember'],
+                ]}
+                onChange={(value) => applyTheme(value as ThemeMode)}
+              />
+              <TextField label="Accent OKLCH" value={accent} onChange={setAccent} />
+              <TextField label="Corner radius" value={radius} onChange={setRadius} />
+              <TextField label="Ended title" value={endedTitle} onChange={setEndedTitle} />
+            </div>
+          </details>
+        </aside>
       </section>
 
       <section className="inspect-grid" id="inspect">
@@ -614,6 +588,24 @@ function PlayerStateHud() {
   )
 }
 
+function PlayerStatusStrip() {
+  const state = usePlayerState()
+  const mini = useMiniPlayer()
+  const safeDuration = Number.isFinite(state.duration) && state.duration > 0 ? state.duration : 0
+
+  return (
+    <div className="player-status-strip" aria-label="Current player status">
+      <span>{state.status}</span>
+      <span>
+        {formatSeconds(state.currentTime)} / {formatSeconds(safeDuration)}
+      </span>
+      <span>{state.activeSubtitle?.label ?? 'captions off'}</span>
+      <span>{state.thumbnailCues.length ? `${state.thumbnailCues.length} thumbs` : 'no thumbs'}</span>
+      <span>{mini.active ? 'mini active' : mini.enabled ? 'mini ready' : 'mini off'}</span>
+    </div>
+  )
+}
+
 function Panel({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
     <section className="config-panel">
@@ -751,15 +743,6 @@ function EventLog({ items }: { items: string[] }) {
         )
       })}
     </ol>
-  )
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="metric-card">
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </div>
   )
 }
 

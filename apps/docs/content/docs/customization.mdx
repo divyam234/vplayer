@@ -1,21 +1,49 @@
 ---
 title: Customization
-description: Customize the player with classes, CSS variables, labels, icons, and layout modes.
+description: Customize VPlayer with CSS variables, stable classes, labels, icons, slots, children, and plugins.
 ---
 
 # Customization
 
-VPlayer keeps customization simple: one stylesheet, stable classes, and CSS variables.
+VPlayer has four customization layers. Start with CSS, then use slots, then children, then plugins or a custom engine only when behavior needs to change.
+
+| Layer | Use When |
+| --- | --- |
+| CSS variables and classes | You want the same controls with different visual design. |
+| Labels and icons | You need localization, product wording, or different Iconify icons. |
+| Slots | You want to replace one default control or overlay. |
+| Children/custom layout | You want to replace the whole default control layout. |
+| Plugins/custom engine | You need new behavior, registrations, hotkeys, settings, layers, or playback implementation. |
 
 ## CSS variables
+
+Import VPlayer CSS first, then your overrides.
+
+```tsx
+import '@vplayer/react/player.css'
+import './player-overrides.css'
+```
+
+Common root variables:
 
 ```css
 .vplayer {
   --vplayer-accent: oklch(0.83 0.17 84);
+  --vplayer-bg: oklch(0.11 0.01 260);
+  --vplayer-fg: oklch(0.98 0 0);
   --vplayer-radius: 18px;
+  --vplayer-aspect-ratio: 16 / 9;
+  --vplayer-max-height: 85vh;
   --vplayer-control-bg: rgba(0, 0, 0, 0.64);
+  --vplayer-control-hover: rgba(255, 255, 255, 0.14);
+  --vplayer-control-border: rgba(255, 255, 255, 0.14);
+  --vplayer-focus-ring: rgba(255, 255, 255, 0.78);
+  --vplayer-overlay: rgba(0, 0, 0, 0.58);
+  --vplayer-shadow: 0 35px 100px rgba(0, 0, 0, 0.5);
 }
 ```
+
+Thumbnail variables are normally written by the `thumbnailPreview` prop, but you can still override them in CSS when needed: `--vplayer-thumbnail-width`, `--vplayer-thumbnail-height`, and `--vplayer-thumbnail-gap`.
 
 ## Class overrides
 
@@ -37,7 +65,7 @@ VPlayer keeps customization simple: one stylesheet, stable classes, and CSS vari
 
 A skin prop creates another styling abstraction that users eventually fight. VPlayer exposes classes and variables instead, so apps can use their own design system without waiting for a new built-in skin.
 
-## Labels and icons
+## Labels And Icons
 
 The React package exposes defaults that can be overridden when you need different wording, localization, or custom icon components.
 
@@ -50,3 +78,37 @@ The React package exposes defaults that can be overridden when you need differen
   }}
 />
 ```
+
+Icons are Iconify icon identifiers, not React components.
+
+```tsx
+<VideoPlayer
+  src="/video.mp4"
+  icons={{
+    play: 'lucide:circle-play',
+    pause: 'lucide:circle-pause',
+  }}
+/>
+```
+
+## Slots
+
+Slots replace one part of the default layout without taking over the full layout.
+
+```tsx
+<VideoPlayer src="/video.mp4" slots={{ playButton: <MyPlayButton /> }} />
+```
+
+## Children
+
+Children replace the default layout. Hooks still work because `VideoPlayer` keeps the provider and internal video element.
+
+```tsx
+<VideoPlayer src="/video.mp4">
+  <MyControls />
+</VideoPlayer>
+```
+
+## Behavior Changes
+
+Do not use CSS or slots to fake playback behavior. If the behavior belongs to the player state, use remote commands, a plugin, or a custom media engine.

@@ -1,33 +1,40 @@
 ---
 title: VPlayer
-description: Build, customize, and test a production-grade React video player.
+description: A source-backed guide to the React player, headless core, customization, plugins, and testing workflow.
 ---
 
 # VPlayer
 
-VPlayer is a React video player built around a simple principle: **the core owns media behavior, React owns the UI**.
+VPlayer is a React-first video player with a framework-independent TypeScript core. The core owns playback behavior, state, source selection, event wiring, persistence, subtitles, thumbnails, hotkeys, and plugins. The React package owns rendering, controls, overlays, slots, hooks, and CSS.
 
-It is designed for apps that need more than a native `<video>` tag but do not want a giant untestable player component. The default UI includes a polished layout, mini-player mode, thumbnails, captions, keyboard shortcuts, aspect ratio controls, and extension points for custom controls.
+Use VPlayer when a native `<video>` element is not enough, but you still want media behavior to be testable outside a single large component.
 
-## What you get
+## What The Packages Do
 
-- A headless TypeScript core for media state, source switching, tracks, thumbnails, fullscreen, PiP, and keyboard behavior.
-- A React package with default UI, compound-style customization, and test-friendly hooks.
-- A `/playground` route inside the docs app for trying real values before shipping them.
-- A docs app built with Next.js and Fumadocs for public documentation, search, and LLM-friendly output.
+| Package | Purpose |
+| --- | --- |
+| `@vplayer/core` | Creates the headless player instance, store, media engine, remote commands, event bus, storage, i18n, hotkeys, parsers, source resolver, and plugin API. |
+| `@vplayer/react` | Provides `VideoPlayer`, the default UI, custom-control hooks, layouts, overlays, slots, CSS, and React-friendly re-exports from the core. |
 
-## Recommended package layout
+The docs app is the public documentation and playground. It is not required by consumers.
 
-```txt
-packages/core   # framework-independent media engine
-packages/react  # React UI and hooks
-apps/docs/app/playground # live player playground route
-apps/docs       # Next.js + Fumadocs documentation
-```
+## Main Capabilities
 
-## Start here
+- Native video playback with automatic HLS and DASH engine selection from file extension or MIME type.
+- A nullable engine lifecycle: the active engine is `null` before mount and after unmount.
+- Safe remote commands for play, pause, seek, skip, volume, mute, playback rate, fullscreen, picture-in-picture, screenshot, loop, flip, aspect ratio, subtitles, and quality state.
+- A TanStack Store-backed `MediaState` with playback, audio, preferences, UI, plugin, thumbnail, and error fields.
+- WebVTT and SRT subtitle parsing helpers.
+- WebVTT thumbnail previews with plain image cues and sprite cues using `#xywh=x,y,w,h`.
+- Default keyboard shortcuts with an extensible `HotkeyRegistry`.
+- A plugin API for registering controls, settings, layers, hotkeys, context-menu items, and notifications.
+- A default React UI with controls, overlays, settings, mini-player mode, thumbnail previews, context menu, error overlay, and info panel.
+- CSS variables and stable class names for app-level theming.
 
-1. Read [Installation](./installation.mdx).
-2. Build your first player with [Getting Started](./getting-started.mdx).
-3. Learn how the architecture works in [Architecture](./architecture.mdx).
-4. Configure thumbnails, mini-player, hotkeys, and testing from the feature guides.
+## First Steps
+
+1. Install and import the player from [Installation](./installation.mdx).
+2. Build a normal player from [Getting Started](./getting-started.mdx).
+3. Use the correct React props, hooks, and slots from [React Player](./react-player.mdx) and [React API](./api/react.mdx).
+4. Learn the core instance, store, source resolver, parsers, and plugin API from [Core API](./api/core.mdx).
+5. Tune feature behavior with the mini-player, thumbnails, keyboard, accessibility, testing, troubleshooting, and migration guides.

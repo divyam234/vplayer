@@ -1,6 +1,6 @@
 ---
 title: React API
-description: Public React component props, hooks, and extension points.
+description: Public React component props, hooks, slots, exported controls, and low-level adapter APIs.
 ---
 
 # React API
@@ -11,28 +11,109 @@ description: Public React component props, hooks, and extension points.
 <VideoPlayer src="/video.mp4" poster="/poster.jpg" thumbnails="/thumbnails.vtt" miniPlayer={{ enabled: true }} />
 ```
 
-Common props:
+`VideoPlayer` accepts every `PlayerOptions` field from the core plus React-only UI fields.
 
-| Prop               | Type                | Description                                   |
-| ------------------ | ------------------- | --------------------------------------------- |
-| `src`              | `string`            | Primary media URL.                            |
-| `poster`           | `string`            | Poster image.                                 |
-| `autoplay`         | `boolean`           | Request autoplay. Browser may block it.       |
-| `muted`            | `boolean`           | Initial muted state.                          |
-| `thumbnails`       | `string`            | Thumbnail WebVTT URL.                         |
-| `thumbnailPreview` | `object`            | Preview size, gap, fit, and time pill config. |
-| `textTracks`       | `array`             | Captions/subtitles tracks.                    |
-| `miniPlayer`       | `boolean \| object` | Enable compact floating mini-player.          |
-| `hotkeys`          | `boolean`           | Enable keyboard shortcuts.                    |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `src` | `string` | Required media URL. |
+| `type` | `string` | Optional MIME hint used by source resolution. |
+| `poster` | `string` | Poster image for the internal `<video>`. |
+| `subtitles` | `SubtitleTrack[]` | Caption/subtitle tracks. Each track has `src`, `lang`, `label`, and optional `default`. |
+| `qualities` | `string[]` | Quality labels stored in player state. Loading alternate URLs is app/plugin responsibility. |
+| `autoPlay` | `boolean` | Requests autoplay. Browser policy may block it. |
+| `thumbnails` | `string` | WebVTT thumbnail file URL. |
+| `lang` | `string` | Language key for labels/translations. |
+| `translations` | `Record<string, string>` | Custom translation strings for the selected language. |
+| `plugins` | `PlayerPlugin[]` | Plugin definitions initialized during setup. |
+| `persistPreferences` | `boolean` | Persists volume, mute, playback rate, loop, flip, and aspect ratio. |
+| `defaultHotkeys` | `boolean` | Set to `false` to disable built-in hotkeys. |
+| `reconnectMax` | `number` | Maximum reconnect attempts after engine error. Defaults to `3`. |
+| `reconnectSleep` | `number` | Delay between reconnect attempts in milliseconds. Defaults to `1500`. |
+| `hlsConfig` | `object` | Passed to the HLS engine for `.m3u8` sources that need MSE. |
+| `dashConfig` | `object` | Passed to the DASH engine for `.mpd` sources. |
+| `engine` | `MediaEngine \| (video) => MediaEngine` | Custom engine instance or factory. |
+| `onTimeUpdate` | `(time: number) => void` | Called from engine `timeupdate` events. |
+| `onEnded` | `() => void` | Called when playback ends. |
+| `onError` | `(message: string) => void` | Called for playback errors and blocked `play()` attempts. |
+| `className` | `string` | Added to the root `.vplayer` element. |
+| `children` | `ReactNode` | Replaces the default layout while preserving provider, video, overlays, and lifecycle. |
+| `labels` | `Partial<PlayerLabels>` | Overrides default labels. |
+| `icons` | `Partial<PlayerIcons>` | Overrides default Iconify icon IDs. |
+| `slots` | `PlayerSlots` | Replaces individual default controls or overlays. |
+| `miniPlayer` | `boolean \| MiniPlayerOptions` | Enables compact floating mini-player behavior. |
+| `thumbnailPreview` | `boolean \| ThumbnailPreviewOptions` | Enables, disables, or tunes seekbar thumbnail previews. |
+
+## `PlayerSlots`
+
+```ts
+interface PlayerSlots {
+  playButton?: ReactNode
+  seekBar?: ReactNode
+  volumeControl?: ReactNode
+  timeDisplay?: ReactNode
+  settingsButton?: ReactNode
+  miniPlayerButton?: ReactNode
+  settingsMenu?: ReactNode
+  fullscreenButton?: ReactNode
+  pipButton?: ReactNode
+  bufferingOverlay?: ReactNode
+  pauseOverlay?: ReactNode
+  endOverlay?: ReactNode
+}
+```
+
+## Mini-Player Options
+
+```ts
+type MiniPlayerPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+
+interface MiniPlayerOptions {
+  enabled?: boolean
+  auto?: boolean
+  position?: MiniPlayerPosition
+  width?: number | string
+}
+```
+
+## Thumbnail Preview Options
+
+```ts
+interface ThumbnailPreviewOptions {
+  enabled?: boolean
+  width?: number
+  height?: number
+  gap?: number
+  showTime?: boolean
+  fit?: 'cover' | 'contain'
+}
+```
 
 ## Hooks
 
 ```tsx
+const state = usePlayerState()
+const isPlaying = usePlayerState('isPlaying')
+const currentTime = usePlayerState((state) => state.currentTime)
 const remote = usePlayerRemote()
-const status = usePlayerState((state) => state.status)
+const miniPlayer = useMiniPlayer()
+const context = usePlayerContext()
 ```
 
-Use hooks inside player context only.
+Hooks must run below `VideoPlayer` or `PlayerProvider`.
+
+## Low-Level Adapter
+
+```tsx
+const { state, remote, attach, detach, use, updateOptions, instance } = usePlayer({ src: '/video.mp4' })
+```
+
+`attach(container, video)` mounts the core player to real DOM elements. `detach()` unmounts it. `use(plugin)` initializes one plugin. `updateOptions()` updates source, type, poster, autoplay, subtitles, qualities, and thumbnails.
+
+## Exported UI Pieces
+
+The React package exports the default layout and many parts used by it: `DefaultVideoLayout`, `CompactVideoLayout`, `LargeVideoLayout`, `PlayerChrome`, `ControlsBar`, `SeekBar`, `PlayButton`, `SkipButton`, `TimeDisplay`, `VolumeControl`, `SettingsTrigger`, `PiPButton`, `FullscreenButton`, `MiniPlayerButton`, overlays, plugin renderers, `MiniProgressBar`, `ScreenshotButton`, `ErrorOverlay`, `AutoResumeOverlay`, and `ContextMenu`.
+
+Use these exports when you want to assemble a custom layout from VPlayer primitives instead of writing every control from scratch.
 
 ## CSS entry
 

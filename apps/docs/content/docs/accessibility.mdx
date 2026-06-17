@@ -23,17 +23,38 @@ Provide captions where possible:
 ```tsx
 <VideoPlayer
   src="/video.mp4"
-  textTracks={[
+  subtitles={[
     {
-      id: 'en',
       src: '/captions.en.vtt',
-      kind: 'subtitles',
       label: 'English',
-      language: 'en',
+      lang: 'en',
       default: true,
     },
   ]}
 />
+```
+
+## Current Root Behavior
+
+The default player root is focusable, labelled as `Video player`, and receives keyboard shortcuts when focused. Fullscreen toggles return focus to the player root after the browser API settles.
+
+Shortcuts are ignored for inputs, textareas, and contenteditable elements so forms and custom text fields remain usable.
+
+## Custom Controls
+
+When replacing controls with slots or children, preserve accessible names and button semantics.
+
+```tsx
+function MyPlayButton() {
+  const isPlaying = usePlayerState('isPlaying')
+  const remote = usePlayerRemote()
+
+  return (
+    <button type="button" aria-label={isPlaying ? 'Pause video' : 'Play video'} onClick={remote.togglePlay}>
+      {isPlaying ? 'Pause' : 'Play'}
+    </button>
+  )
+}
 ```
 
 ## Testing accessibility behavior

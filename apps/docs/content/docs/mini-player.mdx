@@ -20,6 +20,8 @@ The mini-player is a compact player, not a scaled copy of the full player. In mi
 />
 ```
 
+You can also pass `miniPlayer={true}` to enable mini-player support with defaults.
+
 ## Auto mini-player
 
 ```tsx
@@ -58,3 +60,23 @@ It hides:
 - Controls auto-hide during playback.
 - The bottom progress indicator only renders in mini-player mode.
 - Restore returns to the normal layout without losing player state.
+
+## Programmatic Control
+
+Custom controls can read and control mini-player state with `useMiniPlayer()`.
+
+```tsx
+import { useMiniPlayer } from '@vplayer/react'
+
+function MiniToggle() {
+  const miniPlayer = useMiniPlayer()
+
+  return (
+    <button type="button" onClick={miniPlayer.toggle}>
+      {miniPlayer.active ? 'Restore' : 'Mini player'}
+    </button>
+  )
+}
+```
+
+The hook exposes `enabled`, `active`, `auto`, `position`, `width`, `enter`, `exit`, and `toggle`.

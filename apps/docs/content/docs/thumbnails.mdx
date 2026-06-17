@@ -7,6 +7,8 @@ description: Configure WebVTT thumbnail previews, sprites, sizing, and seekbar g
 
 VPlayer supports WebVTT thumbnail preview cues for timeline hover previews.
 
+Pass the VTT URL with `thumbnails`. The core fetches and parses it, stores cues in `state.thumbnailCues`, and aborts in-flight requests when the URL changes or the player unmounts.
+
 ## Plain thumbnail VTT
 
 ```text
@@ -53,3 +55,16 @@ WEBVTT
 - Loading uses `AbortController` so unmount and source changes do not leak work.
 - The preview gap is configurable and should stay close to the seekbar.
 - Use sprite sheets for large catalogs to reduce network requests.
+- `thumbnailPreview={false}` disables the UI preview while leaving the parser utilities available.
+- Plain image cues default to a `160x90` crop region.
+
+## Core Helpers
+
+```ts
+import { fetchThumbnails, getThumbnailAtTime, parseThumbnailVTT } from '@vplayer/core'
+
+const cues = parseThumbnailVTT(vttText)
+const active = getThumbnailAtTime(cues, 42)
+```
+
+Use `fetchThumbnails(url, signal)` when you want URL resolution and abort support outside the React component.

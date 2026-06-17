@@ -1,44 +1,47 @@
 ---
 title: Getting Started
-description: Create your first VPlayer instance and learn the default React API.
+description: Create a correct React player, add captions and thumbnails, and learn the first customization points.
 ---
 
 # Getting Started
 
-The fastest path is the React component API:
+The fastest path is the React component API. Import the component and the single stylesheet, then pass a media source.
 
 ```tsx
 import { VideoPlayer } from '@vplayer/react'
 import '@vplayer/react/player.css'
 
 export function WatchPage() {
-  return (
-    <VideoPlayer
-      src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-      poster="/poster.jpg"
-      thumbnails="/thumbnails.vtt"
-      textTracks={[
-        {
-          id: 'en',
-          src: '/captions.en.vtt',
-          kind: 'subtitles',
-          label: 'English',
-          language: 'en',
-          default: true,
-        },
-      ]}
-    />
-  )
+  return <VideoPlayer src="/video.mp4" poster="/poster.jpg" />
 }
 ```
 
-## Minimal player
+## Add Captions, Qualities, And Thumbnails
+
+Use `subtitles`, not `textTracks`. A subtitle track has `src`, `lang`, `label`, and an optional `default` flag.
 
 ```tsx
-<VideoPlayer src="/video.mp4" />
+<VideoPlayer
+  src="/video.mp4"
+  type="video/mp4"
+  poster="/poster.jpg"
+  subtitles={[{ src: '/captions.en.vtt', lang: 'en', label: 'English', default: true }]}
+  qualities={['Auto', '1080p', '720p', '480p']}
+  thumbnails="/thumbnails.vtt"
+/>
 ```
 
-## With mini-player
+`qualities` is state for UI and integrations. VPlayer does not automatically swap variant URLs from those labels. Use a custom engine, plugin, or application-level source update when quality selection should load a different stream.
+
+## Autoplay
+
+The prop is `autoPlay`, matching React's video attribute casing. Browsers usually block autoplay with sound, so start muted through your integration layer or wait for a user gesture when needed.
+
+```tsx
+<VideoPlayer src="/video.mp4" autoPlay />
+```
+
+## Mini-Player
 
 ```tsx
 <VideoPlayer
@@ -52,7 +55,9 @@ export function WatchPage() {
 />
 ```
 
-## With thumbnail preview tuning
+`enabled` allows mini-player mode. `auto` enters mini-player mode when the player leaves the viewport. `position` can be `bottom-right`, `bottom-left`, `top-right`, or `top-left`. `width` accepts a number of pixels or a CSS width string.
+
+## Thumbnail Preview Tuning
 
 ```tsx
 <VideoPlayer
@@ -68,7 +73,22 @@ export function WatchPage() {
 />
 ```
 
-## With custom CSS overrides
+`thumbnailPreview={false}` disables seekbar thumbnail previews even when `thumbnails` is configured.
+
+## Event Callbacks
+
+```tsx
+<VideoPlayer
+  src="/video.mp4"
+  onTimeUpdate={(time) => console.log(time)}
+  onEnded={() => console.log('ended')}
+  onError={(message) => console.error(message)}
+/>
+```
+
+`onError` receives browser playback errors and blocked-playback messages from the media engine.
+
+## CSS Overrides
 
 VPlayer has one main stylesheet. Users can override classes and CSS variables instead of importing separate skins.
 
@@ -83,11 +103,12 @@ VPlayer has one main stylesheet. Users can override classes and CSS variables in
 }
 ```
 
-## Development workflow
+Load your overrides after VPlayer's stylesheet.
+
+## Repository Workflow
 
 ```bash
 npm install
-npm run dev:docs
 npm run dev:docs
 npm run test
 npm run build

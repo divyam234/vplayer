@@ -1,27 +1,93 @@
 ---
 title: Core API
-description: Headless player concepts for advanced integrations and contributors.
+description: Headless player instance, options, state, remote commands, source resolution, media engines, parsers, and plugins.
 ---
 
 # Core API
 
 The core package is framework independent. React uses it, but the core should not import React, JSX, browser UI components, or CSS.
 
-## Responsibilities
+## Create A Player
 
-```txt
-media attachment
-source resolution
-state store
-event dispatch
-feature detection
-text tracks
-thumbnail parsing
-fullscreen/PiP remote commands
-safe cleanup
+```ts
+import { createPlayer } from '@vplayer/core'
+
+const player = createPlayer({ src: '/video.mp4' })
+player.mount(videoEl, containerEl)
 ```
 
-## Remote commands
+The returned `PlayerInstance` contains `store`, `remote`, `events`, `storage`, `i18n`, `hotkeys`, nullable `engine`, and lifecycle methods.
+
+## PlayerOptions
+
+```ts
+interface PlayerOptions {
+  src: string
+  type?: string
+  poster?: string
+  subtitles?: SubtitleTrack[]
+  qualities?: string[]
+  autoPlay?: boolean
+  thumbnails?: string
+  lang?: string
+  translations?: Record<string, string>
+  plugins?: PlayerPlugin[]
+  persistPreferences?: boolean
+  defaultHotkeys?: boolean
+  reconnectMax?: number
+  reconnectSleep?: number
+  hlsConfig?: object
+  dashConfig?: object
+  onTimeUpdate?: (time: number) => void
+  onEnded?: () => void
+  onError?: (message: string) => void
+  engine?: MediaEngine | ((video: HTMLVideoElement) => MediaEngine)
+}
+```
+
+`engine` lets tests or advanced integrations replace automatic source resolution. Prefer a factory when the engine needs the mounted `<video>` element.
+
+## PlayerInstance
+
+```ts
+interface PlayerInstance {
+  store: Store<MediaState>
+  remote: MediaRemote
+  events: EventBus
+  storage: Storage
+  i18n: I18n
+  hotkeys: HotkeyRegistry
+  engine: MediaEngine | null
+  updateOptions(opts: Partial<PlayerOptions>): void
+  setThumbnails(url?: string): void
+  initPlugins(plugins: PlayerPlugin[]): () => void
+  mount(videoEl: HTMLVideoElement, containerEl: HTMLDivElement): void
+  unmount(): void
+  destroy(): void
+}
+```
+
+`engine` is `null` before `mount()` and after `unmount()`. Remote commands are safe when no engine is mounted.
+
+## MediaState
+
+The store is a TanStack Store with a flat `MediaState`:
+
+| Group | Fields |
+| --- | --- |
+| Media | `status`, `source`, `isPlaying`, `isPaused`, `isBuffering`, `isEnded`, `currentTime`, `duration`, `bufferedPercent`, `playbackRate`, `isLive` |
+| Audio | `volume`, `isMuted` |
+| Preferences | `isLooping`, `flip`, `aspectRatio`, `activeSubtitle`, `subtitleTracks`, `activeQuality`, `qualities` |
+| UI | `controlsVisible`, `capabilities`, `isFullscreen`, `infoPanelVisible`, `notification` |
+| Plugins | `controls`, `settings`, `layers`, `contextMenuItems`, `contextMenuEnabled` |
+| Thumbnails | `thumbnailCues` |
+| Error | `error` |
+
+`status` can be `idle`, `loading`, `ready`, `playing`, `paused`, `buffering`, `seeking`, `ended`, or `error`.
+
+The package exports selectors: `selectMedia`, `selectAudio`, `selectPreferences`, `selectUI`, `selectPlugins`, `selectThumbnails`, and `selectError`.
+
+## Remote Commands
 
 The React layer calls remote commands rather than mutating the media element directly:
 
@@ -29,20 +95,86 @@ The React layer calls remote commands rather than mutating the media element dir
 player.remote.play()
 player.remote.pause()
 player.remote.seek(120)
+player.remote.skip(10)
 player.remote.setVolume(0.8)
+player.remote.toggleMute()
+player.remote.setPlaybackRate(1.25)
 player.remote.toggleFullscreen()
+player.remote.togglePiP()
+player.remote.setActiveSubtitle(track)
+player.remote.setActiveQuality('720p')
+player.remote.takeScreenshot()
+player.remote.setFlip('horizontal')
+player.remote.setAspectRatio('16:9')
+player.remote.cycleAspectRatio()
+player.remote.toggleLoop()
+player.remote.toggleInfoPanel()
 ```
 
-## Provider model
+## Source Resolution
 
-Providers wrap browser media capabilities:
+```ts
+detectSourceKind({ src: '/video.mp4' }) // 'native'
+detectSourceKind({ src: '/stream.m3u8' }) // 'hls'
+detectSourceKind({ src: '/manifest.mpd' }) // 'dash'
+```
+
+Source detection uses both MIME/content type hints and URL extensions. Unknown sources fall back to the native video engine after assigning `video.src`.
+
+## Media Engines
+
+The core exports `BaseMediaEngine`, `NativeVideoEngine`, `HlsMediaEngine`, and `DashMediaEngine`. A media engine wraps an `HTMLVideoElement` and exposes a common API for state, events, playback commands, screenshots, PiP, and cleanup.
+
+Automatic engine selection follows this behavior:
+
+| Source kind | Engine |
+| --- | --- |
+| Native video | `NativeVideoEngine` |
+| HLS with native browser support | `NativeVideoEngine` |
+| HLS without native browser support | `HlsMediaEngine` |
+| DASH | `DashMediaEngine` |
+| Custom `engine` option | Supplied engine instance or factory |
+
+## Parsers
+
+The core exports parser and fetch helpers:
 
 ```txt
-NativeProvider  -> normal HTMLMediaElement sources
-HlsProvider     -> HLS when available
-DashProvider    -> future/custom DASH integration
+parseVTT
+parseSRT
+fetchSubtitles
+getActiveCue
+parseTimestamp
+parseThumbnailVTT
+fetchThumbnails
+getThumbnailAtTime
 ```
 
-## Contributor rule
+Subtitle tracks use `{ src, lang, label, default? }`. Thumbnail cues use `{ start, end, src, x, y, w, h }` and support plain image cues and sprite fragments.
+
+## Plugin API
+
+```ts
+const plugin = {
+  name: 'example',
+  setup(api) {
+    const removeHotkey = api.addHotkey({
+      key: 'KeyN',
+      description: 'Notify',
+      handler: () => api.notify('Hello from plugin'),
+    })
+
+    return () => removeHotkey()
+  },
+}
+```
+
+Plugins can read `store`, call `remote`, use `events`, `storage`, `hotkeys`, `i18n`, access container/video refs, and register controls, settings, layers, hotkeys, context-menu items, and notifications.
+
+## Persistence
+
+Playback progress is saved while media is playing. Preference persistence is opt-in through `persistPreferences` and covers volume, muted state, playback rate, loop, flip, and aspect ratio.
+
+## Contributor Rule
 
 If a feature changes playback behavior, put it in core. If a feature changes visual layout, put it in React.

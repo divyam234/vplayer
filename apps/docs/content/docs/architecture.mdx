@@ -1,55 +1,57 @@
 ---
 title: Architecture
-description: Understand the headless core, React adapter, media providers, and testing layers.
+description: Understand the headless core, React adapter, media engines, store, remote commands, and plugin boundary.
 ---
 
 # Architecture
 
-VPlayer uses a scalable pattern:
+VPlayer has one hard boundary: media behavior belongs in the core, rendering belongs in React.
 
 ```txt
-Headless Core + React Adapter + Extensible Controls + Focused Tests
+headless core -> React adapter -> UI controls and overlays
 ```
 
-## Why this design
+## Why This Design Exists
 
 A production player needs to support source switching, subtitles, thumbnails, mini-player state, fullscreen, PiP, keyboard shortcuts, accessibility, and browser edge cases. Putting all of that into one React component makes the code hard to test and hard to extend.
 
 VPlayer splits responsibilities:
 
-```txt
-@vplayer/core
-  media state
-  source loading
-  event bus
-  text tracks
-  thumbnails
-  feature detection
-  keyboard rules
-  provider selection
+| Layer | Owns |
+| --- | --- |
+| Core | Store, player instance, media engine lifecycle, source resolution, remote commands, engine event wiring, reconnect behavior, thumbnail fetching, parser helpers, persistence, event bus, i18n, hotkeys, and plugin registration. |
+| React | `VideoPlayer`, provider/context, hooks, default controls, slots, overlays, mini-player state, gesture handling, focus behavior, and stylesheet classes/variables. |
 
-@vplayer/react
-  React UI
-  hooks
-  default controls
-  mini-player chrome
-  focus handling
-  class/CSS variable styling
-```
+## Player Lifecycle
 
-## Source handling
-
-The core decides how to load media:
+`createPlayer(options)` returns a `PlayerInstance`. The instance starts without a mounted media element, so `player.engine` is `null` until `mount(video, container)` runs. Unmounting destroys the engine and returns `player.engine` to `null`.
 
 ```txt
-mp4/webm/ogg -> native provider
-m3u8         -> native HLS on Safari, HLS provider where supported
-mpd          -> DASH provider later/custom provider
+createPlayer(options)
+mount(video, container)
+create or inject media engine
+wire engine events into store
+fetch thumbnails and set persisted preferences
+unmount or destroy
+cleanup engine, timers, listeners, thumbnail requests, and plugin cleanup
 ```
 
-The React layer renders the video element and passes it to the core. This keeps source switching and cleanup in one place.
+React's `VideoPlayer`, `PlayerProvider`, and `usePlayer` call this lifecycle for you when you use the packaged components or hooks.
 
-## State model
+## Source Handling
+
+The source resolver chooses the engine from `src`, `type`, and optional custom engine configuration.
+
+| Source | Engine behavior |
+| --- | --- |
+| `.mp4`, `.m4v`, `.webm`, `.ogv`, `.ogg`, `.mov`, or `video/*` type | Sets `video.src` and uses the native video engine. |
+| `.m3u8`, `mpegurl`, or `hls` type | Uses native HLS when the browser supports it, otherwise uses the HLS engine. |
+| `.mpd` or DASH type | Uses the DASH engine. |
+| `engine` option | Uses the supplied engine instance or factory instead of automatic resolution. |
+
+When `src` or `type` changes, the core replaces the current engine for the new source and resets media state.
+
+## State Model
 
 The core keeps a single state object instead of scattered booleans:
 
@@ -57,16 +59,33 @@ The core keeps a single state object instead of scattered booleans:
 type PlaybackStatus = 'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'buffering' | 'seeking' | 'ended' | 'error'
 ```
 
-This prevents impossible states like `isPlaying` and `isPaused` both being true.
+The state is flat at runtime and grouped by documented slices: media, audio, preferences, UI, plugins, thumbnails, and error. Consumers can read the entire state or select a field through React hooks.
 
-## Testing layers
+## Remote Commands
+
+UI code should call remote commands instead of mutating the `<video>` element directly. Remote commands clamp values, update store state, handle browser APIs, and avoid null-engine crashes.
+
+```ts
+remote.togglePlay()
+remote.seek(120)
+remote.skip(10)
+remote.setVolume(0.8)
+remote.toggleFullscreen()
+remote.cycleAspectRatio()
+```
+
+## Plugin Boundary
+
+Plugins receive a `PluginAPI` during setup. They can register controls, settings, layers, hotkeys, context-menu items, notifications, and cleanup callbacks. Plugins should register during setup rather than from arbitrary render code.
+
+## Testing Layers
 
 ```txt
 Vitest core tests
   parsers, source resolver, player state, provider logic
 
 React Testing Library tests
-  controls, keyboard, focus, fullscreen, mini-player, custom controls
+  controls, custom controls, hooks, keyboard behavior, mini-player state
 
 Playwright e2e
   browser smoke tests across Chromium, Firefox, WebKit, and mobile profiles

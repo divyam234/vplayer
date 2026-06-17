@@ -5,13 +5,24 @@ description: Test VPlayer with Vitest, React Testing Library, jsdom, and Playwri
 
 # Testing
 
-The main testing stack is:
+The repository uses fast tests for core and React behavior, then Playwright for browser-only behavior.
 
 ```txt
 Vitest + React Testing Library + jsdom
 ```
 
-This covers most app behavior: rendering, forms, buttons, routing, API states, error states, loading states, keyboard interactions, accessibility queries, focus behavior, and component state.
+This covers parsers, source resolution, player lifecycle, state transitions, controls, custom controls, keyboard behavior, accessibility queries, and component state without requiring real media decoding.
+
+## Commands
+
+```bash
+npm run typecheck
+npm run test
+npm run build
+npm run test:e2e
+```
+
+Use `npm run test:all` when you want the full local verification chain.
 
 ## Unit tests
 
@@ -26,6 +37,8 @@ plugin lifecycle
 safe play rejection
 volume/seek clamping
 ```
+
+Use fake or custom engines for state transitions that need engine events. Do not depend on a browser actually decoding a video in unit tests.
 
 ## React tests
 
@@ -47,6 +60,8 @@ Recommended React test coverage:
 - bottom progress only renders in mini mode
 - thumbnail preview sizing/gap is applied
 
+Prefer user-visible assertions and role/name queries. That catches broken labels and focus regressions better than class-only assertions.
+
 ## Playwright tests
 
 Use Playwright for browser behavior that jsdom cannot prove:
@@ -67,3 +82,5 @@ npm run test:e2e
 ```
 
 Keep Playwright smoke tests focused. Most behavior should stay in fast Vitest/RTL tests.
+
+Use Playwright for fullscreen, PiP availability, real browser media policies, mobile viewport behavior, and docs/playground smoke tests.
