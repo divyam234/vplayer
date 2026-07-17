@@ -9,6 +9,14 @@ const ROOT = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig(({ command }) => ({
   plugins: [react()],
+  resolve:
+    command === 'serve'
+      ? {
+          alias: {
+            '@vplayer/core': resolve(ROOT, '../core/src/index.ts'),
+          },
+        }
+      : undefined,
   test: {
     environment: 'jsdom',
     setupFiles: resolve(ROOT, 'src/__tests__/setup.ts'),
