@@ -4,21 +4,21 @@
   "workspaces": [
     "packages/core",
     "packages/react",
-    "apps/docs"
+    "apps/playground"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @vplayer/docs",
-    "build": "npm run build --workspace @vplayer/core && npm run build --workspace @vplayer/react && npm run build --workspace @vplayer/docs",
-    "typecheck": "npm run typecheck --workspace @vplayer/core && npm run typecheck --workspace @vplayer/react && npm run typecheck --workspace @vplayer/docs",
-    "lint": "oxlint",
-    "lint:fix": "oxlint --fix",
-    "format": "oxfmt",
-    "format:check": "oxfmt --check",
-    "test": "npm run test --workspaces --if-present",
-    "test:e2e": "playwright test",
-    "test:all": "npm run typecheck && npm run test && npm run build && npm run test:e2e",
-    "test:coverage": "npm run test:coverage --workspaces --if-present",
-    "dev:docs": "npm run dev --workspace @vplayer/docs"
+    "dev": "bun run --cwd apps/playground dev",
+    "build": "bun run --cwd packages/core build && bun run --cwd packages/react build && bun run --cwd apps/playground build",
+    "typecheck": "bun run --cwd packages/core typecheck && bun run --cwd packages/react typecheck && bun run --cwd apps/playground typecheck",
+    "lint": "./node_modules/.bin/oxlint",
+    "lint:fix": "./node_modules/.bin/oxlint --fix",
+    "format": "./node_modules/.bin/oxfmt",
+    "format:check": "./node_modules/.bin/oxfmt --check",
+    "test": "bun run --cwd packages/core test && bun run --cwd packages/react test",
+    "test:e2e": "./node_modules/.bin/playwright test",
+    "test:all": "bun run typecheck && bun run test && bun run build && bun run test:e2e",
+    "test:coverage": "bun run --cwd packages/core test:coverage && bun run --cwd packages/react test:coverage",
+    "dev:playground": "bun run --cwd apps/playground dev"
   },
   "dependencies": {
     "@ark-ui/react": "5.36.2"
@@ -36,6 +36,5 @@
     "oxlint": "^1.67.0",
     "tailwindcss": "^4.1.18",
     "vitest": "^4.1.8"
-  },
-  "packageManager": "npm@10.9.2"
+  }
 }

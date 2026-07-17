@@ -16,7 +16,7 @@ export function App() {
 ```txt
 @vplayer/core   -> headless playback/state/events/providers/parsers/plugins
 @vplayer/react  -> React provider, hooks, default UI, custom controls
-apps/docs       -> Next.js + Fumadocs documentation site and /playground lab
+apps/playground -> Vite playground for manual development and generated examples
 ```
 
 Removed intentionally:
@@ -24,7 +24,7 @@ Removed intentionally:
 ```txt
 @vplayer/framework
 @vplayer/solid
-Bun lockfiles/config assumptions
+Next.js/Fumadocs documentation app
 ```
 
 The rule is simple: **core owns behavior, React owns rendering**. Core never renders buttons, menus, sliders, icons, or CSS. React renders the UI and talks to core through the stable remote/store/plugin API.
@@ -48,36 +48,36 @@ The rule is simple: **core owns behavior, React owns rendering**. Core never ren
 ## Quick start
 
 ```bash
-npm install
-npm run dev:docs
+bun install
+bun run dev
 ```
 
 ## Scripts
 
 ```bash
-npm run typecheck   # TypeScript for core, React, docs
-npm run test        # Vitest unit/component tests
-npm run lint        # oxlint
-npm run build       # production builds for packages and docs
-npm run test:e2e    # Playwright Chromium/Firefox/WebKit/mobile matrix
-npm run test:all    # typecheck + tests + build + e2e
+bun run typecheck   # TypeScript for core, React, and playground
+bun run test        # Vitest unit/component tests
+bun run lint        # oxlint
+bun run build       # production builds for packages and Vite playground
+bun run test:e2e    # Playwright against the Vite preview
+bun run test:all    # typecheck + tests + build + e2e
 ```
 
 Before running Playwright locally or in CI, install browsers once:
 
 ```bash
-npx playwright install chromium firefox webkit
+bunx playwright install chromium
 ```
 
-## Documentation site
+## Playground
 
-This repo includes a Fumadocs-powered Next.js docs app for public documentation:
+The repository contains one application: `apps/playground`, a minimal React + Vite app for configuring and manually exercising `@vplayer/react`.
 
 ```bash
-npm run dev:docs
+bun run dev
 ```
 
-The docs live in `apps/docs/content/docs` and include installation, architecture, React API, core API, customization, mini-player, thumbnails, hotkeys, accessibility, testing, troubleshooting, and migration guides. The interactive playground now lives at `/playground` inside the same docs app. The docs app also exposes search, Open Graph images, `llms.txt`, `llms-full.txt`, and per-page Markdown output.
+Vite serves the playground at `/`. There is no Next.js or documentation application.
 
 ## React default UI
 

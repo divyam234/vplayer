@@ -295,10 +295,10 @@ export const SettingsTrigger: FC = () => {
       closeOnSelect={false}
       positioning={{ placement: 'top-end' }}
     >
-      <Menu.Trigger className="vplayer__button vplayer__button--trigger">
+      <Menu.Trigger className="vplayer__button vplayer__button--trigger" aria-label={labels.settings}>
         <Icon icon={icons.settings} width={18} />
       </Menu.Trigger>
-      <Menu.Positioner>
+      <Menu.Positioner className="vplayer__menu-positioner">
         <Menu.Content className="vplayer__menu-popover vplayer__menu">
           {view === 'main' && (
             <>

@@ -296,6 +296,10 @@
     @apply size-0;
   }
 
+  .vplayer__menu-positioner {
+    @apply z-100;
+  }
+
   .vplayer__menu-popover {
     @apply z-50;
   }

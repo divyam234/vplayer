@@ -1,62 +1,61 @@
 # VPlayer — Agent Guide
 
-## Monorepo Commands
+## Commands
+
+Run all commands from the repository root with Bun:
 
 ```sh
-npm run dev           # demo app only (React)
-npm run build         # core → react → solid → demo (order matters)
-npm run typecheck     # all 5 packages sequentially
-npm run lint          # oxlint (root only)
-npm run format        # oxfmt
+bun run dev         # Vite playground
+bun run build       # core → react → playground
+bun run typecheck   # core → react → playground
+bun run test        # core and React Vitest suites
+bun run test:e2e    # Playwright against the Vite preview
+bun run lint        # oxlint
+bun run format      # oxfmt
 ```
 
-- All commands run from root via `npm run <script> --workspace @vplayer/<name>`
-- To check a single package: `npm run typecheck --workspace @vplayer/core`
+For one workspace:
 
-## Package Boundaries
+```sh
+bun run --cwd packages/core typecheck
+bun run --cwd packages/react test
+bun run --cwd apps/playground build
+```
 
-| Package              | Depends on                                                  | Entry                            |
-| -------------------- | ----------------------------------------------------------- | -------------------------------- |
-| `@vplayer/core`      | `@tanstack/store` only                                      | `src/index.ts`                   |
-| `@vplayer/framework` | `@vplayer/core`, `@tanstack/store`                          | `src/index.ts`                   |
-| `@vplayer/react`     | `@vplayer/core`, `@vplayer/framework`; peer: react >=18.3   | `src/components/player/index.ts` |
-| `@vplayer/solid`     | `@vplayer/core`, `@vplayer/framework`; peer: solid-js >=1.8 | `src/index.ts`                   |
-| `@vplayer/demo`      | `@vplayer/react` only                                       | `apps/demo/src/main.tsx`         |
+## Workspace layout
 
-`packages/components/` is empty (placeholders only).
+| Workspace             | Purpose                                                                | Entry                                           |
+| --------------------- | ---------------------------------------------------------------------- | ----------------------------------------------- |
+| `@vplayer/core`       | Headless player state, engine, events, providers, parsers, and plugins | `packages/core/src/index.ts`                    |
+| `@vplayer/react`      | React provider, hooks, controls, layouts, and player stylesheet        | `packages/react/src/components/player/index.ts` |
+| `@vplayer/playground` | Minimal Vite app for manual player development                         | `apps/playground/src/main.tsx`                  |
 
-## Build Quirks
-
-- React build runs **3 steps**: `tsc --build tsconfig.build.json` (emit declarations) → `vite build` (bundle) → `tailwindcss` (dist/player.css)
-- Solid build runs **2 steps**: `vite build` → `tailwindcss` (dist/player.css)
-- Core build: `vite build` only
-- Framework has no build step — consumed as raw TS source
-- CSS for each framework is built separately via `tailwindcss -i ./src/player.css -o ./dist/player.css --minify`
-- React externals: `react`, `react-dom`, `react/jsx-runtime`
-- Solid externals: `solid-js`, `solid-js/web`, `@tanstack/store`, `@ark-ui/solid`, `@iconify/solid`, `@vplayer/core`, `@vplayer/framework`, `clsx`
+There is no Next.js or documentation application.
 
 ## Architecture
 
-- **Core factory** `createPlayer()` → `PlayerInstance` with: `store` (TanStack Store), `engine` (MediaEngine), `events` (EventBus), `storage`, `i18n`, `hotkeys`
-- **MediaEngine** is a strategy interface. Default is `NativeVideoEngine` wrapping HTMLVideoElement. Swap for HLS/DASH/mock.
-- **State slices** for granular subscriptions: `selectMedia`, `selectAudio`, `selectPreferences`, `selectUI`, `selectPlugins`, `selectThumbnails`, `selectError` — exported from `@vplayer/core`
-- **Plugin system**: `createPluginAPIBuilder` from `@vplayer/framework` builds the PluginAPI each plugin's `setup()` receives
-- **CSS theming** via custom properties: `--vplayer-accent`, `--vplayer-radius`, `--vplayer-bg`
+- `createPlayer()` returns the headless `PlayerInstance`.
+- `MediaEngine` is the playback strategy; `NativeVideoEngine` is the default browser implementation.
+- Core owns behavior and state. React owns rendering and CSS.
+- `VideoPlayer` composes the provider, media element, default layout, custom controls, and plugins.
+- Player theming uses CSS variables such as `--vplayer-accent`, `--vplayer-radius`, and `--vplayer-bg`.
 
-## Testing
+## Build details
 
-No test runner or tests exist. Any test setup is from scratch.
+- Core builds with Vite.
+- React emits declarations with TypeScript, bundles with Vite, then builds `dist/player.css` with Tailwind CSS 4.
+- Playground type-checks with TypeScript and builds with Vite.
+- Build order matters because the playground consumes the package outputs.
 
-## Toolchain
+## Validation
 
-| Tool           | Config                       | Notes                                                                                |
-| -------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
-| TypeScript 6   | Per-package `tsconfig.json`  | `moduleResolution: "Bundler"`, `strict: true`, `--noEmit` for typecheck              |
-| oxlint         | Root `.oxlintrc.json`        | Many jsx-a11y/react rules explicitly disabled; `correctness` + `suspicious` as error |
-| oxfmt          | Root `.oxfmtric.json`        | Run via `npm run format`                                                             |
-| TailwindCSS v4 | Root `postcss.config.mjs`    | Uses `@tailwindcss/postcss` plugin                                                   |
-| Vite 8         | Per-package `vite.config.ts` | Each library package builds as ESM                                                   |
+After meaningful changes, run the narrowest relevant check, then:
 
-## No CI
+```sh
+bun run format
+bun run typecheck
+bun run lint
+bun run build
+```
 
-No GitHub Actions, no husky, no pre-commit hooks. All verification is manual (`typecheck` + `lint` + `build`).
+Run Playwright only when player behavior or browser interactions change.
