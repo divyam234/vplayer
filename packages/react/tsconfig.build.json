@@ -4,6 +4,9 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "declarationDir": "dist",
+    "paths": {
+      "@vplayer/core": ["../core/dist/index.d.ts"]
+    },
     "rootDir": "src",
     "noEmit": false
   },
