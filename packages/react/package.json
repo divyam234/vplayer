@@ -1,6 +1,6 @@
 {
   "name": "@vplayer/react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "repository": {
     "type": "git",
@@ -39,7 +39,7 @@
     "@iconify/react": "^6.0.2",
     "@tanstack/react-store": "^0.8.0",
     "@tanstack/store": "^0.8.0",
-    "@vplayer/core": "0.1.0",
+    "@vplayer/core": "0.1.1",
     "clsx": "^2.1.1"
   },
   "devDependencies": {
