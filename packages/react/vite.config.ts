@@ -8,12 +8,7 @@ import { defineConfig, esmExternalRequirePlugin } from 'vite'
 const ROOT = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig(({ command }) => ({
-  plugins: [
-    react(),
-    esmExternalRequirePlugin({
-      external: [/^react(?:\/.*)?$/, /^react-dom(?:\/.*)?$/],
-    }),
-  ],
+  plugins: [react()],
   test: {
     environment: 'jsdom',
     setupFiles: resolve(ROOT, 'src/__tests__/setup.ts'),
@@ -34,13 +29,13 @@ export default defineConfig(({ command }) => ({
             formats: ['es'],
             fileName: 'index',
           },
-        rollupOptions: {
-          plugins: [
+          rollupOptions: {
+            plugins: [
               esmExternalRequirePlugin({
-                 external: [/^react(-dom)?(\/.+)?$/],
-                }),
-              ],
-            external: ['react', 'react-dom', 'react/jsx-runtime', 'hls.js', 'dashjs'],
+                external: [/^react(?:\/.*)?$/, /^react-dom(?:\/.*)?$/],
+              }),
+            ],
+            external: ['hls.js', 'dashjs'],
           },
         }
       : undefined,
