@@ -34,7 +34,12 @@ export default defineConfig(({ command }) => ({
             formats: ['es'],
             fileName: 'index',
           },
-          rollupOptions: {
+        rollupOptions: {
+          plugins: [
+              esmExternalRequirePlugin({
+                 external: [/^react(-dom)?(\/.+)?$/],
+                }),
+              ],
             external: ['react', 'react-dom', 'react/jsx-runtime', 'hls.js', 'dashjs'],
           },
         }
