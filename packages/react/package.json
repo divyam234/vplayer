@@ -1,24 +1,33 @@
 {
   "name": "@vplayer/react",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/divyam234/vplayer.git",
+    "directory": "packages/react"
+  },
   "files": [
     "dist"
   ],
   "type": "module",
-  "main": "./src/index.ts",
-  "module": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
-    "./player.css": "./src/player.css"
+    "./player.css": "./dist/player.css"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -p tsconfig.build.json && vite build && tailwindcss -i ./src/player.css -o ./dist/player.css --minify",
+    "build": "vite build && tsc -p tsconfig.build.json && tailwindcss -i ./src/player.css -o ./dist/player.css --minify",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
@@ -30,7 +39,7 @@
     "@iconify/react": "^6.0.2",
     "@tanstack/react-store": "^0.8.0",
     "@tanstack/store": "^0.8.0",
-    "@vplayer/core": "0.0.0",
+    "@vplayer/core": "0.1.0",
     "clsx": "^2.1.1"
   },
   "devDependencies": {

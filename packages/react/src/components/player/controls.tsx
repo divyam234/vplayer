@@ -139,7 +139,6 @@ export const SeekBar: FC = () => {
             {thumbnailPreview.showTime && (
               <span className="vplayer__seek-preview-time">{formatTime(hoverTime ?? 0)}</span>
             )}
-            <div className="vplayer__seek-preview-arrow" />
           </div>
         </div>
       )}

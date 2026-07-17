@@ -199,10 +199,6 @@
     @apply rounded px-1.5 py-0.5 text-[11px] tabular-nums;
     background: color-mix(in srgb, black 72%, transparent);
   }
-  .vplayer__seek-preview-arrow {
-    @apply -mb-1 size-2 rotate-45;
-    background: color-mix(in srgb, black 72%, transparent);
-  }
 
   .vplayer__button {
     @apply inline-flex items-center justify-center rounded-full p-1.5 transition-all duration-200 outline-none;
