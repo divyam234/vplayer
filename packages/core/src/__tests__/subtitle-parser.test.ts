@@ -1,6 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { getThumbnailAtTime, parseThumbnailVTT, parseTimestamp, parseVTT } from '../subtitle-parser'
+import { fetchThumbnails, getThumbnailAtTime, parseThumbnailVTT, parseTimestamp, parseVTT } from '../subtitle-parser'
+
+const originalFetch = globalThis.fetch
+
+afterEach(() => {
+  globalThis.fetch = originalFetch
+})
 
 describe('subtitle and thumbnail parsing', () => {
   it('parses VTT cues without dropping all text lines', () => {
@@ -29,5 +35,22 @@ describe('subtitle and thumbnail parsing', () => {
     expect(cues[0]).toMatchObject({ src: 'thumbs.jpg', x: 160, y: 90, w: 160, h: 90 })
     expect(cues[1]).toMatchObject({ src: 'thumb-0002.jpg', x: 0, y: 0, w: 160, h: 90 })
     expect(getThumbnailAtTime(cues, 7)?.src).toBe('thumb-0002.jpg')
+  })
+
+  it('transforms raw thumbnail VTT before parsing and URL resolution', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      url: 'https://media.example.com/video/thumbs.vtt',
+      text: () => Promise.resolve('WEBVTT\n\n00:00:00.000 --> 00:00:05.000\nthumbs/sheet.jpg#xywh=0,0,160,90\n'),
+    }) as typeof fetch
+    const transform = vi.fn(async (content: string, responseUrl: string) => {
+      expect(responseUrl).toBe('https://media.example.com/video/thumbs.vtt')
+      return content.replace('thumbs/sheet.jpg', 'https://cdn.example.com/sheet.jpg')
+    })
+
+    const cues = await fetchThumbnails('/redirecting-thumbs.vtt', undefined, transform)
+
+    expect(transform).toHaveBeenCalledOnce()
+    expect(cues[0]).toMatchObject({ src: 'https://cdn.example.com/sheet.jpg', x: 0, y: 0, w: 160, h: 90 })
   })
 })

@@ -76,6 +76,7 @@ export {
 } from '@vplayer/core'
 export type {
   PlayerOptions,
+  TransformThumbnailVTT,
   PlayerInstance,
   PlayerSystems,
   PlayerError,

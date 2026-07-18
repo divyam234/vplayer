@@ -62,6 +62,7 @@ export {
 // ── Types ─────────────────────────────────────────────────
 export type {
   PlayerOptions,
+  TransformThumbnailVTT,
   MediaState,
   MediaRemote,
   PlayerLabels,

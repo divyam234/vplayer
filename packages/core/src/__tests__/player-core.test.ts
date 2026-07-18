@@ -114,4 +114,30 @@ describe('createPlayer core contract', () => {
     globalThis.fetch = originalFetch
     player.destroy()
   })
+
+  it('uses an updated VTT transform on the next thumbnail request', async () => {
+    const originalFetch = globalThis.fetch
+    try {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        url: 'https://media.example.com/thumbs.vtt',
+        text: () => Promise.resolve('WEBVTT\n\n00:00:00.000 --> 00:00:05.000\noriginal.jpg\n'),
+      }) as typeof fetch
+      const transform = vi.fn((content: string) =>
+        content.replace('original.jpg', 'https://cdn.example.com/replaced.jpg'),
+      )
+      const player = createPlayer({ src: '/video.mp4', engine: (video) => new FakeEngine(video) })
+
+      player.updateOptions({ transformThumbnailVTT: transform })
+      player.setThumbnails('/thumbs.vtt')
+
+      await vi.waitFor(() => {
+        expect(player.store.state.thumbnailCues[0]?.src).toBe('https://cdn.example.com/replaced.jpg')
+      })
+      expect(transform).toHaveBeenCalledOnce()
+      player.destroy()
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
 })

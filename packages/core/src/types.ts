@@ -57,6 +57,8 @@ export interface PlayerOptions {
   qualities?: string[]
   autoPlay?: boolean
   thumbnails?: string
+  /** Transform raw thumbnail VTT content before it is parsed. */
+  transformThumbnailVTT?: TransformThumbnailVTT
   lang?: string
   translations?: Record<string, string>
   plugins?: PlayerPlugin[]
@@ -96,6 +98,8 @@ export interface PlayerOptions {
    */
   engine?: MediaEngine | ((video: HTMLVideoElement) => MediaEngine)
 }
+
+export type TransformThumbnailVTT = (content: string, responseUrl: string) => string | Promise<string>
 
 export type { PlaybackStatus }
 
@@ -188,7 +192,10 @@ export interface PlayerInstance {
   engine: MediaEngine | null
   updateOptions(
     opts: Partial<
-      Pick<PlayerOptions, 'src' | 'type' | 'poster' | 'autoPlay' | 'subtitles' | 'qualities' | 'thumbnails'>
+      Pick<
+        PlayerOptions,
+        'src' | 'type' | 'poster' | 'autoPlay' | 'subtitles' | 'qualities' | 'thumbnails' | 'transformThumbnailVTT'
+      >
     >,
   ): void
   setThumbnails(url?: string): void

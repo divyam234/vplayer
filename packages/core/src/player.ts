@@ -564,7 +564,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
     const controller = new AbortController()
     thumbnailAbortController = controller
-    fetchThumbnails(url, controller.signal)
+    fetchThumbnails(url, controller.signal, currentOptions.transformThumbnailVTT)
       .then((cues) => {
         if (!controller.signal.aborted) {
           store.setState((prev) => ({ ...prev, thumbnailCues: cues }))
@@ -745,6 +745,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     updateOptions(opts): void {
       const srcChanged = typeof opts.src === 'string' && opts.src !== currentOptions.src
       const typeChanged = Object.hasOwn(opts, 'type') && opts.type !== currentOptions.type
+      const thumbnailsChanged = Object.hasOwn(opts, 'thumbnails') && opts.thumbnails !== currentOptions.thumbnails
       currentOptions = { ...currentOptions, ...opts }
 
       store.setState((prev) => {
@@ -767,7 +768,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
         }
       })
 
-      if (Object.hasOwn(opts, 'thumbnails')) {
+      if (thumbnailsChanged) {
         doFetchThumbnails(opts.thumbnails)
       }
 

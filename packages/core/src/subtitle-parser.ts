@@ -206,12 +206,18 @@ function resolveUrl(value: string, baseUrl: string): string {
   }
 }
 
-export async function fetchThumbnails(url: string, signal?: AbortSignal): Promise<ThumbnailCue[]> {
+export async function fetchThumbnails(
+  url: string,
+  signal?: AbortSignal,
+  transform?: (content: string, responseUrl: string) => string | Promise<string>,
+): Promise<ThumbnailCue[]> {
   const resp = await fetch(url, { signal })
   if (!resp.ok) throw new Error(`Failed to fetch thumbnail VTT: ${resp.status}`)
-  const text = await resp.text()
+  const responseUrl = resp.url || url
+  const rawText = await resp.text()
+  const text = transform ? await transform(rawText, responseUrl) : rawText
   return parseThumbnailVTT(text).map((cue) => {
-    cue.src = resolveUrl(cue.src, resp.url || url)
+    cue.src = resolveUrl(cue.src, responseUrl)
     return cue
   })
 }
