@@ -58,6 +58,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   const qualities = options.qualities
   const thumbnails = options.thumbnails
   const transformThumbnailVTT = options.transformThumbnailVTT
+  const hasThumbnailVTTTransform = transformThumbnailVTT !== undefined
   const plugins = options.plugins
 
   // ── Mount/unmount lifecycle ──
@@ -73,7 +74,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   // ── Sync reactive props to core ──
   useEffect(() => {
     instance.updateOptions({ src, type, autoPlay, subtitles, qualities, thumbnails, transformThumbnailVTT })
-  }, [src, type, autoPlay, subtitles, qualities, thumbnails, transformThumbnailVTT, instance])
+  }, [src, type, autoPlay, subtitles, qualities, thumbnails, hasThumbnailVTTTransform, instance])
 
   // ── Initialize plugins ──
   useEffect(() => {

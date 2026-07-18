@@ -49,6 +49,25 @@ describe('VideoPlayer interactions', () => {
     vi.restoreAllMocks()
   })
 
+  it('calls an inline thumbnail VTT transform without repeatedly restarting the request', async () => {
+    const transform = vi.fn((content: string, id: string) => content.replaceAll('#image', id))
+    const thumbnailSprite = { id: 'sprite.jpg' }
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      url: 'https://media.example.com/thumbs.vtt',
+      text: () => Promise.resolve('WEBVTT\n\n00:00:00.000 --> 00:00:05.000\n#image\n'),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderTestPlayer({
+      thumbnails: '/thumbs.vtt',
+      transformThumbnailVTT: thumbnailSprite?.id ? (content) => transform(content, thumbnailSprite.id) : undefined,
+    })
+
+    await waitFor(() => expect(transform).toHaveBeenCalledOnce())
+    expect(fetchMock).toHaveBeenCalledOnce()
+  })
+
   it('exposes a YouTube-like mini-player mode from the default controls', async () => {
     const user = userEvent.setup()
     renderTestPlayer({ miniPlayer: true })

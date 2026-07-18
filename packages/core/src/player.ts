@@ -746,6 +746,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       const srcChanged = typeof opts.src === 'string' && opts.src !== currentOptions.src
       const typeChanged = Object.hasOwn(opts, 'type') && opts.type !== currentOptions.type
       const thumbnailsChanged = Object.hasOwn(opts, 'thumbnails') && opts.thumbnails !== currentOptions.thumbnails
+      const thumbnailTransformChanged =
+        Object.hasOwn(opts, 'transformThumbnailVTT') &&
+        opts.transformThumbnailVTT !== currentOptions.transformThumbnailVTT
       currentOptions = { ...currentOptions, ...opts }
 
       store.setState((prev) => {
@@ -768,8 +771,8 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
         }
       })
 
-      if (thumbnailsChanged) {
-        doFetchThumbnails(opts.thumbnails)
+      if (thumbnailsChanged || thumbnailTransformChanged) {
+        doFetchThumbnails(currentOptions.thumbnails)
       }
 
       if (srcChanged || typeChanged) {

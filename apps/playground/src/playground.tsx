@@ -19,6 +19,7 @@ const SAMPLE_VIDEO = 'https://cdn.jsdelivr.net/npm/big-buck-bunny-1080p@0.0.6/vi
 const SAMPLE_POSTER = 'https://cdn.jsdelivr.net/npm/big-buck-bunny-1080p@0.0.6/poster.jpg'
 const LOCAL_THUMBNAILS = '/thumbnails.vtt'
 const LOCAL_SUBTITLES = '/captions.en.vtt'
+const THUMBNAIL_SPRITE = { id: '/thumbs/thumb' }
 
 type LayoutMode = 'default' | 'minimal' | 'cinema'
 type ThemeMode = 'neutral' | 'warm' | 'cyan'
@@ -132,6 +133,9 @@ export function Playground() {
     defaultHotkeys: hotkeysEnabled,
     subtitles,
     thumbnails: thumbnailsEnabled ? thumbnailUrl.trim() || undefined : undefined,
+    transformThumbnailVTT: THUMBNAIL_SPRITE?.id
+      ? (content) => content.replaceAll('#image', THUMBNAIL_SPRITE.id)
+      : undefined,
     thumbnailPreview,
     qualities,
     miniPlayer: { enabled: miniEnabled, auto: miniAuto, position: miniPosition, width: miniWidth },

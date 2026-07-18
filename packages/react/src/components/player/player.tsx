@@ -60,6 +60,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const qualities = options.qualities
   const thumbnails = options.thumbnails
   const transformThumbnailVTT = options.transformThumbnailVTT
+  const hasThumbnailVTTTransform = transformThumbnailVTT !== undefined
   const plugins = options.plugins
   const labelsProp = options.labels
   const iconsProp = options.icons
@@ -86,7 +87,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   // ── Sync reactive props to core ──
   useEffect(() => {
     instance.updateOptions({ src, type, subtitles, qualities, thumbnails, transformThumbnailVTT, autoPlay })
-  }, [src, type, subtitles, qualities, thumbnails, transformThumbnailVTT, autoPlay, instance])
+  }, [src, type, subtitles, qualities, thumbnails, hasThumbnailVTTTransform, autoPlay, instance])
 
   // ── Initialize plugins ──
   useEffect(() => {
