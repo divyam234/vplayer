@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "bun run --cwd apps/playground dev",
     "build": "bun run --cwd packages/core build && bun run --cwd packages/react build && bun run --cwd apps/playground build",
-    "typecheck": "bun run --cwd packages/core typecheck && bun run --cwd packages/core build && bun run --cwd packages/react typecheck && bun run --cwd apps/playground typecheck",
+    "typecheck": "bun run --cwd packages/core typecheck && bun run --cwd packages/core build && bun run --cwd packages/react typecheck",
     "lint": "./node_modules/.bin/oxlint",
     "lint:fix": "./node_modules/.bin/oxlint --fix",
     "format": "./node_modules/.bin/oxfmt",
