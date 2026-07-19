@@ -38,7 +38,7 @@ export const defaultPlayerLabels: PlayerLabels = {
   contextMenuPlay: 'Play',
   contextMenuPause: 'Pause',
   contextMenuLoop: 'Loop',
-  infoPanel: 'Info',
+  infoPanel: 'Debug stats',
   loop: 'Loop',
 }
 

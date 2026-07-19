@@ -4,7 +4,7 @@ import { Tooltip } from '@ark-ui/react/tooltip'
 import { Icon } from '@iconify/react'
 import { getThumbnailAtTime, formatTime } from '@vplayer/core'
 import clsx from 'clsx'
-import { useCallback, useEffect, useState, type FC, type PointerEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties, type FC, type PointerEvent, type ReactNode } from 'react'
 
 import { useMiniPlayer, usePlayerRemote, usePlayerState, usePlayerContext } from './context'
 import type { PlayerLabels } from './types'
@@ -82,9 +82,10 @@ export const SeekBar: FC = () => {
   const duration = usePlayerState('duration')
   const bufferedPercent = usePlayerState('bufferedPercent')
   const thumbnailCues = usePlayerState('thumbnailCues')
-  const { thumbnailPreview } = usePlayerContext()
+  const { containerRef, thumbnailPreview } = usePlayerContext()
   const remote = usePlayerRemote()
   const [hoverPercent, setHoverPercent] = useState<number | null>(null)
+  const [previewPosition, setPreviewPosition] = useState(0)
   const [overrideValue, setOverrideValue] = useState<number | null>(null)
 
   const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0
@@ -107,16 +108,31 @@ export const SeekBar: FC = () => {
     }
   }, [progress, overrideValue])
 
-  const handlePointerMove = useCallback((e: PointerEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-    setHoverPercent(pct)
-  }, [])
+  const handlePointerMove = useCallback(
+    (e: PointerEvent) => {
+      const rect = e.currentTarget.getBoundingClientRect()
+      const pointerX = Math.max(0, Math.min(rect.width, e.clientX - rect.left))
+      const playerRect = containerRef.current?.getBoundingClientRect() ?? rect
+      const previewHalfWidth = (thumbnailPreview.width + 6) / 2
+      const minCenter = playerRect.left + previewHalfWidth
+      const maxCenter = playerRect.right - previewHalfWidth
+      const previewCenter =
+        minCenter <= maxCenter
+          ? Math.max(minCenter, Math.min(maxCenter, e.clientX))
+          : playerRect.left + playerRect.width / 2
+      setHoverPercent(rect.width > 0 ? pointerX / rect.width : 0)
+      setPreviewPosition(previewCenter - rect.left)
+    },
+    [containerRef, thumbnailPreview.width],
+  )
 
   return (
     <div className="vplayer__seek" onMouseLeave={() => setHoverPercent(null)}>
       {hoverPercent !== null && thumbnailCue && (
-        <div className="vplayer__seek-preview" style={{ left: `${hoverPercent * 100}%` }}>
+        <div
+          className="vplayer__seek-preview"
+          style={{ '--vplayer-seek-preview-position': `${previewPosition}px` } as CSSProperties}
+        >
           <div className="vplayer__seek-preview-inner">
             <div
               className="vplayer__seek-preview-frame"
@@ -135,10 +151,10 @@ export const SeekBar: FC = () => {
                   transform: `translate(${(thumbnailPreview.width - scaledThumbnailWidth) / 2}px, ${(thumbnailPreview.height - scaledThumbnailHeight) / 2}px) scale(${thumbnailScale})`,
                 }}
               />
+              {thumbnailPreview.showTime && (
+                <span className="vplayer__seek-preview-time">{formatTime(hoverTime ?? 0)}</span>
+              )}
             </div>
-            {thumbnailPreview.showTime && (
-              <span className="vplayer__seek-preview-time">{formatTime(hoverTime ?? 0)}</span>
-            )}
           </div>
         </div>
       )}
@@ -496,8 +512,9 @@ export const SettingsTrigger: FC = () => {
 export const MiniPlayerButton: FC = () => {
   const { labels, icons } = usePlayerContext()
   const miniPlayer = useMiniPlayer()
+  const isFullscreen = usePlayerState('isFullscreen')
 
-  if (!miniPlayer.enabled) return null
+  if (!miniPlayer.enabled || isFullscreen) return null
 
   return (
     <IconToggle

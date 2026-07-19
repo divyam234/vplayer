@@ -26,10 +26,13 @@ export const PauseOverlay: FC = () => {
 
 export const BufferingOverlay: FC = () => {
   const isBuffering = usePlayerState('isBuffering')
-  const { icons } = usePlayerContext()
   return (
     <div className={clsx('vplayer__overlay', !isBuffering && 'vplayer__overlay--hidden')}>
-      <Icon icon={icons.spinner} className="vplayer__spinner" />
+      <div className="vplayer__buffering-bars" role="status" aria-label="Loading video">
+        <span />
+        <span />
+        <span />
+      </div>
     </div>
   )
 }

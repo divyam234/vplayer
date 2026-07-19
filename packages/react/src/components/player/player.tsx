@@ -4,7 +4,7 @@
 import { useStore } from '@tanstack/react-store'
 import { defaultPlayerIcons, defaultPlayerLabels } from '@vplayer/core'
 import clsx from 'clsx'
-import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
 import { AutoResumeOverlay } from './components/auto-resume-overlay'
 import { ContextMenu } from './components/context-menu'
@@ -67,6 +67,8 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const slots = options.slots ?? {}
   const miniPlayerProp = options.miniPlayer
   const thumbnailPreviewProp = options.thumbnailPreview
+  const [posterLoaded, setPosterLoaded] = useState(false)
+  const [hasStarted, setHasStarted] = useState(false)
 
   // ── Core player via contract hook ──
   const player = usePlayer(options)
@@ -100,6 +102,15 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const isPlaying = useStore(instance.store, (s) => s.isPlaying)
   const miniPlayer = useMiniPlayerState(anchorRef, miniPlayerProp)
   const thumbnailPreview = useMemo(() => normalizeThumbnailPreviewOptions(thumbnailPreviewProp), [thumbnailPreviewProp])
+
+  useEffect(() => {
+    setPosterLoaded(false)
+    setHasStarted(false)
+  }, [src, poster])
+
+  useEffect(() => {
+    if (isPlaying) setHasStarted(true)
+  }, [isPlaying])
 
   useEffect(() => {
     if (miniPlayer.active) {
@@ -152,13 +163,12 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
     () => ({
       ref: videoRef,
       className: 'vplayer__video',
-      poster,
       autoPlay,
       preload: 'metadata' as const,
       playsInline: true,
       onClick: instance.remote.togglePlay,
     }),
-    [poster, autoPlay, instance.remote.togglePlay],
+    [autoPlay, instance.remote.togglePlay],
   )
 
   // ── Gestures: touch → show controls + forward gesture events ──
@@ -241,6 +251,20 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
         >
           <div className="vplayer__media-viewport" data-testid="vplayer-media-viewport">
             <video {...videoProps} />
+            {poster && (
+              <img
+                src={poster}
+                alt=""
+                aria-hidden="true"
+                data-testid="vplayer-poster"
+                onLoad={() => setPosterLoaded(true)}
+                className={clsx(
+                  'vplayer__poster',
+                  posterLoaded && 'vplayer__poster--loaded',
+                  hasStarted && 'vplayer__poster--hidden',
+                )}
+              />
+            )}
           </div>
 
           {children ?? <DefaultVideoLayout />}

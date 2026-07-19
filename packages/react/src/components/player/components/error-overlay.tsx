@@ -12,7 +12,7 @@ export const ErrorOverlay: FC = () => {
     video.load()
   }, [videoRef])
 
-  if (!error) return null
+  if (!error || error.isReconnecting) return null
 
   return (
     <div className="vplayer__error-overlay">

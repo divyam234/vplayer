@@ -27,7 +27,10 @@ import {
 export const ControlsBar: FC<{ children?: ReactNode }> = ({ children }) => {
   const controlsVisible = usePlayerState('controlsVisible')
   return (
-    <div className={clsx('vplayer__controls', !controlsVisible && 'vplayer__controls--hidden')}>
+    <div
+      className={clsx('vplayer__controls', !controlsVisible && 'vplayer__controls--hidden')}
+      onDoubleClick={(event) => event.stopPropagation()}
+    >
       <div className="vplayer__controls-backdrop" />
       <div className="vplayer__controls-content">{children}</div>
     </div>

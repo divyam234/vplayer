@@ -6,6 +6,7 @@ import { usePlayerRemote, usePlayerState, usePlayerContext } from '../context'
 export const ContextMenu: FC = () => {
   const isPlaying = usePlayerState('isPlaying')
   const isLooping = usePlayerState('isLooping')
+  const infoPanelVisible = usePlayerState('infoPanelVisible')
   const contextMenuItems = (usePlayerState('contextMenuItems') ?? []) as ContextMenuItem[]
   const contextMenuEnabled = usePlayerState('contextMenuEnabled') !== false
   const { labels } = usePlayerContext()
@@ -72,6 +73,12 @@ export const ContextMenu: FC = () => {
         remote.toggleLoop()
       },
     },
+    {
+      label: `${infoPanelVisible ? '✓ ' : ''}${labels.infoPanel}`,
+      onAction: () => {
+        remote.toggleInfoPanel()
+      },
+    },
   ]
 
   const allItems: ContextMenuItem[] = [...builtInItems, ...contextMenuItems]
@@ -94,6 +101,7 @@ export const ContextMenu: FC = () => {
         ) : (
           <button
             key={`item-${i}`}
+            role="menuitem"
             className="vplayer__contextmenu-item"
             disabled={item.disabled}
             onClick={() => {

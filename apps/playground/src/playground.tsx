@@ -12,7 +12,17 @@ import {
   useMiniPlayer,
 } from '@vplayer/react'
 import type { PlayerProps, SubtitleTrack, ThumbnailPreviewOptions } from '@vplayer/react'
-import { Check, ChevronDown, CirclePlay, Code2, Copy, MonitorPlay, SlidersHorizontal } from 'lucide-react'
+import {
+  Check,
+  ChevronDown,
+  CirclePlay,
+  Code2,
+  Copy,
+  MonitorPlay,
+  RotateCcw,
+  Save,
+  SlidersHorizontal,
+} from 'lucide-react'
 import { useMemo, useState, type CSSProperties } from 'react'
 
 const SAMPLE_VIDEO = 'https://cdn.jsdelivr.net/npm/big-buck-bunny-1080p@0.0.6/video.mp4'
@@ -24,6 +34,26 @@ const THUMBNAIL_SPRITE = { id: '/thumbs/thumb' }
 type LayoutMode = 'default' | 'minimal' | 'cinema'
 type ThemeMode = 'neutral' | 'warm' | 'cyan'
 type MiniPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+
+type PlaygroundConfig = {
+  src: string
+  poster: string
+  subtitleUrl: string
+  thumbnailUrl: string
+  qualitiesText: string
+  layout: LayoutMode
+  theme: ThemeMode
+  autoPlay: boolean
+  captionsEnabled: boolean
+  thumbnailsEnabled: boolean
+  hotkeysEnabled: boolean
+  miniEnabled: boolean
+  miniAuto: boolean
+  miniPosition: MiniPosition
+  miniWidth: number
+  previewWidth: number
+  previewHeight: number
+}
 
 type Preset = {
   id: string
@@ -75,26 +105,71 @@ const THEMES: Record<ThemeMode, { accent: string; bg: string; radius: string }> 
   cyan: { accent: 'oklch(0.78 0.13 205)', bg: 'oklch(0.11 0.018 220)', radius: '18px' },
 }
 
+const CONFIG_STORAGE_KEY = 'vplayer:playground-config'
+const DEFAULT_CONFIG: PlaygroundConfig = {
+  src: SAMPLE_VIDEO,
+  poster: SAMPLE_POSTER,
+  subtitleUrl: LOCAL_SUBTITLES,
+  thumbnailUrl: LOCAL_THUMBNAILS,
+  qualitiesText: 'Auto,1080p,720p,480p',
+  layout: 'default',
+  theme: 'neutral',
+  autoPlay: false,
+  captionsEnabled: true,
+  thumbnailsEnabled: true,
+  hotkeysEnabled: true,
+  miniEnabled: true,
+  miniAuto: false,
+  miniPosition: 'bottom-right',
+  miniWidth: 360,
+  previewWidth: 180,
+  previewHeight: 101,
+}
+
+function loadSavedConfig(): PlaygroundConfig {
+  try {
+    if (typeof window === 'undefined') return DEFAULT_CONFIG
+    const saved = window.localStorage.getItem(CONFIG_STORAGE_KEY)
+    if (!saved) return DEFAULT_CONFIG
+    const parsed = JSON.parse(saved) as Partial<PlaygroundConfig>
+    return typeof parsed.src === 'string' && parsed.src.trim() ? { ...DEFAULT_CONFIG, ...parsed } : DEFAULT_CONFIG
+  } catch {
+    return DEFAULT_CONFIG
+  }
+}
+
 export function Playground() {
-  const [activePreset, setActivePreset] = useState('complete')
-  const [src, setSrc] = useState(SAMPLE_VIDEO)
-  const [poster, setPoster] = useState(SAMPLE_POSTER)
-  const [subtitleUrl, setSubtitleUrl] = useState(LOCAL_SUBTITLES)
-  const [thumbnailUrl, setThumbnailUrl] = useState(LOCAL_THUMBNAILS)
-  const [qualitiesText, setQualitiesText] = useState('Auto,1080p,720p,480p')
-  const [layout, setLayout] = useState<LayoutMode>('default')
-  const [theme, setTheme] = useState<ThemeMode>('neutral')
-  const [autoPlay, setAutoPlay] = useState(false)
-  const [captionsEnabled, setCaptionsEnabled] = useState(true)
-  const [thumbnailsEnabled, setThumbnailsEnabled] = useState(true)
-  const [hotkeysEnabled, setHotkeysEnabled] = useState(true)
-  const [miniEnabled, setMiniEnabled] = useState(true)
-  const [miniAuto, setMiniAuto] = useState(false)
-  const [miniPosition, setMiniPosition] = useState<MiniPosition>('bottom-right')
-  const [miniWidth, setMiniWidth] = useState(360)
-  const [previewWidth, setPreviewWidth] = useState(180)
-  const [previewHeight, setPreviewHeight] = useState(101)
+  const [appliedConfig, setAppliedConfig] = useState(loadSavedConfig)
+  const [draftConfig, setDraftConfig] = useState(appliedConfig)
+  const [activePreset, setActivePreset] = useState('')
   const [copied, setCopied] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const {
+    src,
+    poster,
+    subtitleUrl,
+    thumbnailUrl,
+    qualitiesText,
+    layout,
+    theme,
+    autoPlay,
+    captionsEnabled,
+    thumbnailsEnabled,
+    hotkeysEnabled,
+    miniEnabled,
+    miniAuto,
+    miniPosition,
+    miniWidth,
+    previewWidth,
+    previewHeight,
+  } = appliedConfig
+  const hasChanges = JSON.stringify(draftConfig) !== JSON.stringify(appliedConfig)
+
+  function updateDraft<K extends keyof PlaygroundConfig>(key: K, value: PlaygroundConfig[K]) {
+    setSaved(false)
+    setActivePreset('')
+    setDraftConfig((current) => ({ ...current, [key]: value }))
+  }
 
   const qualities = useMemo(
     () =>
@@ -164,13 +239,34 @@ export function Playground() {
 
   function applyPreset(preset: Preset) {
     setActivePreset(preset.id)
-    setSrc(preset.src)
-    setPoster(preset.poster)
-    setSubtitleUrl(preset.subtitles)
-    setThumbnailUrl(preset.thumbnails)
-    setQualitiesText(preset.qualities)
-    setCaptionsEnabled(Boolean(preset.subtitles))
-    setThumbnailsEnabled(Boolean(preset.thumbnails))
+    setSaved(false)
+    setDraftConfig((current) => ({
+      ...current,
+      src: preset.src,
+      poster: preset.poster,
+      subtitleUrl: preset.subtitles,
+      thumbnailUrl: preset.thumbnails,
+      qualitiesText: preset.qualities,
+      captionsEnabled: Boolean(preset.subtitles),
+      thumbnailsEnabled: Boolean(preset.thumbnails),
+    }))
+  }
+
+  function applyConfig() {
+    const nextConfig = { ...draftConfig, src: draftConfig.src.trim() }
+    if (!nextConfig.src) return
+    setAppliedConfig(nextConfig)
+    setDraftConfig(nextConfig)
+    window.localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(nextConfig))
+    setSaved(true)
+  }
+
+  function resetConfig() {
+    window.localStorage.removeItem(CONFIG_STORAGE_KEY)
+    setAppliedConfig(DEFAULT_CONFIG)
+    setDraftConfig(DEFAULT_CONFIG)
+    setActivePreset('complete')
+    setSaved(false)
   }
 
   async function copyCode() {
@@ -244,23 +340,23 @@ export function Playground() {
                 </div>
                 <ChoiceGroup
                   label="Layout"
-                  value={layout}
+                  value={draftConfig.layout}
                   options={[
                     ['default', 'Default'],
                     ['minimal', 'Minimal'],
                     ['cinema', 'Cinema'],
                   ]}
-                  onChange={(value) => setLayout(value as LayoutMode)}
+                  onChange={(value) => updateDraft('layout', value as LayoutMode)}
                 />
                 <ChoiceGroup
                   label="Theme"
-                  value={theme}
+                  value={draftConfig.theme}
                   options={[
                     ['neutral', 'Neutral'],
                     ['warm', 'Warm'],
                     ['cyan', 'Cyan'],
                   ]}
-                  onChange={(value) => setTheme(value as ThemeMode)}
+                  onChange={(value) => updateDraft('theme', value as ThemeMode)}
                 />
               </section>
 
@@ -301,21 +397,49 @@ export function Playground() {
                 </span>
                 <div>
                   <h2 className="text-sm font-semibold">Configuration</h2>
-                  <p className="text-xs text-zinc-500">Changes apply immediately.</p>
+                  <p className="text-xs text-zinc-500">Review changes, then apply and save.</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <Field label="Video URL" value={src} onChange={setSrc} />
-                <Field label="Poster URL" value={poster} onChange={setPoster} />
+                <Field label="Video URL" value={draftConfig.src} onChange={(value) => updateDraft('src', value)} />
+                <Field
+                  label="Poster URL"
+                  value={draftConfig.poster}
+                  onChange={(value) => updateDraft('poster', value)}
+                />
 
                 <div className="grid grid-cols-2 gap-2">
-                  <Toggle label="Captions" checked={captionsEnabled} onChange={setCaptionsEnabled} />
-                  <Toggle label="Thumbnails" checked={thumbnailsEnabled} onChange={setThumbnailsEnabled} />
-                  <Toggle label="Autoplay" checked={autoPlay} onChange={setAutoPlay} />
-                  <Toggle label="Hotkeys" checked={hotkeysEnabled} onChange={setHotkeysEnabled} />
-                  <Toggle label="Mini-player" checked={miniEnabled} onChange={setMiniEnabled} />
-                  <Toggle label="Auto mini" checked={miniAuto} onChange={setMiniAuto} />
+                  <Toggle
+                    label="Captions"
+                    checked={draftConfig.captionsEnabled}
+                    onChange={(value) => updateDraft('captionsEnabled', value)}
+                  />
+                  <Toggle
+                    label="Thumbnails"
+                    checked={draftConfig.thumbnailsEnabled}
+                    onChange={(value) => updateDraft('thumbnailsEnabled', value)}
+                  />
+                  <Toggle
+                    label="Autoplay"
+                    checked={draftConfig.autoPlay}
+                    onChange={(value) => updateDraft('autoPlay', value)}
+                  />
+                  <Toggle
+                    label="Hotkeys"
+                    checked={draftConfig.hotkeysEnabled}
+                    onChange={(value) => updateDraft('hotkeysEnabled', value)}
+                  />
+                  <Toggle
+                    label="Mini-player"
+                    checked={draftConfig.miniEnabled}
+                    onChange={(value) => updateDraft('miniEnabled', value)}
+                  />
+                  <Toggle
+                    label="Auto mini"
+                    checked={draftConfig.miniAuto}
+                    onChange={(value) => updateDraft('miniAuto', value)}
+                  />
                 </div>
 
                 <details className="group rounded-xl border border-white/10 bg-black/15">
@@ -324,46 +448,78 @@ export function Playground() {
                     <ChevronDown className="size-4 transition group-open:rotate-180" />
                   </summary>
                   <div className="space-y-4 border-t border-white/10 p-3">
-                    <Field label="Subtitle VTT URL" value={subtitleUrl} onChange={setSubtitleUrl} />
-                    <Field label="Thumbnail VTT URL" value={thumbnailUrl} onChange={setThumbnailUrl} />
-                    <Field label="Quality labels" value={qualitiesText} onChange={setQualitiesText} />
+                    <Field
+                      label="Subtitle VTT URL"
+                      value={draftConfig.subtitleUrl}
+                      onChange={(value) => updateDraft('subtitleUrl', value)}
+                    />
+                    <Field
+                      label="Thumbnail VTT URL"
+                      value={draftConfig.thumbnailUrl}
+                      onChange={(value) => updateDraft('thumbnailUrl', value)}
+                    />
+                    <Field
+                      label="Quality labels"
+                      value={draftConfig.qualitiesText}
+                      onChange={(value) => updateDraft('qualitiesText', value)}
+                    />
                     <ChoiceGroup
                       label="Mini-player position"
-                      value={miniPosition}
+                      value={draftConfig.miniPosition}
                       options={[
                         ['bottom-right', 'Bottom right'],
                         ['bottom-left', 'Bottom left'],
                         ['top-right', 'Top right'],
                         ['top-left', 'Top left'],
                       ]}
-                      onChange={(value) => setMiniPosition(value as MiniPosition)}
+                      onChange={(value) => updateDraft('miniPosition', value as MiniPosition)}
                     />
                     <Range
                       label="Mini-player width"
-                      value={miniWidth}
+                      value={draftConfig.miniWidth}
                       min={260}
                       max={520}
                       step={10}
-                      onChange={setMiniWidth}
+                      onChange={(value) => updateDraft('miniWidth', value)}
                     />
                     <Range
                       label="Preview width"
-                      value={previewWidth}
+                      value={draftConfig.previewWidth}
                       min={96}
                       max={420}
                       step={4}
-                      onChange={setPreviewWidth}
+                      onChange={(value) => updateDraft('previewWidth', value)}
                     />
                     <Range
                       label="Preview height"
-                      value={previewHeight}
+                      value={draftConfig.previewHeight}
                       min={54}
                       max={236}
                       step={4}
-                      onChange={setPreviewHeight}
+                      onChange={(value) => updateDraft('previewHeight', value)}
                     />
                   </div>
                 </details>
+
+                <div className="sticky bottom-0 -mx-1 grid grid-cols-[1fr_auto] gap-2 border-t border-white/10 bg-zinc-900/95 px-1 pt-4 pb-1 backdrop-blur-xl">
+                  <button
+                    type="button"
+                    onClick={applyConfig}
+                    disabled={!hasChanges || !draftConfig.src.trim()}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-zinc-950 shadow-[0_8px_24px_rgb(0_0_0/0.24)] transition-[background-color,transform,opacity] hover:bg-zinc-200 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100"
+                  >
+                    {saved ? <Check className="size-4" /> : <Save className="size-4" />}
+                    {saved ? 'Saved' : hasChanges ? 'Apply config' : 'Up to date'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetConfig}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.035] px-3 text-sm font-medium text-zinc-300 transition-[background-color,transform] hover:bg-white/10 active:scale-[0.96]"
+                  >
+                    <RotateCcw className="size-4" />
+                    Reset
+                  </button>
+                </div>
               </div>
             </div>
           </aside>
@@ -393,13 +549,27 @@ function MinimalControls() {
   )
 }
 
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+function Field({
+  label,
+  value,
+  onChange,
+  onCommit,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  onCommit?: (value: string) => void
+}) {
   return (
     <label className="grid gap-1.5">
       <span className="text-xs font-medium text-zinc-400">{label}</span>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={(event) => onCommit?.(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') event.currentTarget.blur()
+        }}
         className="min-h-10 w-full rounded-lg border border-white/10 bg-black/25 px-3 text-sm text-zinc-200 transition outline-none placeholder:text-zinc-600 focus:border-white/30 focus:ring-2 focus:ring-white/10"
       />
     </label>

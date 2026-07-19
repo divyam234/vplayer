@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { describe, expect, it, vi } from 'vitest'
 
-import type { MediaEngine, MediaEngineEvent, MediaEngineEventHandler } from '../media-engine'
+import type { MediaEngine, MediaEngineError, MediaEngineEvent, MediaEngineEventHandler } from '../media-engine'
 import { createPlayer } from '../player'
 
 class FakeEngine implements MediaEngine {
@@ -17,7 +17,7 @@ class FakeEngine implements MediaEngine {
   buffered = { length: 0, start: () => 0, end: () => 0 } as TimeRanges
   videoWidth = 1920
   videoHeight = 1080
-  error = null
+  error: MediaEngineError | null = null
   destroyed = false
   private listeners = new Map<string, Set<MediaEngineEventHandler>>()
 
@@ -96,6 +96,29 @@ describe('createPlayer core contract', () => {
     player.unmount()
     expect(player.engine).toBeNull()
     expect(player.store.state.status).toBe('idle')
+  })
+
+  it('hides transient load errors and clears them when metadata becomes ready', () => {
+    let engine: FakeEngine | null = null
+    const player = createPlayer({
+      src: '/video.mp4',
+      reconnectSleep: 1,
+      engine: (video) => {
+        engine = new FakeEngine(video)
+        return engine
+      },
+    })
+    player.mount(document.createElement('video'), document.createElement('div'))
+
+    engine!.error = { message: 'Temporary startup failure' }
+    engine!.emit('error')
+    expect(player.store.state.error).toMatchObject({ isReconnecting: true })
+
+    engine!.emit('loadedmetadata')
+    expect(player.store.state.status).toBe('ready')
+    expect(player.store.state.error).toBeNull()
+
+    player.destroy()
   })
 
   it('aborts old thumbnail requests when thumbnail URL changes', async () => {

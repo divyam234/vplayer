@@ -378,14 +378,21 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       }),
 
       eng.on('loadedmetadata', () => {
+        if (reconnectTimer !== null) {
+          clearTimeout(reconnectTimer)
+          reconnectTimer = null
+        }
+        reconnectAttempt = 0
         store.setState((prev) => ({
           ...prev,
-          status: prev.status === 'idle' || prev.status === 'loading' ? 'ready' : prev.status,
+          status:
+            prev.status === 'idle' || prev.status === 'loading' || prev.status === 'error' ? 'ready' : prev.status,
           duration: isFiniteDuration(eng.duration) ? eng.duration : 0,
           isLive: !isFiniteDuration(eng.duration),
           volume: eng.volume,
           isMuted: eng.muted,
           playbackRate: eng.playbackRate,
+          error: null,
         }))
       }),
 
@@ -404,7 +411,17 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       }),
 
       eng.on('canplay', () => {
-        store.setState((prev) => ({ ...prev, status: prev.isPlaying ? 'playing' : 'ready', isBuffering: false }))
+        if (reconnectTimer !== null) {
+          clearTimeout(reconnectTimer)
+          reconnectTimer = null
+        }
+        reconnectAttempt = 0
+        store.setState((prev) => ({
+          ...prev,
+          status: prev.isPlaying ? 'playing' : 'ready',
+          isBuffering: false,
+          error: null,
+        }))
       }),
 
       eng.on('durationchange', () => {
@@ -468,10 +485,6 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
           reconnectTimer = setTimeout(() => {
             reconnectTimer = null
             reconnectAttempt++
-            store.setState((prev) => ({
-              ...prev,
-              error: { message, reconnectAttempt, isReconnecting: false },
-            }))
             events.emit('video:reconnect', { attempt: reconnectAttempt })
             eng.load()
           }, reconnectSleep)
@@ -680,6 +693,12 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   let engineEventCleanups: Array<() => void> = []
 
   function cleanupEngine(): void {
+    if (reconnectTimer !== null) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
+    reconnectAttempt = 0
+
     for (const cleanup of engineEventCleanups) cleanup()
     engineEventCleanups = []
 
