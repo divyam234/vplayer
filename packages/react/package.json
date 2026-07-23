@@ -1,6 +1,6 @@
 {
   "name": "@vplayer/react",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": false,
   "repository": {
     "type": "git",
@@ -36,13 +36,15 @@
   },
   "dependencies": {
     "@ark-ui/react": "5.36.2",
-    "@iconify/react": "^6.0.2",
     "@tanstack/react-store": "^0.8.0",
     "@tanstack/store": "^0.8.0",
-    "@vplayer/core": "0.1.7",
+    "@vplayer/core": "0.1.8",
     "clsx": "^2.1.1"
   },
   "devDependencies": {
+    "@iconify-json/lucide": "^1.2.78",
+    "@svgr/core": "^8.1.0",
+    "@svgr/plugin-jsx": "^8.1.0",
     "@tailwindcss/cli": "^4.1.18",
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.0",
@@ -51,6 +53,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "typescript": "^6.0.2",
+    "unplugin-icons": "^22.5.0",
     "vite": "^8.0.0"
   },
   "peerDependencies": {

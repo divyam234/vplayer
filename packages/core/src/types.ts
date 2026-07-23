@@ -15,39 +15,6 @@ import type { SubtitleTrack } from './subtitle-parser'
 
 export type { MediaState }
 
-// ── Icon types (framework-agnostic) ─────────────────────────
-//
-// Icons are Iconify icon IDs (e.g. "lucide:play", "mdi:play").
-// Each framework adapter renders them using @iconify/<framework>.
-
-/** Iconify icon identifier, e.g. "lucide:play" or "mdi:play" */
-export type SvgIcon = string
-
-export interface PlayerIcons {
-  play: SvgIcon
-  pause: SvgIcon
-  replay: SvgIcon
-  skipBack: SvgIcon
-  skipForward: SvgIcon
-  volumeHigh: SvgIcon
-  volumeLow: SvgIcon
-  volumeOff: SvgIcon
-  settings: SvgIcon
-  pip: SvgIcon
-  miniPlayer: SvgIcon
-  close: SvgIcon
-  fullscreen: SvgIcon
-  fullscreenExit: SvgIcon
-  chevronLeft: SvgIcon
-  check: SvgIcon
-  spinner: SvgIcon
-  screenshot: SvgIcon
-  flip: SvgIcon
-  aspectRatio: SvgIcon
-  info: SvgIcon
-  loop: SvgIcon
-}
-
 export interface PlayerOptions {
   src: string
   /** MIME/content type hint used by source provider selection. */

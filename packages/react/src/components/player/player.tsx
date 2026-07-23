@@ -2,7 +2,7 @@
 'use client'
 
 import { useStore } from '@tanstack/react-store'
-import { defaultPlayerIcons, defaultPlayerLabels } from '@vplayer/core'
+import { defaultPlayerLabels } from '@vplayer/core'
 import clsx from 'clsx'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
@@ -16,6 +16,7 @@ import { useControlsVisibility } from './hooks/use-controls-visibility'
 import { useMiniPlayerState } from './hooks/use-mini-player-state'
 import { usePlayerGestures } from './hooks/use-mobile-gestures'
 import { usePlayer } from './hooks/use-player'
+import { defaultPlayerIcons } from './icon'
 import { DefaultVideoLayout } from './layout/default-video-layout'
 import { TopGradient } from './overlays'
 import { createPluginAPI } from './plugin-api'

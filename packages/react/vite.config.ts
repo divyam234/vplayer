@@ -3,12 +3,13 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import react from '@vitejs/plugin-react'
+import Icons from 'unplugin-icons/vite'
 import { defineConfig, esmExternalRequirePlugin } from 'vite'
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig(({ command }) => ({
-  plugins: [react()],
+  plugins: [react(), Icons({ compiler: 'jsx', jsx: 'react' })],
   test: {
     environment: 'jsdom',
     setupFiles: resolve(ROOT, 'src/__tests__/setup.ts'),

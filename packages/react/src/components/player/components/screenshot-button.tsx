@@ -1,8 +1,8 @@
 import { Tooltip } from '@ark-ui/react/tooltip'
-import { Icon } from '@iconify/react/offline'
 import { type FC } from 'react'
 
 import { usePlayerContext } from '../context'
+import { Icon } from '../icon'
 
 /**
  * Screenshot button. Delegates capture to the core's remote.takeScreenshot()

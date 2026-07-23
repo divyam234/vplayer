@@ -1,12 +1,12 @@
 import { Menu } from '@ark-ui/react/menu'
 import { Slider } from '@ark-ui/react/slider'
 import { Tooltip } from '@ark-ui/react/tooltip'
-import { Icon } from '@iconify/react/offline'
 import { getThumbnailAtTime, formatTime } from '@vplayer/core'
 import clsx from 'clsx'
 import { useCallback, useEffect, useState, type CSSProperties, type FC, type PointerEvent, type ReactNode } from 'react'
 
 import { useMiniPlayer, usePlayerRemote, usePlayerState, usePlayerContext } from './context'
+import { Icon } from './icon'
 import type { PlayerLabels } from './types'
 
 interface IconButtonProps {
@@ -195,6 +195,7 @@ export const PlayButton: FC<{ size?: number }> = ({ size = 20 }) => {
   const isEnded = usePlayerState('isEnded')
   const { labels, icons } = usePlayerContext()
   const remote = usePlayerRemote()
+  const Icon = isEnded ? icons.replay : isPlaying ? icons.pause : icons.play
 
   return (
     <IconToggle
@@ -204,11 +205,7 @@ export const PlayButton: FC<{ size?: number }> = ({ size = 20 }) => {
       tooltip={isPlaying ? `${labels.pause} (k)` : `${labels.play} (k)`}
       className="vplayer__button--play"
     >
-      {isEnded ? (
-        <Icon icon={icons.replay} width={size} />
-      ) : (
-        <Icon icon={isPlaying ? icons.pause : icons.play} width={size} fill="currentColor" />
-      )}
+      <Icon width={size} fill={!isEnded ? 'currentColor' : undefined} />
     </IconToggle>
   )
 }
@@ -217,10 +214,11 @@ export const SkipButton: FC<{ seconds: number }> = ({ seconds }) => {
   const { icons } = usePlayerContext()
   const remote = usePlayerRemote()
   const forward = seconds > 0
+  const Icon = forward ? icons.skipForward : icons.skipBack
   const label = forward ? `Skip forward ${seconds}s` : `Skip back ${Math.abs(seconds)}s`
   return (
     <IconButton label={label} tooltip={label} onClick={() => remote.skip(seconds)} className="vplayer__button--skip">
-      <Icon icon={forward ? icons.skipForward : icons.skipBack} width={18} />
+      <Icon width={18} />
     </IconButton>
   )
 }
@@ -240,6 +238,7 @@ export const VolumeControl: FC = () => {
   const isMuted = usePlayerState('isMuted')
   const { labels, icons } = usePlayerContext()
   const remote = usePlayerRemote()
+  const VolumeIcon = isMuted || volume === 0 ? icons.volumeOff : volume < 0.5 ? icons.volumeLow : icons.volumeHigh
   const [isHovered, setIsHovered] = useState(false)
 
   return (
@@ -251,10 +250,7 @@ export const VolumeControl: FC = () => {
         tooltip={isMuted ? `${labels.unmute} (m)` : `${labels.mute} (m)`}
         className="vplayer__button--volume"
       >
-        <Icon
-          icon={isMuted || volume === 0 ? icons.volumeOff : volume < 0.5 ? icons.volumeLow : icons.volumeHigh}
-          width={16}
-        />
+        <VolumeIcon width={16} />
       </IconToggle>
       <div className={clsx('vplayer__volume-slider', isHovered && 'vplayer__volume-slider--visible')}>
         <Slider.Root

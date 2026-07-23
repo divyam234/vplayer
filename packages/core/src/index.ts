@@ -32,7 +32,7 @@ export {
 } from './media-capabilities'
 export type { MediaCapabilitiesSnapshot } from './media-capabilities'
 export { formatTime } from './utils'
-export { defaultPlayerLabels, defaultPlayerIcons } from './defaults'
+export { defaultPlayerLabels } from './defaults'
 
 // ── Media Engine ──────────────────────────────────────────
 export { BaseMediaEngine, NativeVideoEngine, HlsMediaEngine, DashMediaEngine } from './media-engine'
@@ -66,8 +66,6 @@ export type {
   MediaState,
   MediaRemote,
   PlayerLabels,
-  PlayerIcons,
-  SvgIcon,
   PlayerInstance,
   PlayerSystems,
   PlayerError,

@@ -62,9 +62,9 @@ export {
   I18n,
   HotkeyRegistry,
   defaultPlayerLabels,
-  defaultPlayerIcons,
   formatTime,
 } from '@vplayer/core'
+export { defaultPlayerIcons } from './icon'
 export {
   parseSRT,
   parseVTT,

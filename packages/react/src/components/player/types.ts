@@ -6,11 +6,9 @@ import type {
   MediaEngine,
   MediaRemote,
   MediaState,
-  PlayerIcons,
   PlayerLabels,
   PlayerInstance,
   PlayerOptions,
-  SvgIcon,
   Storage,
   SubtitleTrack,
   ThumbnailCue,
@@ -28,8 +26,10 @@ import type {
 import type { ReactNode, RefObject } from 'react'
 
 import type { PluginAPIBuilder } from './adapter-types'
+import type { PlayerIcons } from './icon'
 
-export type { MediaState, MediaRemote, PlayerIcons, PlayerLabels, PlayerOptions, SvgIcon }
+export type { MediaState, MediaRemote, PlayerLabels, PlayerOptions }
+export type { IconComponent, PlayerIcons } from './icon'
 export type {
   AspectRatioState,
   ControlRegistration,

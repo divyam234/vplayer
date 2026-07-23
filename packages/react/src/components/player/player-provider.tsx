@@ -19,13 +19,14 @@
  * ```
  */
 
-import { defaultPlayerIcons, defaultPlayerLabels } from '@vplayer/core'
-import type { PlayerIcons, PlayerLabels } from '@vplayer/core'
+import { defaultPlayerLabels } from '@vplayer/core'
+import type { PlayerLabels } from '@vplayer/core'
 import { useRef, useEffect, useMemo, type FC, type ReactNode } from 'react'
 
 import { PlayerContext } from './context'
 import { createDisabledMiniPlayerState } from './hooks/use-mini-player-state'
 import { usePlayer } from './hooks/use-player'
+import { defaultPlayerIcons, type PlayerIcons } from './icon'
 import { createPluginAPI } from './plugin-api'
 import type { PlayerContextValue, PlayerSlots } from './types'
 import { mergeLabels, mergeIcons } from './utils/merge'
@@ -34,7 +35,7 @@ import type { DeepPartial } from './utils/merge'
 export interface PlayerProviderProps {
   options: Parameters<typeof usePlayer>[0]
   labels?: DeepPartial<PlayerLabels>
-  icons?: DeepPartial<PlayerIcons>
+  icons?: Partial<PlayerIcons>
   slots?: PlayerSlots
   children?: ReactNode
 }

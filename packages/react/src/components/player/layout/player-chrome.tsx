@@ -1,4 +1,3 @@
-import { Icon } from '@iconify/react/offline'
 import clsx from 'clsx'
 import { useEffect, useRef, type FC, type ReactNode } from 'react'
 
@@ -15,6 +14,7 @@ import {
   TimeDisplay,
   VolumeControl,
 } from '../controls'
+import { Icon } from '../icon'
 import {
   NotificationOverlay,
   PluginControlsCenter,

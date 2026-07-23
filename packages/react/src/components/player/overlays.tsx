@@ -1,8 +1,8 @@
-import { Icon } from '@iconify/react/offline'
 import clsx from 'clsx'
 import type { FC } from 'react'
 
 import { usePlayerRemote, usePlayerState, usePlayerContext } from './context'
+import { Icon } from './icon'
 
 export const TopGradient: FC = () => {
   const controlsVisible = usePlayerState('controlsVisible')
