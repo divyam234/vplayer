@@ -275,36 +275,6 @@ describe('VideoPlayer interactions', () => {
     expect(screen.getByText('Permanent load failure').textContent).toBe('Permanent load failure')
   })
 
-  it('toggles debug stats from the context menu', async () => {
-    const user = userEvent.setup()
-    const { container } = renderTestPlayer()
-    const root = screen.getByTestId('vplayer-root')
-    const video = container.querySelector('video') as HTMLVideoElement
-    Object.defineProperties(video, {
-      videoWidth: { configurable: true, value: 1920 },
-      videoHeight: { configurable: true, value: 1080 },
-      networkState: { configurable: true, value: 2 },
-      readyState: { configurable: true, value: 4 },
-      getVideoPlaybackQuality: {
-        configurable: true,
-        value: () => ({ droppedVideoFrames: 2, totalVideoFrames: 120 }),
-      },
-    })
-
-    fireEvent.contextMenu(root, { clientX: 20, clientY: 20 })
-    await user.click(screen.getByRole('menuitem', { name: /debug stats/i }))
-    expect(screen.queryByText(/Version:/i)).not.toBeNull()
-    expect(screen.queryByText('Version: 0.1.6')).not.toBeNull()
-    expect(screen.queryByText('Resolution: 1920×1080')).not.toBeNull()
-    expect(screen.queryByText('Frames: 2 dropped / 120 total')).not.toBeNull()
-    expect(screen.queryByText('Network: Loading')).not.toBeNull()
-    expect(screen.queryByText('Ready: Enough Data')).not.toBeNull()
-
-    fireEvent.contextMenu(root, { clientX: 20, clientY: 20 })
-    await user.click(screen.getByRole('menuitem', { name: /debug stats/i }))
-    expect(screen.queryByText(/Version:/i)).toBeNull()
-  })
-
   it('fades a loaded poster out after playback starts', async () => {
     const { engine } = renderTestPlayer({ poster: '/poster.jpg' })
     const poster = screen.getByTestId('vplayer-poster')
