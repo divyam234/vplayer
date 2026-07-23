@@ -89,6 +89,38 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let reconnectAttempt = 0
   let thumbnailAbortController: AbortController | null = null
+  let mediaSessionMetadata: MediaMetadata | null = null
+
+  function clearMediaSessionMetadata(): void {
+    if (
+      mediaSessionMetadata &&
+      typeof navigator !== 'undefined' &&
+      'mediaSession' in navigator &&
+      navigator.mediaSession.metadata === mediaSessionMetadata
+    ) {
+      navigator.mediaSession.metadata = null
+    }
+    mediaSessionMetadata = null
+  }
+
+  function syncMediaSessionMetadata(): void {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') {
+      return
+    }
+
+    const title = currentOptions.title?.trim()
+    if (!title) {
+      clearMediaSessionMetadata()
+      return
+    }
+
+    const metadata = new MediaMetadata({
+      title,
+      artwork: currentOptions.poster ? [{ src: currentOptions.poster }] : [],
+    })
+    navigator.mediaSession.metadata = metadata
+    mediaSessionMetadata = metadata
+  }
 
   // ── Default keyboard shortcuts ────────────────────────────
   function registerDefaultHotkeys(): void {
@@ -336,6 +368,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   function wireEngineEvents(eng: MediaEngine): Array<() => void> {
     return [
       eng.on('play', () => {
+        syncMediaSessionMetadata()
         store.setState((prev) => ({
           ...prev,
           status: 'playing',
@@ -770,6 +803,10 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
         opts.transformThumbnailVTT !== currentOptions.transformThumbnailVTT
       currentOptions = { ...currentOptions, ...opts }
 
+      if (store.state.isPlaying || mediaSessionMetadata) {
+        syncMediaSessionMetadata()
+      }
+
       store.setState((prev) => {
         const subtitleTracks = opts.subtitles ?? prev.subtitleTracks
         const qualities = opts.qualities ?? prev.qualities
@@ -844,6 +881,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
     unmount(): void {
       cleanupEngine()
+      clearMediaSessionMetadata()
       containerEl = null
       stopProgressSave()
       thumbnailAbortController?.abort()

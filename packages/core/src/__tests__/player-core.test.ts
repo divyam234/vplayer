@@ -98,6 +98,54 @@ describe('createPlayer core contract', () => {
     expect(player.store.state.status).toBe('idle')
   })
 
+  it('publishes configured title and poster to the active media session', async () => {
+    const mediaSessionDescriptor = Object.getOwnPropertyDescriptor(navigator, 'mediaSession')
+    const mediaSession = { metadata: null as MediaMetadata | null }
+    Object.defineProperty(navigator, 'mediaSession', { configurable: true, value: mediaSession })
+    vi.stubGlobal(
+      'MediaMetadata',
+      class {
+        title: string
+        artwork: readonly MediaImage[]
+
+        constructor(init: MediaMetadataInit = {}) {
+          this.title = init.title ?? ''
+          this.artwork = init.artwork ?? []
+        }
+      },
+    )
+
+    try {
+      const player = createPlayer({
+        src: '/video.mp4',
+        title: 'First episode',
+        poster: '/first.jpg',
+        engine: (video) => new FakeEngine(video),
+      })
+      player.mount(document.createElement('video'), document.createElement('div'))
+
+      expect(mediaSession.metadata).toBeNull()
+      await player.remote.play()
+      expect(mediaSession.metadata).toMatchObject({
+        title: 'First episode',
+        artwork: [{ src: '/first.jpg' }],
+      })
+
+      player.updateOptions({ title: 'Second episode', poster: '/second.jpg' })
+      expect(mediaSession.metadata).toMatchObject({
+        title: 'Second episode',
+        artwork: [{ src: '/second.jpg' }],
+      })
+
+      player.unmount()
+      expect(mediaSession.metadata).toBeNull()
+    } finally {
+      vi.unstubAllGlobals()
+      if (mediaSessionDescriptor) Object.defineProperty(navigator, 'mediaSession', mediaSessionDescriptor)
+      else Reflect.deleteProperty(navigator, 'mediaSession')
+    }
+  })
+
   it('hides transient load errors and clears them when metadata becomes ready', () => {
     let engine: FakeEngine | null = null
     const player = createPlayer({

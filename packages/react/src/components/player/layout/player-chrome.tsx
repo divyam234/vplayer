@@ -1,6 +1,6 @@
 import { Icon } from '@iconify/react'
 import clsx from 'clsx'
-import type { FC, ReactNode } from 'react'
+import { useEffect, useRef, type FC, type ReactNode } from 'react'
 
 import { ScreenshotButton } from '../components/screenshot-button'
 import { usePlayerState, usePlayerContext } from '../context'
@@ -24,12 +24,41 @@ import {
   PluginLayers,
 } from '../plugin-renderer'
 
+function releaseControls(releaseRef: { current: (() => void) | null }) {
+  releaseRef.current?.()
+  releaseRef.current = null
+}
+
 export const ControlsBar: FC<{ children?: ReactNode }> = ({ children }) => {
   const controlsVisible = usePlayerState('controlsVisible')
+  const { controlsVisibility } = usePlayerContext()
+  const hoverReleaseRef = useRef<(() => void) | null>(null)
+  const focusReleaseRef = useRef<(() => void) | null>(null)
+
+  const pin = (releaseRef: typeof hoverReleaseRef) => {
+    releaseRef.current ??= controlsVisibility.pinControls()
+  }
+
+  useEffect(
+    () => () => {
+      releaseControls(hoverReleaseRef)
+      releaseControls(focusReleaseRef)
+    },
+    [],
+  )
+
   return (
     <div
       className={clsx('vplayer__controls', !controlsVisible && 'vplayer__controls--hidden')}
       onDoubleClick={(event) => event.stopPropagation()}
+      onMouseEnter={() => pin(hoverReleaseRef)}
+      onMouseLeave={() => releaseControls(hoverReleaseRef)}
+      onFocus={() => pin(focusReleaseRef)}
+      onBlur={(event) => {
+        if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) {
+          releaseControls(focusReleaseRef)
+        }
+      }}
     >
       <div className="vplayer__controls-backdrop" />
       <div className="vplayer__controls-content">{children}</div>

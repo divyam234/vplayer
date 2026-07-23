@@ -9,6 +9,7 @@ const MINI_HIDE_DELAY = 1400
 export function useControlsVisibility(mediaStore: Store<MediaState>) {
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastPlayingRef = useRef(mediaStore.state.isPlaying)
+  const pinCountRef = useRef(0)
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current) {
@@ -19,7 +20,7 @@ export function useControlsVisibility(mediaStore: Store<MediaState>) {
 
   const hideControls = useCallback(() => {
     clearHideTimer()
-    if (mediaStore.state.isPlaying) {
+    if (pinCountRef.current === 0 && mediaStore.state.isPlaying) {
       mediaStore.setState((prev) => ({ ...prev, controlsVisible: false }))
     }
   }, [clearHideTimer, mediaStore])
@@ -27,9 +28,10 @@ export function useControlsVisibility(mediaStore: Store<MediaState>) {
   const scheduleHide = useCallback(
     (delay = DEFAULT_HIDE_DELAY) => {
       clearHideTimer()
+      if (pinCountRef.current > 0) return
       hideTimerRef.current = setTimeout(() => {
         hideTimerRef.current = null
-        if (mediaStore.state.isPlaying) {
+        if (pinCountRef.current === 0 && mediaStore.state.isPlaying) {
           mediaStore.setState((prev) => ({ ...prev, controlsVisible: false }))
         }
       }, delay)
@@ -45,6 +47,20 @@ export function useControlsVisibility(mediaStore: Store<MediaState>) {
     },
     [clearHideTimer, mediaStore, scheduleHide],
   )
+
+  const pinControls = useCallback(() => {
+    pinCountRef.current += 1
+    clearHideTimer()
+    mediaStore.setState((prev) => ({ ...prev, controlsVisible: true }))
+
+    let released = false
+    return () => {
+      if (released) return
+      released = true
+      pinCountRef.current = Math.max(0, pinCountRef.current - 1)
+      if (pinCountRef.current === 0 && mediaStore.state.isPlaying) scheduleHide()
+    }
+  }, [clearHideTimer, mediaStore, scheduleHide])
 
   useEffect(() => {
     return mediaStore.subscribe(() => {
@@ -76,7 +92,7 @@ export function useControlsVisibility(mediaStore: Store<MediaState>) {
   )
 
   return useMemo(
-    () => ({ clearHideTimer, hideControls, rootHandlers, scheduleHide, showControls }),
-    [clearHideTimer, hideControls, rootHandlers, scheduleHide, showControls],
+    () => ({ clearHideTimer, hideControls, pinControls, rootHandlers, scheduleHide, showControls }),
+    [clearHideTimer, hideControls, pinControls, rootHandlers, scheduleHide, showControls],
   )
 }

@@ -221,6 +221,40 @@ describe('VideoPlayer interactions', () => {
     expect(engine.muted).toBe(true)
   })
 
+  it('forwards title and poster to browser media controls when playback starts', async () => {
+    const mediaSessionDescriptor = Object.getOwnPropertyDescriptor(navigator, 'mediaSession')
+    const mediaSession = { metadata: null as MediaMetadata | null }
+    Object.defineProperty(navigator, 'mediaSession', { configurable: true, value: mediaSession })
+    vi.stubGlobal(
+      'MediaMetadata',
+      class {
+        title: string
+        artwork: readonly MediaImage[]
+
+        constructor(init: MediaMetadataInit = {}) {
+          this.title = init.title ?? ''
+          this.artwork = init.artwork ?? []
+        }
+      },
+    )
+
+    const player = renderTestPlayer({ title: 'Demo video', poster: '/poster.jpg' })
+    try {
+      await act(async () => {
+        await player.engine.play()
+      })
+      expect(mediaSession.metadata).toMatchObject({
+        title: 'Demo video',
+        artwork: [{ src: '/poster.jpg' }],
+      })
+    } finally {
+      player.unmount()
+      vi.unstubAllGlobals()
+      if (mediaSessionDescriptor) Object.defineProperty(navigator, 'mediaSession', mediaSessionDescriptor)
+      else Reflect.deleteProperty(navigator, 'mediaSession')
+    }
+  })
+
   it('only shows the error overlay for terminal errors', () => {
     renderTestPlayer({ children: <ContextProbe /> })
 
@@ -391,6 +425,43 @@ describe('VideoPlayer interactions', () => {
 
     expect(latestCtx?.mediaStore.state.isPlaying).toBe(true)
     expect(latestCtx?.mediaStore.state.controlsVisible).toBe(false)
+    expect(root).toHaveClass('vplayer--controls-hidden')
+  })
+
+  it('keeps controls visible while the settings menu is open', async () => {
+    const user = userEvent.setup()
+    const { engine } = renderTestPlayer()
+    const root = screen.getByTestId('vplayer-root')
+    await act(async () => {
+      await engine.play()
+    })
+
+    await user.click(screen.getByRole('button', { name: /settings/i }))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+
+    await act(() => new Promise((resolve) => setTimeout(resolve, 3200)))
+    expect(root).not.toHaveClass('vplayer--controls-hidden')
+  })
+
+  it('pauses auto-hide while the controls are being hovered', async () => {
+    vi.useFakeTimers()
+    const { engine } = renderTestPlayer()
+    const root = screen.getByTestId('vplayer-root')
+    const toolbar = screen.getByRole('toolbar', { name: /playback controls/i })
+
+    await act(async () => {
+      await engine.play()
+    })
+    fireEvent.mouseEnter(toolbar)
+    await act(async () => {
+      vi.advanceTimersByTime(3200)
+    })
+    expect(root).not.toHaveClass('vplayer--controls-hidden')
+
+    fireEvent.mouseLeave(toolbar)
+    await act(async () => {
+      vi.advanceTimersByTime(3200)
+    })
     expect(root).toHaveClass('vplayer--controls-hidden')
   })
 })

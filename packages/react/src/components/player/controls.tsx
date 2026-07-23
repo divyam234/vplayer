@@ -15,9 +15,10 @@ interface IconButtonProps {
   children: ReactNode
   onClick?: () => void
   disabled?: boolean
+  className?: string
 }
 
-function IconButton({ label, tooltip, children, onClick, disabled = false }: IconButtonProps) {
+function IconButton({ label, tooltip, children, onClick, disabled = false, className }: IconButtonProps) {
   return (
     <Tooltip.Root openDelay={400} closeDelay={150}>
       <Tooltip.Trigger
@@ -26,7 +27,7 @@ function IconButton({ label, tooltip, children, onClick, disabled = false }: Ico
         aria-label={label}
         aria-disabled={disabled}
         disabled={disabled}
-        className="vplayer__button"
+        className={clsx('vplayer__button', className)}
       >
         {children}
       </Tooltip.Trigger>
@@ -49,9 +50,10 @@ interface IconToggleProps {
   onChange: () => void
   children: ReactNode
   disabled?: boolean
+  className?: string
 }
 
-function IconToggle({ label, tooltip, selected, onChange, children, disabled = false }: IconToggleProps) {
+function IconToggle({ label, tooltip, selected, onChange, children, disabled = false, className }: IconToggleProps) {
   return (
     <Tooltip.Root openDelay={400} closeDelay={150}>
       <Tooltip.Trigger
@@ -61,7 +63,7 @@ function IconToggle({ label, tooltip, selected, onChange, children, disabled = f
         aria-pressed={selected}
         aria-disabled={disabled}
         disabled={disabled}
-        className="vplayer__button"
+        className={clsx('vplayer__button', className)}
       >
         {children}
       </Tooltip.Trigger>
@@ -200,6 +202,7 @@ export const PlayButton: FC<{ size?: number }> = ({ size = 20 }) => {
       onChange={remote.togglePlay}
       label={isPlaying ? labels.pause : labels.play}
       tooltip={isPlaying ? `${labels.pause} (k)` : `${labels.play} (k)`}
+      className="vplayer__button--play"
     >
       {isEnded ? (
         <Icon icon={icons.replay} width={size} />
@@ -216,7 +219,7 @@ export const SkipButton: FC<{ seconds: number }> = ({ seconds }) => {
   const forward = seconds > 0
   const label = forward ? `Skip forward ${seconds}s` : `Skip back ${Math.abs(seconds)}s`
   return (
-    <IconButton label={label} tooltip={label} onClick={() => remote.skip(seconds)}>
+    <IconButton label={label} tooltip={label} onClick={() => remote.skip(seconds)} className="vplayer__button--skip">
       <Icon icon={forward ? icons.skipForward : icons.skipBack} width={18} />
     </IconButton>
   )
@@ -246,6 +249,7 @@ export const VolumeControl: FC = () => {
         onChange={remote.toggleMute}
         label={isMuted ? labels.unmute : labels.mute}
         tooltip={isMuted ? `${labels.unmute} (m)` : `${labels.mute} (m)`}
+        className="vplayer__button--volume"
       >
         <Icon
           icon={isMuted || volume === 0 ? icons.volumeOff : volume < 0.5 ? icons.volumeLow : icons.volumeHigh}
@@ -287,7 +291,7 @@ function getAspectRatioLabel(labels: PlayerLabels, value: (typeof ASPECT_RATIO_O
 }
 
 export const SettingsTrigger: FC = () => {
-  const { labels, icons } = usePlayerContext()
+  const { labels, icons, controlsVisibility } = usePlayerContext()
   const remote = usePlayerRemote()
   const playbackRate = usePlayerState('playbackRate')
   const qualities = usePlayerState('qualities')
@@ -300,6 +304,11 @@ export const SettingsTrigger: FC = () => {
   const [view, setView] = useState<'main' | 'speed' | 'quality' | 'subtitles' | 'flip' | 'aspectRatio'>('main')
   const speeds = [0.5, 1, 1.25, 1.5, 2]
 
+  useEffect(() => {
+    if (!isOpen) return
+    return controlsVisibility.pinControls()
+  }, [controlsVisibility, isOpen])
+
   return (
     <Menu.Root
       open={isOpen}
@@ -310,7 +319,10 @@ export const SettingsTrigger: FC = () => {
       closeOnSelect={false}
       positioning={{ placement: 'top-end' }}
     >
-      <Menu.Trigger className="vplayer__button vplayer__button--trigger" aria-label={labels.settings}>
+      <Menu.Trigger
+        className="vplayer__button vplayer__button--trigger vplayer__button--settings"
+        aria-label={labels.settings}
+      >
         <Icon icon={icons.settings} width={18} />
       </Menu.Trigger>
       <Menu.Positioner className="vplayer__menu-positioner">
@@ -522,6 +534,7 @@ export const MiniPlayerButton: FC = () => {
       onChange={miniPlayer.toggle}
       label={miniPlayer.active ? labels.exitMiniPlayer : labels.miniPlayer}
       tooltip={miniPlayer.active ? labels.exitMiniPlayer : labels.miniPlayer}
+      className="vplayer__button--mini-player"
     >
       <Icon icon={miniPlayer.active ? icons.close : icons.miniPlayer} width={16} />
     </IconToggle>
@@ -540,6 +553,7 @@ export const PiPButton: FC = () => {
       label={active ? labels.pipExit : labels.pip}
       tooltip={active ? labels.pipExit : labels.pip}
       disabled={!capabilities.pictureInPicture}
+      className="vplayer__button--pip"
     >
       <Icon icon={icons.pip} width={16} />
     </IconToggle>
@@ -558,6 +572,7 @@ export const FullscreenButton: FC = () => {
       label={isFullscreen ? labels.fullscreenExit : labels.fullscreen}
       tooltip={isFullscreen ? `${labels.fullscreenExit} (f)` : `${labels.fullscreen} (f)`}
       disabled={!capabilities.fullscreen}
+      className="vplayer__button--fullscreen"
     >
       <Icon icon={isFullscreen ? icons.fullscreenExit : icons.fullscreen} width={18} />
     </IconToggle>

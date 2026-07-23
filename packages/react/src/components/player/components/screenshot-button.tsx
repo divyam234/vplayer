@@ -16,7 +16,7 @@ export const ScreenshotButton: FC = () => {
       <Tooltip.Trigger
         onClick={() => mediaRemote.takeScreenshot()}
         aria-label={labels.screenshot}
-        className="vplayer__button"
+        className="vplayer__button vplayer__button--screenshot"
       >
         <Icon icon={icons.screenshot} width={16} />
       </Tooltip.Trigger>

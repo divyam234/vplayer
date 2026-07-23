@@ -53,6 +53,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const containerRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const src = options.src
+  const title = options.title
   const poster = options.poster
   const type = options.type
   const autoPlay = options.autoPlay
@@ -88,8 +89,18 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
 
   // ── Sync reactive props to core ──
   useEffect(() => {
-    instance.updateOptions({ src, type, subtitles, qualities, thumbnails, transformThumbnailVTT, autoPlay })
-  }, [src, type, subtitles, qualities, thumbnails, hasThumbnailVTTTransform, autoPlay, instance])
+    instance.updateOptions({
+      src,
+      type,
+      title,
+      poster,
+      subtitles,
+      qualities,
+      thumbnails,
+      transformThumbnailVTT,
+      autoPlay,
+    })
+  }, [src, type, title, poster, subtitles, qualities, thumbnails, hasThumbnailVTTTransform, autoPlay, instance])
 
   // ── Initialize plugins ──
   useEffect(() => {
@@ -127,13 +138,6 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
 
     const delay = miniPlayer.active ? 1400 : 3000
     controls.scheduleHide(delay)
-    const id = setTimeout(() => {
-      if (instance.store.state.isPlaying) {
-        instance.store.setState((prev) => ({ ...prev, controlsVisible: false }))
-      }
-    }, delay)
-
-    return () => clearTimeout(id)
   }, [controls, instance.store, isPlaying, miniPlayer.active])
 
   // ── Keyboard events through core's hotkey registry ──
@@ -202,10 +206,11 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       engine: instance.engine,
       instance,
       createPluginAPI,
+      controlsVisibility: controls,
       miniPlayer,
       thumbnailPreview,
     }),
-    [instance, labels, iconMap, slots, miniPlayer, thumbnailPreview],
+    [instance, labels, iconMap, slots, controls, miniPlayer, thumbnailPreview],
   )
 
   const miniPlayerStyle = useMemo(

@@ -130,6 +130,9 @@ export interface PlayerContextValue {
   engine: MediaEngine | null
   instance: PlayerInstance
   createPluginAPI: PluginAPIBuilder
+  controlsVisibility: {
+    pinControls: () => () => void
+  }
   miniPlayer: MiniPlayerState
   thumbnailPreview: NormalizedThumbnailPreviewOptions
 }

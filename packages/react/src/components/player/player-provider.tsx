@@ -53,6 +53,8 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
 
   const src = options.src
   const type = options.type
+  const title = options.title
+  const poster = options.poster
   const autoPlay = options.autoPlay
   const subtitles = options.subtitles
   const qualities = options.qualities
@@ -73,8 +75,18 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
 
   // ── Sync reactive props to core ──
   useEffect(() => {
-    instance.updateOptions({ src, type, autoPlay, subtitles, qualities, thumbnails, transformThumbnailVTT })
-  }, [src, type, autoPlay, subtitles, qualities, thumbnails, hasThumbnailVTTTransform, instance])
+    instance.updateOptions({
+      src,
+      type,
+      title,
+      poster,
+      autoPlay,
+      subtitles,
+      qualities,
+      thumbnails,
+      transformThumbnailVTT,
+    })
+  }, [src, type, title, poster, autoPlay, subtitles, qualities, thumbnails, hasThumbnailVTTTransform, instance])
 
   // ── Initialize plugins ──
   useEffect(() => {
@@ -105,6 +117,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
     engine: instance.engine,
     instance,
     createPluginAPI,
+    controlsVisibility: { pinControls: () => () => {} },
     miniPlayer,
     thumbnailPreview,
   }

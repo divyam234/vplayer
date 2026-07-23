@@ -27,6 +27,7 @@
 @layer components {
   .vplayer {
     @apply relative flex overflow-hidden select-none;
+    container-type: inline-size;
     aspect-ratio: var(--vplayer-aspect-ratio);
     max-height: var(--vplayer-max-height);
     border-radius: var(--vplayer-radius);
@@ -372,12 +373,19 @@
     background: var(--vplayer-overlay);
   }
   .vplayer__pause-orb {
-    @apply flex size-20 items-center justify-center rounded-full;
-    background: color-mix(in srgb, white 12%, transparent);
-    backdrop-filter: blur(8px);
+    @apply flex items-center justify-center rounded-full;
+    width: clamp(3rem, 12cqw, 5rem);
+    height: clamp(3rem, 12cqw, 5rem);
+    background: color-mix(in srgb, black 58%, transparent);
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.28),
+      0 8px 24px rgb(0 0 0 / 0.24),
+      inset 0 0 0 1px rgb(255 255 255 / 0.12);
   }
   .vplayer__pause-icon {
-    @apply ml-1 size-10;
+    @apply ml-1;
+    width: clamp(1.5rem, 6cqw, 2.5rem);
+    height: clamp(1.5rem, 6cqw, 2.5rem);
     color: var(--vplayer-fg);
   }
   .vplayer__buffering-bars {
@@ -662,6 +670,47 @@
   @layer components {
     .vplayer--mini {
       width: calc(100vw - 24px);
+    }
+  }
+}
+
+@container (max-width: 520px) {
+  @layer components {
+    .vplayer:not(.vplayer--mini) .vplayer__controls-content {
+      @apply gap-0 px-2 pt-5 pb-1;
+    }
+
+    .vplayer:not(.vplayer--mini) .vplayer__controls-row {
+      @apply gap-1 px-0 py-0;
+    }
+
+    .vplayer:not(.vplayer--mini) .vplayer__seek {
+      @apply mb-0;
+    }
+
+    .vplayer:not(.vplayer--mini) .vplayer__seek-slider-control {
+      height: 1.75rem;
+    }
+
+    .vplayer:not(.vplayer--mini) .vplayer__volume-slider,
+    .vplayer:not(.vplayer--mini) .vplayer__time,
+    .vplayer:not(.vplayer--mini) .vplayer__pause-orb,
+    .vplayer:not(.vplayer--mini) .vplayer__button--skip,
+    .vplayer:not(.vplayer--mini) .vplayer__button--screenshot,
+    .vplayer:not(.vplayer--mini) .vplayer__button--mini-player {
+      display: none;
+    }
+
+    .vplayer:not(.vplayer--mini) .vplayer__menu {
+      max-width: calc(100cqw - 1rem);
+    }
+  }
+}
+
+@container (max-width: 360px) {
+  @layer components {
+    .vplayer:not(.vplayer--mini) .vplayer__volume {
+      display: none;
     }
   }
 }

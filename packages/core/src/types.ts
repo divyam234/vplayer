@@ -52,6 +52,8 @@ export interface PlayerOptions {
   src: string
   /** MIME/content type hint used by source provider selection. */
   type?: string
+  /** Title exposed to browser and operating-system media controls. */
+  title?: string
   poster?: string
   subtitles?: SubtitleTrack[]
   qualities?: string[]
@@ -194,7 +196,15 @@ export interface PlayerInstance {
     opts: Partial<
       Pick<
         PlayerOptions,
-        'src' | 'type' | 'poster' | 'autoPlay' | 'subtitles' | 'qualities' | 'thumbnails' | 'transformThumbnailVTT'
+        | 'src'
+        | 'type'
+        | 'title'
+        | 'poster'
+        | 'autoPlay'
+        | 'subtitles'
+        | 'qualities'
+        | 'thumbnails'
+        | 'transformThumbnailVTT'
       >
     >,
   ): void
