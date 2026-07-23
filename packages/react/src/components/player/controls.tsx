@@ -1,7 +1,7 @@
 import { Menu } from '@ark-ui/react/menu'
 import { Slider } from '@ark-ui/react/slider'
 import { Tooltip } from '@ark-ui/react/tooltip'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { getThumbnailAtTime, formatTime } from '@vplayer/core'
 import clsx from 'clsx'
 import { useCallback, useEffect, useState, type CSSProperties, type FC, type PointerEvent, type ReactNode } from 'react'

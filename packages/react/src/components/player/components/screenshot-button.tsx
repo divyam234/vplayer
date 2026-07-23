@@ -1,5 +1,5 @@
 import { Tooltip } from '@ark-ui/react/tooltip'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { type FC } from 'react'
 
 import { usePlayerContext } from '../context'
