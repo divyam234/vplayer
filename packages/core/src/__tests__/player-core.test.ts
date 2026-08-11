@@ -261,6 +261,30 @@ describe('createPlayer core contract', () => {
     second.destroy()
   })
 
+  it('restores progress when streamed media duration becomes finite after metadata', async () => {
+    const adapter: PlaybackProgressStore = {
+      load: vi.fn(async () => ({ time: 42, duration: 120 })),
+      save: async () => {},
+      clear: async () => {},
+    }
+    const player = createPlayer({
+      src: '/video.mp4',
+      playbackProgress: { id: 'streamed-video', store: adapter },
+      engine: (video) => new FakeEngine(video),
+    })
+    player.mount(document.createElement('video'), document.createElement('div'))
+    const engine = player.engine as FakeEngine
+    engine.duration = Number.POSITIVE_INFINITY
+    engine.emit('loadedmetadata')
+    expect(adapter.load).not.toHaveBeenCalled()
+
+    engine.duration = 120
+    engine.emit('durationchange')
+
+    await vi.waitFor(() => expect(player.store.state.resumeProgress).toEqual({ time: 42, duration: 120 }))
+    player.destroy()
+  })
+
   it('isolates explicit progress identities', async () => {
     const store = new Map<string, PlaybackProgress>()
     const adapter: PlaybackProgressStore = {

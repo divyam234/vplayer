@@ -603,6 +603,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
           duration: isFiniteDuration(eng.duration) ? eng.duration : 0,
           isLive: !isFiniteDuration(eng.duration),
         }))
+        loadProgress(eng)
       }),
 
       eng.on('seeking', () => {

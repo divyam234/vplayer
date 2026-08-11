@@ -455,6 +455,23 @@ describe('VideoPlayer interactions', () => {
     expect(engine.playCalls).toBe(playCalls + 1)
   })
 
+  it('shows resume controls when streamed media duration resolves after metadata', async () => {
+    const store: PlaybackProgressStore = {
+      load: async () => ({ time: 42, duration: 100 }),
+      save: async () => {},
+      clear: async () => {},
+    }
+    const { engine } = renderTestPlayer({ playbackProgress: { id: 'streamed-video', store } })
+    engine.duration = Number.POSITIVE_INFINITY
+    act(() => engine.emit('loadedmetadata'))
+    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+
+    engine.duration = 100
+    act(() => engine.emit('durationchange'))
+
+    expect(await screen.findByRole('button', { name: 'Continue' })).toBeVisible()
+  })
+
   it('starts over immediately and clears the configured progress identity', async () => {
     const user = userEvent.setup()
     const clear = vi.fn(async () => {})
