@@ -68,21 +68,16 @@ export const ControlsBar: FC<{ children?: ReactNode }> = ({ children }) => {
 
 export const Spacer: FC = () => <div className="vplayer__spacer" />
 
-export const MiniPlayerChrome: FC = () => {
+export const MiniPlayerControls: FC = () => {
   const controlsVisible = usePlayerState('controlsVisible')
   const isPlaying = usePlayerState('isPlaying')
-  const isEnded = usePlayerState('isEnded')
   const { labels, icons, slots, miniPlayer } = usePlayerContext()
 
   return (
     <>
       <PluginControlsTop />
       <div
-        className={clsx(
-          'vplayer__mini-chrome',
-          !controlsVisible && isPlaying && 'vplayer__mini-chrome--hidden',
-          isEnded && 'vplayer__mini-chrome--ended',
-        )}
+        className={clsx('vplayer__mini-controls', !controlsVisible && isPlaying && 'vplayer__mini-controls--hidden')}
       >
         <div className="vplayer__mini-topbar">
           <span className="vplayer__mini-title">{labels.miniPlayer}</span>
@@ -106,10 +101,10 @@ export const MiniPlayerChrome: FC = () => {
   )
 }
 
-export const PlayerChrome: FC = () => {
+export const PlayerControls: FC = () => {
   const { slots, miniPlayer } = usePlayerContext()
 
-  if (miniPlayer.active) return <MiniPlayerChrome />
+  if (miniPlayer.active) return <MiniPlayerControls />
 
   return (
     <>

@@ -1,7 +1,8 @@
 /** @vitest-environment jsdom */
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MediaEngine, MediaEngineError, MediaEngineEvent, MediaEngineEventHandler } from '../media-engine'
+import type { PlaybackProgress, PlaybackProgressStore } from '../playback-progress'
 import { createPlayer } from '../player'
 
 class FakeEngine implements MediaEngine {
@@ -76,6 +77,7 @@ class FakeEngine implements MediaEngine {
 }
 
 describe('createPlayer core contract', () => {
+  beforeEach(() => localStorage.clear())
   it('mounts with a nullable engine contract and updates state from engine events', async () => {
     const player = createPlayer({ src: '/video.mp4', engine: (video) => new FakeEngine(video) })
     expect(player.engine).toBeNull()
@@ -235,5 +237,132 @@ describe('createPlayer core contract', () => {
     } finally {
       globalThis.fetch = originalFetch
     }
+  })
+
+  it('persists default progress per media and restores it after reload', async () => {
+    const first = createPlayer({ src: '/video-a.mp4', engine: (video) => new FakeEngine(video) })
+    first.mount(document.createElement('video'), document.createElement('div'))
+    const firstEngine = first.engine as FakeEngine
+    firstEngine.emit('loadedmetadata')
+    await first.remote.play()
+    first.remote.seek(42)
+    first.remote.pause()
+    await vi.waitFor(() => {
+      expect(localStorage.getItem(`vplayer:progress:${encodeURIComponent('/video-a.mp4')}`)).toBe(
+        JSON.stringify({ time: 42, duration: 120 }),
+      )
+    })
+    first.destroy()
+
+    const second = createPlayer({ src: '/video-a.mp4', engine: (video) => new FakeEngine(video) })
+    second.mount(document.createElement('video'), document.createElement('div'))
+    ;(second.engine as FakeEngine).emit('loadedmetadata')
+    await vi.waitFor(() => expect(second.store.state.resumeProgress).toEqual({ time: 42, duration: 120 }))
+    second.destroy()
+  })
+
+  it('isolates explicit progress identities', async () => {
+    const store = new Map<string, PlaybackProgress>()
+    const adapter: PlaybackProgressStore = {
+      load: async (id) => store.get(id) ?? null,
+      save: async (id, progress) => void store.set(id, progress),
+      clear: async (id) => void store.delete(id),
+    }
+    store.set('episode-a', { time: 42, duration: 120 })
+    const player = createPlayer({
+      src: '/video.mp4',
+      playbackProgress: { id: 'episode-b', store: adapter },
+      engine: (video) => new FakeEngine(video),
+    })
+    player.mount(document.createElement('video'), document.createElement('div'))
+    ;(player.engine as FakeEngine).emit('loadedmetadata')
+    await vi.waitFor(() => expect(player.store.state.resumeProgress).toBeNull())
+    player.destroy()
+  })
+
+  it.each([
+    { time: Number.NaN, duration: 120 },
+    { time: -1, duration: 120 },
+    { time: 3, duration: 120 },
+    { time: 117, duration: 120 },
+    { time: 42, duration: 0 },
+    { time: 42, duration: Number.POSITIVE_INFINITY },
+    { time: 42, duration: 122 },
+  ])('rejects invalid saved progress %#', async (saved) => {
+    const adapter: PlaybackProgressStore = {
+      load: async () => saved,
+      save: async () => {},
+      clear: async () => {},
+    }
+    const player = createPlayer({
+      src: '/video.mp4',
+      playbackProgress: { store: adapter },
+      engine: (video) => new FakeEngine(video),
+    })
+    player.mount(document.createElement('video'), document.createElement('div'))
+    ;(player.engine as FakeEngine).emit('loadedmetadata')
+    await Promise.resolve()
+    expect(player.store.state.resumeProgress).toBeNull()
+    player.destroy()
+  })
+
+  it('ignores stale async loads and keeps playback usable after a load rejection', async () => {
+    let resolveFirstLoad!: (progress: PlaybackProgress | null) => void
+    const firstLoadPromise = new Promise<PlaybackProgress | null>((resolve) => {
+      resolveFirstLoad = resolve
+    })
+    const load = vi
+      .fn<PlaybackProgressStore['load']>()
+      .mockImplementationOnce(() => firstLoadPromise)
+      .mockRejectedValueOnce(new Error('offline'))
+    const adapter: PlaybackProgressStore = { load, save: vi.fn(async () => {}), clear: vi.fn(async () => {}) }
+    const player = createPlayer({
+      src: '/a.mp4',
+      playbackProgress: { id: 'a', store: adapter },
+      engine: (video) => new FakeEngine(video),
+    })
+    player.mount(document.createElement('video'), document.createElement('div'))
+    ;(player.engine as FakeEngine).emit('loadedmetadata')
+    player.updateOptions({ src: '/b.mp4', playbackProgress: { id: 'b', store: adapter } })
+    ;(player.engine as FakeEngine).emit('loadedmetadata')
+    resolveFirstLoad({ time: 42, duration: 120 })
+    await Promise.resolve()
+    expect(player.store.state.resumeProgress).toBeNull()
+    player.remote.play()
+    expect(player.store.state.isPlaying).toBe(true)
+    player.destroy()
+  })
+
+  it('orders completion clear after an in-flight save and flushes pagehide', async () => {
+    let releaseSave!: () => void
+    const saveGate = new Promise<void>((resolve) => {
+      releaseSave = resolve
+    })
+    const calls: string[] = []
+    const adapter: PlaybackProgressStore = {
+      load: async () => null,
+      save: async (_id, progress) => {
+        calls.push(`save:${progress.time}`)
+        await saveGate
+      },
+      clear: async () => void calls.push('clear'),
+    }
+    const player = createPlayer({
+      src: '/video.mp4',
+      playbackProgress: { store: adapter },
+      engine: (video) => new FakeEngine(video),
+    })
+    player.mount(document.createElement('video'), document.createElement('div'))
+    const engine = player.engine as FakeEngine
+    engine.emit('loadedmetadata')
+    engine.currentTime = 21
+    window.dispatchEvent(new Event('pagehide'))
+    await vi.waitFor(() => expect(calls).toEqual(['save:21']))
+    engine.ended = true
+    engine.emit('ended')
+    expect(calls).toEqual(['save:21'])
+    releaseSave()
+    await vi.waitFor(() => expect(calls).toEqual(['save:21', 'clear']))
+    player.destroy()
   })
 })

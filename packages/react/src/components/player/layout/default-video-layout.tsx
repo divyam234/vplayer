@@ -2,7 +2,7 @@ import type { FC } from 'react'
 
 import { usePlayerContext } from '../context'
 import { BufferingOverlay, EndOverlay, PauseOverlay } from '../overlays'
-import { PlayerChrome } from './player-chrome'
+import { PlayerControls } from './player-controls'
 
 export const DefaultVideoLayout: FC = () => {
   const { slots, miniPlayer } = usePlayerContext()
@@ -10,7 +10,7 @@ export const DefaultVideoLayout: FC = () => {
 
   return (
     <>
-      <PlayerChrome />
+      <PlayerControls />
       {!compactMini && (slots.pauseOverlay ?? <PauseOverlay />)}
       {!compactMini && (slots.bufferingOverlay ?? <BufferingOverlay />)}
       {!compactMini && (slots.endOverlay ?? <EndOverlay />)}

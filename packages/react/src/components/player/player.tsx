@@ -63,6 +63,8 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const thumbnails = options.thumbnails
   const transformThumbnailVTT = options.transformThumbnailVTT
   const hasThumbnailVTTTransform = transformThumbnailVTT !== undefined
+  const playbackProgressId = options.playbackProgress?.id
+  const playbackProgressStore = options.playbackProgress?.store
   const plugins = options.plugins
   const labelsProp = options.labels
   const iconsProp = options.icons
@@ -100,8 +102,22 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       thumbnails,
       transformThumbnailVTT,
       autoPlay,
+      playbackProgress: { id: playbackProgressId, store: playbackProgressStore },
     })
-  }, [src, type, title, poster, subtitles, qualities, thumbnails, hasThumbnailVTTTransform, autoPlay, instance])
+  }, [
+    src,
+    type,
+    title,
+    poster,
+    subtitles,
+    qualities,
+    thumbnails,
+    hasThumbnailVTTTransform,
+    autoPlay,
+    playbackProgressId,
+    playbackProgressStore,
+    instance,
+  ])
 
   // ── Initialize plugins ──
   useEffect(() => {

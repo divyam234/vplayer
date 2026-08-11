@@ -1,6 +1,6 @@
 export { VideoPlayer } from './player'
 
-export { ControlsBar, PlayerChrome } from './layout/player-chrome'
+export { ControlsBar, PlayerControls } from './layout/player-controls'
 
 export { DefaultVideoLayout } from './layout/default-video-layout'
 
@@ -58,6 +58,7 @@ export {
   createGestureEngine,
   EventBus,
   Storage,
+  LocalPlaybackProgressStore,
   STORAGE_KEYS,
   I18n,
   HotkeyRegistry,
@@ -75,6 +76,9 @@ export {
   getThumbnailAtTime,
 } from '@vplayer/core'
 export type {
+  PlaybackProgress,
+  PlaybackProgressStore,
+  PlaybackProgressOptions,
   PlayerOptions,
   TransformThumbnailVTT,
   PlayerInstance,

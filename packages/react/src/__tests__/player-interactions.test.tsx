@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { PlaybackProgressStore } from '@vplayer/core'
 import { useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -433,5 +434,43 @@ describe('VideoPlayer interactions', () => {
       vi.advanceTimersByTime(3200)
     })
     expect(root).toHaveClass('vplayer--controls-hidden')
+  })
+
+  it('continues from asynchronously loaded playback progress', async () => {
+    const user = userEvent.setup()
+    const store: PlaybackProgressStore = {
+      load: async () => ({ time: 42, duration: 100 }),
+      save: async () => {},
+      clear: async () => {},
+    }
+    const { engine } = renderTestPlayer({ playbackProgress: { id: 'episode-a', store } })
+
+    act(() => engine.emit('loadedmetadata'))
+    const continueButton = await screen.findByRole('button', { name: 'Continue' })
+    expect(continueButton.closest('.vplayer__auto-resume-content')).toHaveTextContent('Continue playing at 0:42?')
+    const playCalls = engine.playCalls
+    await user.click(continueButton)
+
+    expect(engine.seekCalls.at(-1)).toBe(42)
+    expect(engine.playCalls).toBe(playCalls + 1)
+  })
+
+  it('starts over immediately and clears the configured progress identity', async () => {
+    const user = userEvent.setup()
+    const clear = vi.fn(async () => {})
+    const store: PlaybackProgressStore = {
+      load: async () => ({ time: 42, duration: 100 }),
+      save: async () => {},
+      clear,
+    }
+    const { engine } = renderTestPlayer({ playbackProgress: { id: 'episode-a', store } })
+
+    act(() => engine.emit('loadedmetadata'))
+    expect(await screen.findByRole('button', { name: 'Start over' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Start over' }))
+
+    expect(screen.queryByRole('button', { name: 'Start over' })).not.toBeInTheDocument()
+    expect(engine.seekCalls.at(-1)).toBe(0)
+    await waitFor(() => expect(clear).toHaveBeenCalledWith('episode-a'))
   })
 })

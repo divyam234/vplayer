@@ -62,6 +62,8 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   const thumbnails = options.thumbnails
   const transformThumbnailVTT = options.transformThumbnailVTT
   const hasThumbnailVTTTransform = transformThumbnailVTT !== undefined
+  const playbackProgressId = options.playbackProgress?.id
+  const playbackProgressStore = options.playbackProgress?.store
   const plugins = options.plugins
 
   // ── Mount/unmount lifecycle ──
@@ -86,8 +88,22 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
       qualities,
       thumbnails,
       transformThumbnailVTT,
+      playbackProgress: { id: playbackProgressId, store: playbackProgressStore },
     })
-  }, [src, type, title, poster, autoPlay, subtitles, qualities, thumbnails, hasThumbnailVTTTransform, instance])
+  }, [
+    src,
+    type,
+    title,
+    poster,
+    autoPlay,
+    subtitles,
+    qualities,
+    thumbnails,
+    hasThumbnailVTTTransform,
+    playbackProgressId,
+    playbackProgressStore,
+    instance,
+  ])
 
   // ── Initialize plugins ──
   useEffect(() => {

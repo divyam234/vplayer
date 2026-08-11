@@ -10,6 +10,8 @@ export interface RemoteRef {
   pause: () => void
   togglePlay: () => void
   seek: (time: number) => void
+  resumeFromSavedProgress: () => void
+  startPlaybackOver: () => void
   skip: (seconds: number) => void
   setVolume: (v: number) => void
   toggleMute: () => void

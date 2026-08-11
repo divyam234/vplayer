@@ -21,6 +21,8 @@ import { HotkeyRegistry } from './hotkey-registry'
 import { I18n } from './i18n'
 import { getMediaCapabilities, isFiniteDuration } from './media-capabilities'
 import type { MediaEngine } from './media-engine'
+import { LocalPlaybackProgressStore } from './playback-progress'
+import type { PlaybackProgress, PlaybackProgressStore } from './playback-progress'
 import type { PluginAPI, PlayerPlugin, ContextMenuItem, FlipState, AspectRatioState, RemoteRef } from './plugin-api'
 import { createResolvedMediaEngine, toPlayerSource } from './source-resolver'
 import { createMediaStore } from './state/slices'
@@ -90,6 +92,118 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   let reconnectAttempt = 0
   let thumbnailAbortController: AbortController | null = null
   let mediaSessionMetadata: MediaMetadata | null = null
+  const defaultProgressStore = new LocalPlaybackProgressStore()
+  let progressGeneration = 0
+  let progressLoaded = false
+  let playbackBegun = false
+  let pagehideHandler: (() => void) | null = null
+
+  interface ProgressTarget {
+    generation: number
+    id: string
+    store: PlaybackProgressStore
+  }
+
+  type ProgressOperation =
+    | { kind: 'save'; target: ProgressTarget; progress: PlaybackProgress }
+    | { kind: 'clear'; target: ProgressTarget }
+
+  const progressOperations: ProgressOperation[] = []
+  let progressOperationRunning = false
+
+  function resolveProgressTarget(opts: PlayerOptions): ProgressTarget {
+    return {
+      generation: progressGeneration,
+      id: opts.playbackProgress?.id ?? opts.src,
+      store: opts.playbackProgress?.store ?? defaultProgressStore,
+    }
+  }
+
+  let activeProgressTarget = resolveProgressTarget(currentOptions)
+
+  function drainProgressOperations(): void {
+    if (progressOperationRunning) return
+    const operation = progressOperations.shift()
+    if (!operation) return
+    progressOperationRunning = true
+    const promise =
+      operation.kind === 'save'
+        ? operation.target.store.save(operation.target.id, operation.progress)
+        : operation.target.store.clear(operation.target.id)
+    void promise
+      .catch((error) => {
+        console.warn(
+          operation.kind === 'save'
+            ? '[vplayer] playback progress save failed:'
+            : '[vplayer] playback progress clear failed:',
+          error,
+        )
+      })
+      .finally(() => {
+        progressOperationRunning = false
+        drainProgressOperations()
+      })
+  }
+
+  function enqueueProgressSave(target: ProgressTarget, progress: PlaybackProgress): void {
+    const last = progressOperations.at(-1)
+    if (last?.kind === 'save' && last.target.generation === target.generation) last.progress = progress
+    else progressOperations.push({ kind: 'save', target, progress })
+    drainProgressOperations()
+  }
+
+  function enqueueProgressClear(target: ProgressTarget): void {
+    progressOperations.push({ kind: 'clear', target })
+    drainProgressOperations()
+  }
+
+  function flushProgress(target = activeProgressTarget, eng: MediaEngine | null = engine): void {
+    if (
+      !eng ||
+      eng.ended ||
+      !Number.isFinite(eng.currentTime) ||
+      eng.currentTime < 0 ||
+      !isFiniteDuration(eng.duration)
+    ) {
+      return
+    }
+    enqueueProgressSave(target, { time: eng.currentTime, duration: eng.duration })
+  }
+
+  function resetProgressGeneration(): void {
+    progressGeneration++
+    activeProgressTarget = resolveProgressTarget(currentOptions)
+    progressLoaded = false
+    playbackBegun = false
+    stopProgressSave()
+    store.setState((prev) => ({ ...prev, resumeProgress: null }))
+  }
+
+  function loadProgress(eng: MediaEngine): void {
+    if (progressLoaded || !isFiniteDuration(eng.duration)) return
+    progressLoaded = true
+    const target = activeProgressTarget
+    const duration = eng.duration
+    void target.store
+      .load(target.id)
+      .then((progress) => {
+        if (
+          !progress ||
+          target.generation !== progressGeneration ||
+          eng !== engine ||
+          playbackBegun ||
+          eng.currentTime !== 0 ||
+          !Number.isFinite(progress.time) ||
+          !Number.isFinite(progress.duration) ||
+          progress.time <= 3 ||
+          progress.time >= duration - 3 ||
+          Math.abs(progress.duration - duration) > Math.max(1, duration * 0.01)
+        )
+          return
+        store.setState((prev) => ({ ...prev, resumeProgress: progress }))
+      })
+      .catch((error) => console.warn('[vplayer] playback progress load failed:', error))
+  }
 
   function clearMediaSessionMetadata(): void {
     if (
@@ -239,6 +353,19 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       if (e.paused || e.ended) void e.play()
       else e.pause()
     },
+    resumeFromSavedProgress: () => {
+      const progress = store.state.resumeProgress
+      if (!progress) return
+      store.setState((prev) => ({ ...prev, resumeProgress: null }))
+      engine?.seek(progress.time)
+      void engine?.play()
+    },
+    startPlaybackOver: () => {
+      const target = activeProgressTarget
+      store.setState((prev) => ({ ...prev, resumeProgress: null }))
+      engine?.seek(0)
+      enqueueProgressClear(target)
+    },
     seek: (time: number) => engine?.seek(time),
     skip: (seconds: number) => {
       const e = engine
@@ -368,6 +495,8 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   function wireEngineEvents(eng: MediaEngine): Array<() => void> {
     return [
       eng.on('play', () => {
+        playbackBegun = true
+        store.setState((prev) => ({ ...prev, resumeProgress: null }))
         syncMediaSessionMetadata()
         store.setState((prev) => ({
           ...prev,
@@ -390,9 +519,18 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
           isBuffering: false,
           controlsVisible: true,
         }))
+        if (!eng.ended) flushProgress(activeProgressTarget, eng)
       }),
 
       eng.on('ended', () => {
+        stopProgressSave()
+        for (let index = progressOperations.length - 1; index >= 0; index--) {
+          const operation = progressOperations[index]
+          if (operation?.kind === 'save' && operation.target.generation === activeProgressTarget.generation) {
+            progressOperations.splice(index, 1)
+          }
+        }
+        enqueueProgressClear(activeProgressTarget)
         store.setState((prev) => ({
           ...prev,
           status: 'ended',
@@ -401,6 +539,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
           isBuffering: false,
           isEnded: true,
           controlsVisible: true,
+          resumeProgress: null,
         }))
         currentOptions.onEnded?.()
       }),
@@ -427,6 +566,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
           playbackRate: eng.playbackRate,
           error: null,
         }))
+        loadProgress(eng)
       }),
 
       eng.on('progress', () => {
@@ -529,14 +669,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   // ── Progress persistence ─────────────────────────────────
   function startProgressSave(): void {
     stopProgressSave()
-    progressTimer = setInterval(() => {
-      const e = engine
-      if (!e) return
-      storage.set(STORAGE_KEYS.PLAYBACK_PROGRESS, {
-        time: e.currentTime,
-        duration: e.duration,
-      })
-    }, 5000)
+    progressTimer = setInterval(() => flushProgress(), 5000)
   }
 
   function stopProgressSave(): void {
@@ -548,11 +681,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
   const unsubProgress = store.subscribe(() => {
     const s = store.state
-    if (s.isPlaying && s.duration > 0) {
+    if (s.isPlaying && s.duration > 0 && !s.isLive) {
       if (progressTimer === null) startProgressSave()
-    } else {
-      stopProgressSave()
-    }
+    } else stopProgressSave()
   })
 
   // ── Preference persistence (opt-in) ──────────────────────
@@ -725,7 +856,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   // ── Engine lifecycle helpers ─────────────────────────────
   let engineEventCleanups: Array<() => void> = []
 
-  function cleanupEngine(): void {
+  function cleanupEngine(flushBeforeDestroy = true): void {
     if (reconnectTimer !== null) {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
@@ -736,6 +867,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     engineEventCleanups = []
 
     if (engine) {
+      if (flushBeforeDestroy) flushProgress(activeProgressTarget, engine)
       engine.destroy()
       engine = null
       player.engine = null
@@ -773,10 +905,10 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     }
   }
 
-  function replaceEngineForCurrentSource(): void {
+  function replaceEngineForCurrentSource(flushBeforeCleanup = true): void {
     const video = engine?.element as HTMLVideoElement | null
     if (!video) return
-    cleanupEngine()
+    cleanupEngine(flushBeforeCleanup)
     video.pause()
     video.removeAttribute('src')
     while (video.firstChild) video.removeChild(video.firstChild)
@@ -801,7 +933,13 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       const thumbnailTransformChanged =
         Object.hasOwn(opts, 'transformThumbnailVTT') &&
         opts.transformThumbnailVTT !== currentOptions.transformThumbnailVTT
-      currentOptions = { ...currentOptions, ...opts }
+      const nextOptions = { ...currentOptions, ...opts }
+      const nextTarget = resolveProgressTarget(nextOptions)
+      const progressTargetChanged =
+        nextTarget.id !== activeProgressTarget.id || nextTarget.store !== activeProgressTarget.store
+      if (srcChanged || progressTargetChanged) flushProgress(activeProgressTarget, engine)
+      currentOptions = nextOptions
+      if (srcChanged || progressTargetChanged) resetProgressGeneration()
 
       if (store.state.isPlaying || mediaSessionMetadata) {
         syncMediaSessionMetadata()
@@ -832,7 +970,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       }
 
       if (srcChanged || typeChanged) {
-        replaceEngineForCurrentSource()
+        replaceEngineForCurrentSource(!(srcChanged || progressTargetChanged))
+      } else if (progressTargetChanged && engine && isFiniteDuration(engine.duration)) {
+        loadProgress(engine)
       }
     },
 
@@ -873,6 +1013,8 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       fullscreenHandler = syncFullscreenState
       document.addEventListener('fullscreenchange', fullscreenHandler)
       document.addEventListener('webkitfullscreenchange', fullscreenHandler as EventListener)
+      pagehideHandler = () => flushProgress()
+      window.addEventListener('pagehide', pagehideHandler)
 
       doFetchThumbnails(currentOptions.thumbnails)
       setupPreferencePersistence()
@@ -881,9 +1023,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
     unmount(): void {
       cleanupEngine()
+      resetProgressGeneration()
       clearMediaSessionMetadata()
       containerEl = null
-      stopProgressSave()
       thumbnailAbortController?.abort()
       thumbnailAbortController = null
       teardownPreferencePersistence()
@@ -896,6 +1038,10 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
         document.removeEventListener('fullscreenchange', fullscreenHandler)
         document.removeEventListener('webkitfullscreenchange', fullscreenHandler as EventListener)
         fullscreenHandler = null
+      }
+      if (pagehideHandler) {
+        window.removeEventListener('pagehide', pagehideHandler)
+        pagehideHandler = null
       }
 
       store.setState((prev) => ({

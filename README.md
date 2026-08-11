@@ -118,7 +118,7 @@ There is no built-in skin prop or extra skin bundle. Consumers can override the 
 
 ## Mini-player
 
-The default layout switches to a compact mini-player chrome when mini mode is active. It does not render the big play overlay, skip buttons, volume slider, settings, screenshot, PiP, or fullscreen controls. It keeps only:
+The default layout switches to compact mini-player controls when mini mode is active. It does not render the big play overlay, skip buttons, volume slider, settings, screenshot, PiP, or fullscreen controls. It keeps only:
 
 ```txt
 close / restore button

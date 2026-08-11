@@ -14,6 +14,7 @@
 import { Store } from '@tanstack/store'
 
 import type { MediaCapabilitiesSnapshot } from '../media-capabilities'
+import type { PlaybackProgress } from '../playback-progress'
 import type { ControlRegistration, ContextMenuItem, FlipState, AspectRatioState } from '../plugin-api'
 import type { LayerRegistration, SettingRegistration } from '../plugin-api'
 import type { PlayerSource } from '../source-resolver'
@@ -97,6 +98,12 @@ export interface ErrorSlice {
   error: { message: string; reconnectAttempt: number; isReconnecting: boolean } | null
 }
 
+// ── Slice 8: Playback progress ─────────────────────────────
+
+export interface PlaybackProgressSlice {
+  resumeProgress: PlaybackProgress | null
+}
+
 // ── Composed MediaState ───────────────────────────────────
 
 /**
@@ -106,7 +113,15 @@ export interface ErrorSlice {
  * on how granular they need to be.
  */
 export interface MediaState
-  extends MediaSlice, AudioSlice, PreferencesSlice, UISlice, PluginSlice, ThumbnailSlice, ErrorSlice {}
+  extends
+    MediaSlice,
+    AudioSlice,
+    PreferencesSlice,
+    UISlice,
+    PluginSlice,
+    ThumbnailSlice,
+    ErrorSlice,
+    PlaybackProgressSlice {}
 
 // ── Store factory ─────────────────────────────────────────
 
@@ -169,6 +184,9 @@ export function getInitialMediaState(): MediaState {
 
     // Error
     error: null,
+
+    // Playback progress
+    resumeProgress: null,
   }
 }
 
@@ -188,6 +206,7 @@ export const selectMedia = (s: MediaState) => ({
   bufferedPercent: s.bufferedPercent,
   playbackRate: s.playbackRate,
   isLive: s.isLive,
+  resumeProgress: s.resumeProgress,
 })
 
 export const selectAudio = (s: MediaState) => ({ volume: s.volume, isMuted: s.isMuted })

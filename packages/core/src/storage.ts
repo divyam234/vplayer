@@ -73,7 +73,6 @@ export const STORAGE_KEYS = {
   PLAYBACK_RATE: 'playbackRate',
   SUBTITLE_LANG: 'subtitleLang',
   QUALITY: 'quality',
-  PLAYBACK_PROGRESS: 'playbackProgress', // auto-resume
   LOOP: 'loop',
   FLIP: 'flip',
   ASPECT_RATIO: 'aspectRatio',

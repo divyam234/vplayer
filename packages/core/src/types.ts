@@ -5,6 +5,7 @@ import type { HotkeyRegistry } from './hotkey-registry'
 import type { I18n } from './i18n'
 import type { MediaCapabilitiesSnapshot } from './media-capabilities'
 import type { DashMediaEngineOptions, HlsMediaEngineOptions, MediaEngine } from './media-engine'
+import type { PlaybackProgressOptions } from './playback-progress'
 import type { PlayerPlugin } from './plugin-api'
 import type { AspectRatioState, FlipState } from './plugin-api'
 import type { PlayerSource } from './source-resolver'
@@ -31,6 +32,7 @@ export interface PlayerOptions {
   lang?: string
   translations?: Record<string, string>
   plugins?: PlayerPlugin[]
+  playbackProgress?: PlaybackProgressOptions
   persistPreferences?: boolean
   defaultHotkeys?: boolean
   reconnectMax?: number
@@ -84,6 +86,8 @@ export interface MediaRemote {
   play: () => void
   pause: () => void
   togglePlay: () => void
+  resumeFromSavedProgress: () => void
+  startPlaybackOver: () => void
   seek: (time: number) => void
   skip: (seconds: number) => void
   setVolume: (v: number) => void
@@ -172,6 +176,7 @@ export interface PlayerInstance {
         | 'qualities'
         | 'thumbnails'
         | 'transformThumbnailVTT'
+        | 'playbackProgress'
       >
     >,
   ): void

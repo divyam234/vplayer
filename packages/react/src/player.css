@@ -717,11 +717,11 @@
 
 @layer components {
   /* Compact YouTube-like mini-player mode: no full toolbar, no giant overlay button. */
-  .vplayer__mini-chrome {
+  .vplayer__mini-controls {
     @apply pointer-events-none absolute inset-0 z-40 transition-opacity duration-200;
   }
 
-  .vplayer__mini-chrome--hidden {
+  .vplayer__mini-controls--hidden {
     @apply opacity-0;
   }
 

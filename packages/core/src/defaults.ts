@@ -31,7 +31,7 @@ export const defaultPlayerLabels: PlayerLabels = {
   aspectRatioCover: 'Crop / Cover',
   aspectRatio21: '21 : 9',
   continue: 'Continue',
-  continuePlay: 'Continue from',
+  continuePlay: 'Continue playing at',
   continueStartOver: 'Start over',
   error: 'An error occurred',
   retry: 'Retry',
