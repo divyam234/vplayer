@@ -1,5 +1,11 @@
 # @vplayer/core
 
+## 0.2.1
+
+### Patch Changes
+
+- 2cda3d5: Restore saved playback progress when streamed media reports its finite duration after metadata loads.
+
 ## 0.2.0
 
 ### Minor Changes
