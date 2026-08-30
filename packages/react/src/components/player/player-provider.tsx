@@ -33,7 +33,7 @@ import { mergeLabels, mergeIcons } from './utils/merge'
 import type { DeepPartial } from './utils/merge'
 
 export interface PlayerProviderProps {
-  options: Parameters<typeof usePlayer>[0]
+  options: Parameters<typeof usePlayer>[0] & { subtitleSearchDefaultQuery?: string }
   labels?: DeepPartial<PlayerLabels>
   icons?: Partial<PlayerIcons>
   slots?: PlayerSlots
@@ -58,7 +58,8 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   const poster = options.poster
   const autoPlay = options.autoPlay
   const subtitles = options.subtitles
-  const subtitleCatalog = options.subtitleCatalog
+  const subtitleProviders = options.subtitleProviders
+  const subtitleSearchDefaultQuery = options.subtitleSearchDefaultQuery ?? ''
   const qualities = options.qualities
   const thumbnails = options.thumbnails
   const transformThumbnailVTT = options.transformThumbnailVTT
@@ -86,7 +87,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
       poster,
       autoPlay,
       subtitles,
-      subtitleCatalog,
+      subtitleProviders,
       qualities,
       thumbnails,
       transformThumbnailVTT,
@@ -99,7 +100,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
     poster,
     autoPlay,
     subtitles,
-    subtitleCatalog,
+    subtitleProviders,
     qualities,
     thumbnails,
     hasThumbnailVTTTransform,
@@ -126,6 +127,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
     containerRef,
     videoRef,
     labels,
+    subtitleSearchDefaultQuery,
     icons,
     slots,
     mediaStore: instance.store,

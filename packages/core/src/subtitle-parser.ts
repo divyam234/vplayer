@@ -20,9 +20,50 @@ export interface SubtitleTrack {
   local?: boolean
 }
 
-export interface SubtitleCatalog {
-  list(signal: AbortSignal): Promise<SubtitleTrack[]>
+export interface SubtitleSearchQuery {
+  query?: string
+  title?: string
+  year?: number
+  season?: number
+  episode?: number
+  imdbId?: string
+  languages?: string[]
+  providerId?: string
 }
+
+export interface SubtitleSearchItem {
+  id: string
+  label: string
+  language: string
+  format?: SubtitleFormat
+  release?: string
+  downloads?: number
+  hearingImpaired?: boolean
+  machineTranslated?: boolean
+  providerData?: unknown
+}
+
+export interface SubtitleProviderResult extends SubtitleSearchItem {
+  providerId: string
+  providerLabel: string
+}
+
+export interface SubtitleSearchResult {
+  items: SubtitleSearchItem[]
+}
+
+export type SubtitleSource =
+  | { content: string; src?: never; format?: SubtitleFormat }
+  | { src: string; content?: never; format?: SubtitleFormat }
+
+export interface SubtitleProvider {
+  id: string
+  label: string
+  search(query: SubtitleSearchQuery, signal: AbortSignal): Promise<SubtitleSearchResult | SubtitleSearchItem[]>
+  fetch(item: SubtitleSearchItem, signal: AbortSignal): Promise<SubtitleSource>
+}
+
+export type SubtitleProviderInfo = Pick<SubtitleProvider, 'id' | 'label'>
 
 export interface CaptionSettings {
   fontSize: 'small' | 'medium' | 'large'

@@ -19,7 +19,14 @@ import type { ControlRegistration, ContextMenuItem, FlipState, AspectRatioState 
 import type { LayerRegistration, SettingRegistration } from '../plugin-api'
 import type { PlayerSource } from '../source-resolver'
 import { DEFAULT_CAPTION_SETTINGS } from '../subtitle-parser'
-import type { CaptionSettings, SubtitleCue, SubtitleTrack, ThumbnailCue } from '../subtitle-parser'
+import type {
+  CaptionSettings,
+  SubtitleCue,
+  SubtitleProviderInfo,
+  SubtitleProviderResult,
+  SubtitleTrack,
+  ThumbnailCue,
+} from '../subtitle-parser'
 
 export type PlaybackStatus =
   | 'idle'
@@ -66,8 +73,10 @@ export interface PreferencesSlice {
   subtitleCues: SubtitleCue[]
   subtitleStatus: 'idle' | 'loading' | 'ready' | 'error'
   subtitleError: string | null
-  subtitleCatalogStatus: 'idle' | 'loading' | 'ready' | 'error'
-  subtitleCatalogError: string | null
+  subtitleProviders: SubtitleProviderInfo[]
+  subtitleSearchResults: SubtitleProviderResult[]
+  subtitleSearchStatus: 'idle' | 'loading' | 'ready' | 'error'
+  subtitleSearchError: string | null
   captionSettings: CaptionSettings
   activeQuality: string
   qualities: string[]
@@ -168,8 +177,10 @@ export function getInitialMediaState(): MediaState {
     subtitleCues: [],
     subtitleStatus: 'idle',
     subtitleError: null,
-    subtitleCatalogStatus: 'idle',
-    subtitleCatalogError: null,
+    subtitleProviders: [],
+    subtitleSearchResults: [],
+    subtitleSearchStatus: 'idle',
+    subtitleSearchError: null,
     captionSettings: { ...DEFAULT_CAPTION_SETTINGS },
     activeQuality: 'Auto',
     qualities: [],
@@ -234,8 +245,10 @@ export const selectPreferences = (s: MediaState) => ({
   subtitleCues: s.subtitleCues,
   subtitleStatus: s.subtitleStatus,
   subtitleError: s.subtitleError,
-  subtitleCatalogStatus: s.subtitleCatalogStatus,
-  subtitleCatalogError: s.subtitleCatalogError,
+  subtitleProviders: s.subtitleProviders,
+  subtitleSearchResults: s.subtitleSearchResults,
+  subtitleSearchStatus: s.subtitleSearchStatus,
+  subtitleSearchError: s.subtitleSearchError,
   captionSettings: s.captionSettings,
   activeQuality: s.activeQuality,
   qualities: s.qualities,

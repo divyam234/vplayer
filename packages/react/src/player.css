@@ -384,8 +384,62 @@
   .vplayer__menu-error {
     color: #fca5a5;
   }
-  .vplayer__menu-retry {
-    @apply ml-2 underline underline-offset-2;
+
+  .vplayer__subtitle-search-panel {
+    width: min(24rem, calc(100vw - 2rem));
+  }
+  .vplayer__subtitle-search-form {
+    @apply flex gap-2 px-1 py-1;
+  }
+  .vplayer__subtitle-search-input,
+  .vplayer__subtitle-search-filter select {
+    @apply min-h-9 min-w-0 rounded-md border px-2 text-xs outline-none;
+    color: var(--vplayer-fg);
+    background: color-mix(in srgb, white 8%, black);
+    border-color: var(--vplayer-control-border);
+  }
+  .vplayer__subtitle-search-input {
+    @apply flex-1;
+  }
+  .vplayer__subtitle-search-input:focus,
+  .vplayer__subtitle-search-filter select:focus {
+    border-color: color-mix(in srgb, var(--vplayer-accent) 70%, white);
+  }
+  .vplayer__subtitle-search-button {
+    @apply min-h-9 shrink-0 rounded-md px-3 text-xs font-medium;
+    color: var(--vplayer-fg);
+    background: color-mix(in srgb, var(--vplayer-accent) 75%, black);
+  }
+  .vplayer__subtitle-search-filters {
+    @apply grid grid-cols-2 gap-2 px-1 py-2;
+  }
+  .vplayer__subtitle-search-filter {
+    @apply flex min-w-0 flex-col gap-1 text-[11px];
+    color: color-mix(in srgb, white 55%, transparent);
+  }
+  .vplayer__subtitle-search-results {
+    @apply mt-1 max-h-72 overflow-y-auto px-1 pb-1;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  .vplayer__subtitle-search-result {
+    @apply flex w-full flex-col gap-0.5 rounded-md px-2 py-2 text-left transition-colors outline-none;
+  }
+  .vplayer__subtitle-search-result:hover,
+  .vplayer__subtitle-search-result:focus-visible {
+    background: color-mix(in srgb, white 10%, transparent);
+  }
+  .vplayer__subtitle-search-result-title {
+    @apply w-full truncate text-sm;
+    color: color-mix(in srgb, white 90%, transparent);
+  }
+  .vplayer__subtitle-search-result-release {
+    @apply w-full truncate text-[11px];
+    color: color-mix(in srgb, white 55%, transparent);
+  }
+  .vplayer__subtitle-search-result-meta {
+    @apply flex flex-wrap gap-x-2 gap-y-0.5 text-[10px];
+    color: color-mix(in srgb, white 45%, transparent);
   }
   .vplayer__caption-panel {
     width: min(22rem, calc(100vw - 2rem));

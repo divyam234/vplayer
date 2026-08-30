@@ -60,7 +60,8 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const type = options.type
   const autoPlay = options.autoPlay
   const subtitles = options.subtitles
-  const subtitleCatalog = options.subtitleCatalog
+  const subtitleProviders = options.subtitleProviders
+  const subtitleSearchDefaultQuery = options.subtitleSearchDefaultQuery ?? ''
   const qualities = options.qualities
   const thumbnails = options.thumbnails
   const transformThumbnailVTT = options.transformThumbnailVTT
@@ -100,7 +101,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       title,
       poster,
       subtitles,
-      subtitleCatalog,
+      subtitleProviders,
       qualities,
       thumbnails,
       transformThumbnailVTT,
@@ -113,7 +114,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
     title,
     poster,
     subtitles,
-    subtitleCatalog,
+    subtitleProviders,
     qualities,
     thumbnails,
     hasThumbnailVTTTransform,
@@ -216,6 +217,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       containerRef,
       videoRef,
       labels,
+      subtitleSearchDefaultQuery,
       icons: iconMap,
       slots,
       mediaStore: instance.store,
@@ -231,7 +233,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       miniPlayer,
       thumbnailPreview,
     }),
-    [instance, labels, iconMap, slots, controls, miniPlayer, thumbnailPreview],
+    [instance, labels, iconMap, slots, controls, miniPlayer, subtitleSearchDefaultQuery, thumbnailPreview],
   )
 
   const miniPlayerStyle = useMemo(

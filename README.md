@@ -113,27 +113,50 @@ Provide WebVTT or SRT tracks directly:
 
 Track IDs should be stable and unique. Multiple tracks may use the same language.
 
-### Remote subtitle catalogs
+### Remote subtitle providers
 
-Applications can decide how available tracks are discovered. Implement `SubtitleCatalog` and pass it to the player:
+Applications can plug in any subtitle backend while VPlayer owns the search, source filtering, result list, and selection UI. Implement one or more `SubtitleProvider`s:
 
 ```tsx
-import { VideoPlayer, type SubtitleCatalog } from '@vplayer/react'
+import { VideoPlayer, type SubtitleProvider } from '@vplayer/react'
 
-const subtitleCatalog: SubtitleCatalog = {
-  async list(signal) {
-    const response = await fetch('/api/videos/lesson-1/subtitles', { signal })
-    if (!response.ok) throw new Error(`Subtitle catalog failed: ${response.status}`)
+const subtitleProvider: SubtitleProvider = {
+  id: 'my-api',
+  label: 'My subtitle service',
+
+  async search(query, signal) {
+    const response = await fetch('/api/subtitles/search', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(query),
+      signal,
+    })
+    if (!response.ok) throw new Error(`Subtitle search failed: ${response.status}`)
     return response.json()
+  },
+
+  async fetch(item, signal) {
+    const response = await fetch(`/api/subtitles/${encodeURIComponent(item.id)}`, { signal })
+    if (!response.ok) throw new Error(`Subtitle fetch failed: ${response.status}`)
+    return { content: await response.text(), format: item.format }
   },
 }
 
 export function Player() {
-  return <VideoPlayer src="/video.mp4" subtitleCatalog={subtitleCatalog} />
+  return (
+    <VideoPlayer
+      src="/video.mp4"
+      title="Example movie"
+      subtitleProviders={[subtitleProvider]}
+      subtitleSearchDefaultQuery="Example Movie 2026"
+    />
+  )
 }
 ```
 
-The catalog returns `SubtitleTrack[]`. VPlayer handles loading state, cancellation, errors, retry, and merging catalog entries with configured and local tracks.
+`search()` returns subtitle metadata (`id`, `label`, `language`, plus optional release/download/accessibility metadata). VPlayer does not download those results eagerly. When the user chooses a result, VPlayer calls that provider's `fetch()` and accepts either raw subtitle `content` or a browser-fetchable `src`. Multiple providers are searched together by default and can be filtered by source in the UI.
+
+Set `subtitleSearchDefaultQuery` to prefill the default search box and use that value for the automatic search when **Find subtitles online** opens.
 
 ### Local files
 

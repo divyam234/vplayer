@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MediaEngine, MediaEngineError, MediaEngineEvent, MediaEngineEventHandler } from '../media-engine'
 import type { PlaybackProgress, PlaybackProgressStore } from '../playback-progress'
 import { createPlayer } from '../player'
+import type { SubtitleSearchItem } from '../subtitle-parser'
 
 class FakeEngine implements MediaEngine {
   readonly element: HTMLVideoElement
@@ -431,19 +432,12 @@ describe('createPlayer core contract', () => {
     now.mockRestore()
   })
 
-  it('loads consumer-provided subtitle catalogs and parses selected local tracks', async () => {
-    const list = vi.fn(async () => [{ id: 'remote-en', src: '/captions/en.vtt', lang: 'en', label: 'Remote English' }])
+  it('parses selected local subtitle tracks and clamps caption settings', async () => {
     const player = createPlayer({
       src: '/video.mp4',
-      subtitleCatalog: { list },
       engine: (video) => new FakeEngine(video),
     })
     player.mount(document.createElement('video'), document.createElement('div'))
-
-    await vi.waitFor(() =>
-      expect(player.store.state.subtitleTracks).toEqual([expect.objectContaining({ id: 'remote-en' })]),
-    )
-    expect(list).toHaveBeenCalledOnce()
 
     player.remote.addSubtitleTrack({
       id: 'local-file',
@@ -475,6 +469,52 @@ describe('createPlayer core contract', () => {
       lineHeight: 2,
       delay: -10,
     })
+    player.destroy()
+  })
+
+  it('searches subtitle providers and lazily fetches the selected result', async () => {
+    const search = vi.fn(async () => [
+      { id: 'remote-es', language: 'es', label: 'Spanish.srt', format: 'srt' as const, downloads: 42 },
+    ])
+    const fetch = vi.fn(async (_item: SubtitleSearchItem, _signal: AbortSignal) => ({
+      content: '1\n00:00:01,000 --> 00:00:03,000\nRemote caption',
+      format: 'srt' as const,
+    }))
+    const player = createPlayer({
+      src: '/video.mp4',
+      title: 'Example Movie',
+      subtitleProviders: [{ id: 'remote', label: 'Remote Subtitles', search, fetch }],
+      engine: (video) => new FakeEngine(video),
+    })
+    player.mount(document.createElement('video'), document.createElement('div'))
+
+    expect(player.store.state.subtitleProviders).toEqual([{ id: 'remote', label: 'Remote Subtitles' }])
+    expect(search).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
+
+    player.remote.searchSubtitles({ languages: ['es'] })
+    await vi.waitFor(() => expect(player.store.state.subtitleSearchStatus).toBe('ready'))
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Example Movie', languages: ['es'] }),
+      expect.any(AbortSignal),
+    )
+    expect(player.store.state.subtitleSearchResults).toEqual([
+      expect.objectContaining({ id: 'remote-es', providerId: 'remote', providerLabel: 'Remote Subtitles' }),
+    ])
+    expect(fetch).not.toHaveBeenCalled()
+
+    const result = player.store.state.subtitleSearchResults[0]
+    expect(result).toBeDefined()
+    player.remote.selectSubtitleResult(result!)
+
+    await vi.waitFor(() => expect(player.store.state.subtitleStatus).toBe('ready'))
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(fetch.mock.calls[0]?.[0]).toEqual(expect.objectContaining({ id: 'remote-es', providerId: 'remote' }))
+    expect(player.store.state.activeSubtitle).toEqual(
+      expect.objectContaining({ id: 'provider:remote:remote-es', lang: 'es', label: 'Spanish.srt' }),
+    )
+    expect(player.store.state.subtitleCues[0]?.text).toBe('Remote caption')
+
     player.destroy()
   })
 })

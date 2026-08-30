@@ -28,7 +28,7 @@ import { createResolvedMediaEngine, toPlayerSource } from './source-resolver'
 import { createMediaStore } from './state/slices'
 import { Storage, STORAGE_KEYS } from './storage'
 import { DEFAULT_CAPTION_SETTINGS, fetchSubtitles, fetchThumbnails } from './subtitle-parser'
-import type { CaptionSettings, SubtitleTrack } from './subtitle-parser'
+import type { CaptionSettings, SubtitleProviderResult, SubtitleSearchQuery, SubtitleTrack } from './subtitle-parser'
 import type { PlayerOptions, MediaRemote, PlayerInstance } from './types'
 
 const ASPECT_RATIO_CYCLE: AspectRatioState[] = ['default', '16:9', '4:3', '21:9', 'cover', 'fill']
@@ -103,7 +103,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   let reconnectAttempt = 0
   let thumbnailAbortController: AbortController | null = null
   let subtitleAbortController: AbortController | null = null
-  let subtitleCatalogAbortController: AbortController | null = null
+  let subtitleSearchAbortController: AbortController | null = null
   let mediaSessionMetadata: MediaMetadata | null = null
   const defaultProgressStore = new LocalPlaybackProgressStore()
   let progressGeneration = 0
@@ -280,34 +280,128 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     )
   }
 
-  function loadSubtitleCatalog(): void {
-    subtitleCatalogAbortController?.abort()
-    const catalog = currentOptions.subtitleCatalog
-    if (!catalog) {
-      store.setState((prev) => ({ ...prev, subtitleCatalogStatus: 'idle', subtitleCatalogError: null }))
+  function syncSubtitleProviders(): void {
+    const subtitleProviders = (currentOptions.subtitleProviders ?? []).map(({ id, label }) => ({ id, label }))
+    store.setState((prev) => ({
+      ...prev,
+      subtitleProviders,
+      subtitleSearchResults: [],
+      subtitleSearchStatus: 'idle',
+      subtitleSearchError: null,
+    }))
+  }
+
+  function searchSubtitles(query: SubtitleSearchQuery = {}): void {
+    subtitleSearchAbortController?.abort()
+    const allProviders = currentOptions.subtitleProviders ?? []
+    const providers = query.providerId
+      ? allProviders.filter((provider) => provider.id === query.providerId)
+      : allProviders
+
+    if (providers.length === 0) {
+      store.setState((prev) => ({
+        ...prev,
+        subtitleSearchResults: [],
+        subtitleSearchStatus: 'idle',
+        subtitleSearchError: null,
+      }))
       return
     }
+
     const controller = new AbortController()
-    subtitleCatalogAbortController = controller
-    store.setState((prev) => ({ ...prev, subtitleCatalogStatus: 'loading', subtitleCatalogError: null }))
-    void catalog.list(controller.signal).then(
-      (tracks) => {
+    subtitleSearchAbortController = controller
+    const searchQuery = { ...query, title: query.title ?? currentOptions.title }
+    store.setState((prev) => ({
+      ...prev,
+      subtitleSearchResults: [],
+      subtitleSearchStatus: 'loading',
+      subtitleSearchError: null,
+    }))
+
+    void Promise.allSettled(
+      providers.map(async (provider) => {
+        const response = await provider.search(searchQuery, controller.signal)
+        const items = Array.isArray(response) ? response : response.items
+        return items.map((item) => Object.assign({}, item, { providerId: provider.id, providerLabel: provider.label }))
+      }),
+    ).then((settled) => {
+      if (controller.signal.aborted) return
+
+      const results = settled.flatMap((result) => (result.status === 'fulfilled' ? result.value : []))
+      const failures = settled.flatMap((result, index) =>
+        result.status === 'rejected'
+          ? [
+              `${providers[index]?.label ?? 'Subtitle provider'}: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`,
+            ]
+          : [],
+      )
+
+      store.setState((prev) => ({
+        ...prev,
+        subtitleSearchResults: results,
+        subtitleSearchStatus: failures.length === settled.length ? 'error' : 'ready',
+        subtitleSearchError: failures.length > 0 ? failures.join('; ') : null,
+      }))
+    })
+  }
+
+  function loadSubtitleProviderResult(result: SubtitleProviderResult): void {
+    subtitleAbortController?.abort()
+    const provider = (currentOptions.subtitleProviders ?? []).find((candidate) => candidate.id === result.providerId)
+    if (!provider) {
+      store.setState((prev) => ({
+        ...prev,
+        subtitleStatus: 'error',
+        subtitleError: `Subtitle provider "${result.providerLabel}" is no longer available.`,
+      }))
+      return
+    }
+
+    const controller = new AbortController()
+    subtitleAbortController = controller
+    store.setState((prev) => ({
+      ...prev,
+      activeSubtitle: null,
+      subtitleCues: [],
+      subtitleStatus: 'loading',
+      subtitleError: null,
+    }))
+
+    void (async () => {
+      try {
+        const source = await provider.fetch(result, controller.signal)
+        const track = normalizeSubtitleTrack({
+          id: `provider:${provider.id}:${result.id}`,
+          lang: result.language,
+          label: result.label,
+          format: source.format ?? result.format,
+          ...(source.content !== undefined ? { content: source.content } : { src: source.src }),
+        })
+        const cues = await fetchSubtitles(track, controller.signal)
         if (controller.signal.aborted) return
-        mergeSubtitleTracks(tracks)
-        store.setState((prev) => ({ ...prev, subtitleCatalogStatus: 'ready', subtitleCatalogError: null }))
-      },
-      (error) => {
+        mergeSubtitleTracks([track])
+        store.setState((prev) => ({
+          ...prev,
+          activeSubtitle: track,
+          subtitleCues: cues,
+          subtitleStatus: 'ready',
+          subtitleError: null,
+        }))
+      } catch (error) {
         if (controller.signal.aborted) return
         store.setState((prev) => ({
           ...prev,
-          subtitleCatalogStatus: 'error',
-          subtitleCatalogError: error instanceof Error ? error.message : String(error),
+          subtitleCues: [],
+          subtitleStatus: 'error',
+          subtitleError: error instanceof Error ? error.message : String(error),
         }))
-      },
-    )
+      }
+    })()
   }
 
   if (currentOptions.subtitles?.length) mergeSubtitleTracks(currentOptions.subtitles)
+
+  syncSubtitleProviders()
 
   function clearMediaSessionMetadata(): void {
     if (
@@ -552,7 +646,18 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       if (store.state.activeSubtitle?.id === id) remote.setActiveSubtitle(null)
       store.setState((prev) => ({ ...prev, subtitleTracks: prev.subtitleTracks.filter((track) => track.id !== id) }))
     },
-    reloadSubtitleCatalog: loadSubtitleCatalog,
+    searchSubtitles,
+    selectSubtitleResult: loadSubtitleProviderResult,
+    clearSubtitleSearch: () => {
+      subtitleSearchAbortController?.abort()
+      subtitleSearchAbortController = null
+      store.setState((prev) => ({
+        ...prev,
+        subtitleSearchResults: [],
+        subtitleSearchStatus: 'idle',
+        subtitleSearchError: null,
+      }))
+    },
     setCaptionSettings: (patch) => {
       store.setState((prev) => ({
         ...prev,
@@ -1080,8 +1185,8 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       const thumbnailTransformChanged =
         Object.hasOwn(opts, 'transformThumbnailVTT') &&
         opts.transformThumbnailVTT !== currentOptions.transformThumbnailVTT
-      const subtitleCatalogChanged =
-        Object.hasOwn(opts, 'subtitleCatalog') && opts.subtitleCatalog !== currentOptions.subtitleCatalog
+      const subtitleProvidersChanged =
+        Object.hasOwn(opts, 'subtitleProviders') && opts.subtitleProviders !== currentOptions.subtitleProviders
       const nextOptions = { ...currentOptions, ...opts }
       const nextTarget = resolveProgressTarget(nextOptions)
       const progressTargetChanged =
@@ -1113,7 +1218,11 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
           if (initialTrack) remote.setActiveSubtitle(normalizeSubtitleTrack(initialTrack))
         }
       }
-      if (subtitleCatalogChanged) loadSubtitleCatalog()
+      if (subtitleProvidersChanged) {
+        subtitleSearchAbortController?.abort()
+        subtitleSearchAbortController = null
+        syncSubtitleProviders()
+      }
 
       if (thumbnailsChanged || thumbnailTransformChanged) {
         doFetchThumbnails(currentOptions.thumbnails)
@@ -1167,7 +1276,6 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       window.addEventListener('pagehide', pagehideHandler)
 
       doFetchThumbnails(currentOptions.thumbnails)
-      loadSubtitleCatalog()
       const defaultSubtitle = store.state.subtitleTracks.find((track) => track.default)
       if (defaultSubtitle) remote.setActiveSubtitle(defaultSubtitle)
       setupPreferencePersistence()
@@ -1183,8 +1291,8 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       thumbnailAbortController = null
       subtitleAbortController?.abort()
       subtitleAbortController = null
-      subtitleCatalogAbortController?.abort()
-      subtitleCatalogAbortController = null
+      subtitleSearchAbortController?.abort()
+      subtitleSearchAbortController = null
       teardownPreferencePersistence()
 
       if (reconnectTimer !== null) {

@@ -1,6 +1,6 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { PlaybackProgressStore } from '@vplayer/core'
+import type { PlaybackProgressStore, SubtitleSearchItem, SubtitleSearchQuery } from '@vplayer/core'
 import { useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -555,6 +555,59 @@ describe('VideoPlayer interactions', () => {
     expect(screen.getByText('Loaded locally')).toBeInTheDocument()
   })
 
+  it('searches and selects subtitles from consumer-provided providers', async () => {
+    const user = userEvent.setup()
+    const search = vi.fn(async (_query: SubtitleSearchQuery, _signal: AbortSignal) => [
+      {
+        id: 'english-web',
+        label: 'Example.Movie.2026.WEB-DL',
+        language: 'en',
+        release: 'WEB-DL 1080p',
+        downloads: 1234,
+        format: 'srt' as const,
+      },
+    ])
+    const fetch = vi.fn(async (_item: SubtitleSearchItem, _signal: AbortSignal) => ({
+      content: '1\n00:00:01,000 --> 00:00:03,000\nProvider caption',
+      format: 'srt' as const,
+    }))
+
+    renderTestPlayer({
+      title: 'Example Movie',
+      subtitleProviders: [{ id: 'custom', label: 'Custom Provider', search, fetch }],
+      subtitleSearchDefaultQuery: 'Example Movie 2026',
+      children: (
+        <>
+          <DefaultLayoutForTest />
+          <ContextProbe />
+        </>
+      ),
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByText('Subtitles'))
+    await user.click(screen.getByText('Find subtitles online'))
+
+    await waitFor(() =>
+      expect(search).toHaveBeenCalledWith(
+        expect.objectContaining({ query: 'Example Movie 2026' }),
+        expect.any(AbortSignal),
+      ),
+    )
+    expect(screen.getByRole('searchbox', { name: 'Search subtitles…' })).toHaveValue('Example Movie 2026')
+    expect(fetch).not.toHaveBeenCalled()
+    expect(await screen.findByText('Example.Movie.2026.WEB-DL')).toBeVisible()
+    expect(screen.getByText('Custom Provider')).toBeVisible()
+
+    await user.click(screen.getByText('Example.Movie.2026.WEB-DL'))
+    await waitFor(() => expect(fetch).toHaveBeenCalledOnce())
+    await waitFor(() => expect(latestCtx?.mediaStore.state.subtitleStatus).toBe('ready'))
+    expect(latestCtx?.mediaStore.state.activeSubtitle).toEqual(
+      expect.objectContaining({ id: 'provider:custom:english-web', lang: 'en' }),
+    )
+    expect(latestCtx?.mediaStore.state.subtitleCues[0]?.text).toBe('Provider caption')
+  })
+
   it('offers VLC-style caption typography, effects, position, and delay controls', async () => {
     const user = userEvent.setup()
     renderTestPlayer({
@@ -572,22 +625,22 @@ describe('VideoPlayer interactions', () => {
     await user.click(screen.getByRole('radio', { name: 'Serif' }))
     const scale = screen.getByRole('slider', { name: 'Scale' })
     scale.focus()
-    await user.keyboard('{Home}{ArrowRight>20/}')
+    fireEvent.keyDown(scale, { key: 'ArrowRight' })
     await user.click(screen.getByRole('radio', { name: 'Outline' }))
     const position = screen.getByRole('slider', { name: 'Vertical position' })
     position.focus()
-    await user.keyboard('{Home}{ArrowRight>32/}')
+    fireEvent.keyDown(position, { key: 'ArrowRight' })
     const spacing = screen.getByRole('slider', { name: 'Line spacing' })
     spacing.focus()
-    await user.keyboard('{Home}{ArrowRight>12/}')
+    fireEvent.keyDown(spacing, { key: 'ArrowRight' })
     await user.click(screen.getByRole('button', { name: 'Increase subtitle delay' }))
 
     expect(latestCtx?.mediaStore.state.captionSettings).toMatchObject({
       fontFamily: 'serif',
-      fontScale: 150,
+      fontScale: 105,
       edgeStyle: 'outline',
-      position: 12,
-      lineHeight: 1.6,
+      position: 1,
+      lineHeight: 1.4,
       delay: 0.1,
     })
   })

@@ -11,7 +11,13 @@ import type { AspectRatioState, FlipState } from './plugin-api'
 import type { PlayerSource } from './source-resolver'
 import type { MediaState, PlaybackStatus, ResumeState } from './state/slices'
 import type { Storage } from './storage'
-import type { CaptionSettings, SubtitleCatalog, SubtitleTrack } from './subtitle-parser'
+import type {
+  CaptionSettings,
+  SubtitleProvider,
+  SubtitleProviderResult,
+  SubtitleSearchQuery,
+  SubtitleTrack,
+} from './subtitle-parser'
 
 export type { MediaState, ResumeState }
 
@@ -23,7 +29,7 @@ export interface PlayerOptions {
   title?: string
   poster?: string
   subtitles?: SubtitleTrack[]
-  subtitleCatalog?: SubtitleCatalog
+  subtitleProviders?: SubtitleProvider[]
   qualities?: string[]
   autoPlay?: boolean
   thumbnails?: string
@@ -98,7 +104,9 @@ export interface MediaRemote {
   setActiveSubtitle: (track: SubtitleTrack | null) => void
   addSubtitleTrack: (track: SubtitleTrack) => void
   removeSubtitleTrack: (id: string) => void
-  reloadSubtitleCatalog: () => void
+  searchSubtitles: (query?: SubtitleSearchQuery) => void
+  selectSubtitleResult: (result: SubtitleProviderResult) => void
+  clearSubtitleSearch: () => void
   setCaptionSettings: (patch: Partial<CaptionSettings>) => void
   resetCaptionSettings: () => void
   setActiveQuality: (q: string) => void
@@ -128,6 +136,16 @@ export interface PlayerLabels {
   subtitles: string
   off: string
   loadSubtitleFile: string
+
+  findSubtitlesOnline: string
+  subtitleSearch: string
+  subtitleSearchPlaceholder: string
+  subtitleSource: string
+  subtitleAllSources: string
+  subtitleLanguage: string
+  subtitleAllLanguages: string
+  subtitleNoResults: string
+  subtitleSearching: string
   captionAppearance: string
   captionSize: string
   captionTextColor: string
@@ -201,7 +219,7 @@ export interface PlayerInstance {
         | 'poster'
         | 'autoPlay'
         | 'subtitles'
-        | 'subtitleCatalog'
+        | 'subtitleProviders'
         | 'qualities'
         | 'thumbnails'
         | 'transformThumbnailVTT'

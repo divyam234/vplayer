@@ -11,7 +11,13 @@ import type {
   PlayerInstance,
   PlayerOptions,
   Storage,
-  SubtitleCatalog,
+  SubtitleProvider,
+  SubtitleProviderInfo,
+  SubtitleProviderResult,
+  SubtitleSearchItem,
+  SubtitleSearchQuery,
+  SubtitleSearchResult,
+  SubtitleSource,
   SubtitleTrack,
   ThumbnailCue,
 } from '@vplayer/core'
@@ -42,7 +48,22 @@ export type {
   PluginAPI,
   SettingRegistration,
 }
-export type { CaptionSettings, EventBus, HotkeyRegistry, I18n, Storage, SubtitleCatalog, SubtitleTrack, ThumbnailCue }
+export type {
+  CaptionSettings,
+  EventBus,
+  HotkeyRegistry,
+  I18n,
+  Storage,
+  SubtitleProvider,
+  SubtitleProviderInfo,
+  SubtitleProviderResult,
+  SubtitleSearchItem,
+  SubtitleSearchQuery,
+  SubtitleSearchResult,
+  SubtitleSource,
+  SubtitleTrack,
+  ThumbnailCue,
+}
 
 export interface PlayerSlots {
   playButton?: ReactNode
@@ -110,6 +131,8 @@ export interface MiniPlayerState {
 export interface PlayerProps extends PlayerOptions {
   className?: string
   children?: ReactNode
+  /** Initial query shown and searched when the remote subtitle search panel opens. */
+  subtitleSearchDefaultQuery?: string
   labels?: Partial<PlayerLabels>
   icons?: Partial<PlayerIcons>
   slots?: PlayerSlots
@@ -121,6 +144,7 @@ export interface PlayerContextValue {
   containerRef: RefObject<HTMLDivElement | null>
   videoRef: RefObject<HTMLVideoElement | null>
   labels: PlayerLabels
+  subtitleSearchDefaultQuery: string
   icons: PlayerIcons
   slots: PlayerSlots
   mediaStore: Store<MediaState>

@@ -7,6 +7,7 @@ import clsx from 'clsx'
 import { useCallback, useEffect, useState, type CSSProperties, type FC, type PointerEvent, type ReactNode } from 'react'
 
 import { CaptionSettingsPanel } from './components/caption-settings-panel'
+import { SubtitleSearchPanel } from './components/subtitle-search-panel'
 import { useMiniPlayer, usePlayerRemote, usePlayerState, usePlayerContext } from './context'
 import { Icon } from './icon'
 import type { PlayerLabels } from './types'
@@ -297,14 +298,13 @@ export const SettingsTrigger: FC = () => {
   const activeSubtitle = usePlayerState('activeSubtitle')
   const subtitleStatus = usePlayerState('subtitleStatus')
   const subtitleError = usePlayerState('subtitleError')
-  const subtitleCatalogStatus = usePlayerState('subtitleCatalogStatus')
-  const subtitleCatalogError = usePlayerState('subtitleCatalogError')
+  const subtitleProviders = usePlayerState('subtitleProviders')
   const playbackRate = usePlayerState('playbackRate')
   const flip = usePlayerState('flip')
   const aspectRatio = usePlayerState('aspectRatio')
   const [isOpen, setIsOpen] = useState(false)
   const [view, setView] = useState<
-    'main' | 'speed' | 'quality' | 'subtitles' | 'captionAppearance' | 'flip' | 'aspectRatio'
+    'main' | 'speed' | 'quality' | 'subtitles' | 'subtitleSearch' | 'captionAppearance' | 'flip' | 'aspectRatio'
   >('main')
   const speeds = [0.5, 1, 1.25, 1.5, 2]
 
@@ -313,13 +313,71 @@ export const SettingsTrigger: FC = () => {
     return controlsVisibility.pinControls()
   }, [controlsVisibility, isOpen])
 
+  const handleMenuSelect = (value: string) => {
+    if (value === 'back') {
+      setView('main')
+      return
+    }
+    if (value === 'subtitle-search-back') {
+      setView('subtitles')
+      return
+    }
+    if (
+      value === 'speed' ||
+      value === 'quality' ||
+      value === 'subtitles' ||
+      value === 'flip' ||
+      value === 'aspectRatio'
+    ) {
+      setView(value)
+      return
+    }
+    if (value === 'find-subtitles') {
+      setView('subtitleSearch')
+      return
+    }
+    if (value === 'appearance') {
+      setView('captionAppearance')
+      return
+    }
+    if (value === 'off') {
+      remote.setActiveSubtitle(null)
+      return
+    }
+    if (value.startsWith('speed-')) {
+      remote.setPlaybackRate(Number(value.slice('speed-'.length)))
+      setIsOpen(false)
+      return
+    }
+    if (value.startsWith('quality-')) {
+      remote.setActiveQuality(value.slice('quality-'.length))
+      setIsOpen(false)
+      return
+    }
+    if (value.startsWith('flip-')) {
+      remote.setFlip(value.slice('flip-'.length) as 'normal' | 'horizontal' | 'vertical')
+      setIsOpen(false)
+      return
+    }
+    if (value.startsWith('aspect-')) {
+      remote.setAspectRatio(value.slice('aspect-'.length) as (typeof ASPECT_RATIO_OPTIONS)[number])
+      setIsOpen(false)
+      return
+    }
+    if (value.startsWith('sub-')) {
+      const track = subtitleTracks.find((candidate) => `sub-${candidate.id}` === value)
+      if (track) remote.setActiveSubtitle(track)
+    }
+  }
+
   return (
     <Menu.Root
       open={isOpen}
       onOpenChange={(d) => {
+        if (d.open && !isOpen) setView('main')
         setIsOpen(d.open)
-        if (d.open) setView('main')
       }}
+
       closeOnSelect={false}
       positioning={{ placement: 'top-end' }}
     >
@@ -330,31 +388,40 @@ export const SettingsTrigger: FC = () => {
         <Icon icon={icons.settings} width={18} />
       </Menu.Trigger>
       <Menu.Positioner className="vplayer__menu-positioner">
-        <Menu.Content className="vplayer__menu-popover vplayer__menu">
+        <Menu.Content
+          className="vplayer__menu-popover vplayer__menu"
+          onClick={(event) => {
+            const item = (event.target as HTMLElement).closest<HTMLElement>(
+              '[data-scope="menu"][data-part="item"][data-value]',
+            )
+            if (!item || !event.currentTarget.contains(item)) return
+            handleMenuSelect(item.dataset.value ?? '')
+          }}
+        >
           {view === 'main' && (
             <>
-              <Menu.Item value="speed" onSelect={() => setView('speed')} className="vplayer__menu-item">
+              <Menu.Item value="speed" className="vplayer__menu-item">
                 <span className="vplayer__menu-label">{labels.speed}</span>
                 <span className="vplayer__menu-value">{playbackRate}x</span>
               </Menu.Item>
               {qualities.length > 0 && (
-                <Menu.Item value="quality" onSelect={() => setView('quality')} className="vplayer__menu-item">
+                <Menu.Item value="quality" className="vplayer__menu-item">
                   <span className="vplayer__menu-label">{labels.quality}</span>
                   <span className="vplayer__menu-value">{activeQuality}</span>
                 </Menu.Item>
               )}
-              <Menu.Item value="subtitles" onSelect={() => setView('subtitles')} className="vplayer__menu-item">
+              <Menu.Item value="subtitles" className="vplayer__menu-item">
                 <span className="vplayer__menu-label">{labels.subtitles}</span>
                 <span className="vplayer__menu-value vplayer__menu-value--truncate">
                   {activeSubtitle?.label ?? labels.off}
                 </span>
               </Menu.Item>
-              <Menu.Item value="flip" onSelect={() => setView('flip')} className="vplayer__menu-item">
+              <Menu.Item value="flip" className="vplayer__menu-item">
                 <Icon icon={icons.flip} width={14} className="vplayer__menu-icon" />
                 <span className="vplayer__menu-label">{labels.flip}</span>
                 <span className="vplayer__menu-value">{labels.flipNormal}</span>
               </Menu.Item>
-              <Menu.Item value="aspectRatio" onSelect={() => setView('aspectRatio')} className="vplayer__menu-item">
+              <Menu.Item value="aspectRatio" className="vplayer__menu-item">
                 <Icon icon={icons.aspectRatio} width={14} className="vplayer__menu-icon" />
                 <span className="vplayer__menu-label">{labels.aspectRatio}</span>
                 <span className="vplayer__menu-value">{getAspectRatioLabel(labels, aspectRatio)}</span>
@@ -363,21 +430,13 @@ export const SettingsTrigger: FC = () => {
           )}
           {view === 'speed' && (
             <>
-              <Menu.Item value="back" onSelect={() => setView('main')} className="vplayer__menu-item">
+              <Menu.Item value="back" className="vplayer__menu-item">
                 <Icon icon={icons.chevronLeft} width={14} className="vplayer__menu-icon" />
                 <span className="vplayer__menu-label">{labels.speed}</span>
               </Menu.Item>
               <Menu.Separator className="vplayer__menu-separator" />
               {speeds.map((speed) => (
-                <Menu.Item
-                  key={String(speed)}
-                  value={`speed-${speed}`}
-                  onSelect={() => {
-                    remote.setPlaybackRate(Number(speed))
-                    setIsOpen(false)
-                  }}
-                  className="vplayer__menu-item"
-                >
+                <Menu.Item key={String(speed)} value={`speed-${speed}`} className="vplayer__menu-item">
                   <span
                     className={playbackRate === speed ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}
                   >
@@ -390,21 +449,13 @@ export const SettingsTrigger: FC = () => {
           )}
           {view === 'quality' && (
             <>
-              <Menu.Item value="back" onSelect={() => setView('main')} className="vplayer__menu-item">
+              <Menu.Item value="back" className="vplayer__menu-item">
                 <Icon icon={icons.chevronLeft} width={14} className="vplayer__menu-icon" />
                 <span className="vplayer__menu-label">{labels.quality}</span>
               </Menu.Item>
               <Menu.Separator className="vplayer__menu-separator" />
               {qualities.map((q) => (
-                <Menu.Item
-                  key={q}
-                  value={`quality-${q}`}
-                  onSelect={() => {
-                    remote.setActiveQuality(q)
-                    setIsOpen(false)
-                  }}
-                  className="vplayer__menu-item"
-                >
+                <Menu.Item key={q} value={`quality-${q}`} className="vplayer__menu-item">
                   <span
                     className={activeQuality === q ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}
                   >
@@ -417,21 +468,13 @@ export const SettingsTrigger: FC = () => {
           )}
           {view === 'flip' && (
             <>
-              <Menu.Item value="back" onSelect={() => setView('main')} className="vplayer__menu-item">
+              <Menu.Item value="back" className="vplayer__menu-item">
                 <Icon icon={icons.chevronLeft} width={14} className="vplayer__menu-icon" />
                 <span className="vplayer__menu-label">{labels.flip}</span>
               </Menu.Item>
               <Menu.Separator className="vplayer__menu-separator" />
               {(['normal', 'horizontal', 'vertical'] as const).map((val) => (
-                <Menu.Item
-                  key={val}
-                  value={`flip-${val}`}
-                  onSelect={() => {
-                    remote.setFlip(val)
-                    setIsOpen(false)
-                  }}
-                  className="vplayer__menu-item"
-                >
+                <Menu.Item key={val} value={`flip-${val}`} className="vplayer__menu-item">
                   <span className={flip === val ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>
                     {val === 'normal'
                       ? labels.flipNormal
@@ -446,21 +489,13 @@ export const SettingsTrigger: FC = () => {
           )}
           {view === 'aspectRatio' && (
             <>
-              <Menu.Item value="back" onSelect={() => setView('main')} className="vplayer__menu-item">
+              <Menu.Item value="back" className="vplayer__menu-item">
                 <Icon icon={icons.chevronLeft} width={14} className="vplayer__menu-icon" />
                 <span className="vplayer__menu-label">{labels.aspectRatio}</span>
               </Menu.Item>
               <Menu.Separator className="vplayer__menu-separator" />
               {ASPECT_RATIO_OPTIONS.map((val) => (
-                <Menu.Item
-                  key={val}
-                  value={`aspect-${val}`}
-                  onSelect={() => {
-                    remote.setAspectRatio(val)
-                    setIsOpen(false)
-                  }}
-                  className="vplayer__menu-item"
-                >
+                <Menu.Item key={val} value={`aspect-${val}`} className="vplayer__menu-item">
                   <span
                     className={aspectRatio === val ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}
                   >
@@ -473,24 +508,19 @@ export const SettingsTrigger: FC = () => {
           )}
           {view === 'subtitles' && (
             <>
-              <Menu.Item value="back" onSelect={() => setView('main')} className="vplayer__menu-item">
+              <Menu.Item value="back" className="vplayer__menu-item">
                 <Icon icon={icons.chevronLeft} width={14} className="vplayer__menu-icon" />
                 <span className="vplayer__menu-label">{labels.subtitles}</span>
               </Menu.Item>
               <Menu.Separator className="vplayer__menu-separator" />
-              <Menu.Item value="off" onSelect={() => remote.setActiveSubtitle(null)} className="vplayer__menu-item">
+              <Menu.Item value="off" className="vplayer__menu-item">
                 <span className={!activeSubtitle ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>
                   {labels.off}
                 </span>
                 {!activeSubtitle && <Icon icon={icons.check} width={14} className="vplayer__menu-check" />}
               </Menu.Item>
               {subtitleTracks.map((track) => (
-                <Menu.Item
-                  key={track.id}
-                  value={`sub-${track.id}`}
-                  onSelect={() => remote.setActiveSubtitle(track)}
-                  className="vplayer__menu-item"
-                >
+                <Menu.Item key={track.id} value={`sub-${track.id}`} className="vplayer__menu-item">
                   <span
                     className={
                       activeSubtitle?.id === track.id ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'
@@ -535,33 +565,34 @@ export const SettingsTrigger: FC = () => {
                 </FileUpload.Trigger>
                 <FileUpload.HiddenInput aria-label={labels.loadSubtitleFile} />
               </FileUpload.Root>
-              <Menu.Item
-                value="appearance"
-                onSelect={() => setView('captionAppearance')}
-                className="vplayer__menu-item"
-              >
+
+              {subtitleProviders.length > 0 && (
+                <Menu.Item value="find-subtitles" className="vplayer__menu-item">
+                  <span className="vplayer__menu-label">{labels.findSubtitlesOnline}</span>
+                  <span className="vplayer__menu-check" aria-hidden="true">
+                    ›
+                  </span>
+                </Menu.Item>
+              )}
+              <Menu.Item value="appearance" className="vplayer__menu-item">
                 <span className="vplayer__menu-label">{labels.captionAppearance}</span>
                 <span className="vplayer__menu-check" aria-hidden="true">
                   ›
                 </span>
               </Menu.Item>
-              {(subtitleStatus === 'loading' || subtitleCatalogStatus === 'loading') && (
+              {subtitleStatus === 'loading' && (
                 <div className="vplayer__menu-status" role="status">
                   Loading…
                 </div>
               )}
-              {(subtitleError || subtitleCatalogError) && (
+              {subtitleError && (
                 <div className="vplayer__menu-error" role="status" aria-live="polite">
-                  {labels.subtitleLoadError}: {subtitleError ?? subtitleCatalogError}
-                  {subtitleCatalogError && (
-                    <button type="button" className="vplayer__menu-retry" onClick={remote.reloadSubtitleCatalog}>
-                      {labels.retry}
-                    </button>
-                  )}
+                  {labels.subtitleLoadError}: {subtitleError}
                 </div>
               )}
             </>
           )}
+          {view === 'subtitleSearch' && <SubtitleSearchPanel onBack={() => setView('subtitles')} />}
           {view === 'captionAppearance' && <CaptionSettingsPanel onBack={() => setView('subtitles')} />}
         </Menu.Content>
       </Menu.Positioner>

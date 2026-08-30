@@ -23,7 +23,13 @@ export {
 } from './subtitle-parser'
 export type {
   CaptionSettings,
-  SubtitleCatalog,
+  SubtitleProvider,
+  SubtitleProviderInfo,
+  SubtitleProviderResult,
+  SubtitleSearchItem,
+  SubtitleSearchQuery,
+  SubtitleSearchResult,
+  SubtitleSource,
   SubtitleCue,
   SubtitleFormat,
   SubtitleParseError,
