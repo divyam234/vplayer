@@ -511,20 +511,33 @@
   .vplayer__caption-color-editor > [data-part='label'] {
     @apply mb-2 block;
   }
+  .vplayer__caption-color-control {
+    @apply mb-3 flex items-center gap-2;
+  }
+  .vplayer__caption-color-swatch {
+    @apply h-10 w-10 shrink-0 rounded-md border border-white/15;
+  }
   .vplayer__caption-color-popover {
     @apply w-full;
   }
   .vplayer__caption-color-area {
-    @apply h-32 w-full overflow-hidden rounded-lg;
+    @apply h-32 w-full cursor-crosshair overflow-hidden rounded-lg;
+  }
+  .vplayer__caption-color-area > [data-part='area-background'] {
+    @apply h-full w-full;
   }
   .vplayer__caption-hue-slider {
     @apply relative mt-3 h-5 rounded-full;
   }
+  .vplayer__caption-hue-slider > [data-part='channel-slider-track'] {
+    @apply h-full w-full rounded-full;
+  }
   .vplayer__caption-color-thumb {
     @apply h-4 w-4 rounded-full border-2 border-white shadow-md;
+    transform: translate(-50%, -50%);
   }
   .vplayer__caption-hex-input {
-    @apply mt-3 min-h-10 w-full rounded-md px-2 text-xs uppercase outline-none;
+    @apply min-h-10 min-w-0 flex-1 rounded-md px-2 text-xs uppercase outline-none;
     color: white;
     background: color-mix(in srgb, white 9%, black);
   }

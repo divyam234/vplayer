@@ -63,7 +63,7 @@ export function useControlsVisibility(mediaStore: Store<MediaState>) {
   }, [clearHideTimer, mediaStore, scheduleHide])
 
   useEffect(() => {
-    return mediaStore.subscribe(() => {
+    const subscription = mediaStore.subscribe(() => {
       const isPlaying = mediaStore.state.isPlaying
       if (isPlaying === lastPlayingRef.current) return
       lastPlayingRef.current = isPlaying
@@ -74,6 +74,8 @@ export function useControlsVisibility(mediaStore: Store<MediaState>) {
         mediaStore.setState((prev) => ({ ...prev, controlsVisible: true }))
       }
     })
+
+    return () => subscription.unsubscribe()
   }, [clearHideTimer, mediaStore, scheduleHide])
 
   useEffect(() => {

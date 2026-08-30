@@ -825,7 +825,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   }
 
   // ── Preference persistence (opt-in) ──────────────────────
-  let unsubPersist: (() => void) | null = null
+  let unsubPersist: ReturnType<typeof store.subscribe> | null = null
 
   function setupPreferencePersistence(): void {
     if (!currentOptions.persistPreferences) return
@@ -871,7 +871,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
   function teardownPreferencePersistence(): void {
     if (unsubPersist) {
-      unsubPersist()
+      unsubPersist.unsubscribe()
       unsubPersist = null
     }
   }

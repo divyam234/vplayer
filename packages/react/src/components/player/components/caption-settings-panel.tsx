@@ -227,6 +227,10 @@ export const CaptionSettingsPanel: FC<{ onBack: () => void }> = ({ onBack }) => 
                 ? labels.captionBackgroundColor
                 : labels.captionEdgeColor}
           </ColorPicker.Label>
+          <ColorPicker.Control className="vplayer__caption-color-control">
+            <ColorPicker.ValueSwatch className="vplayer__caption-color-swatch" />
+            <ColorPicker.ChannelInput channel="hex" className="vplayer__caption-hex-input" />
+          </ColorPicker.Control>
           <ColorPicker.Content className="vplayer__caption-color-popover">
             <ColorPicker.Area xChannel="saturation" yChannel="brightness" className="vplayer__caption-color-area">
               <ColorPicker.AreaBackground />
@@ -236,7 +240,6 @@ export const CaptionSettingsPanel: FC<{ onBack: () => void }> = ({ onBack }) => 
               <ColorPicker.ChannelSliderTrack />
               <ColorPicker.ChannelSliderThumb className="vplayer__caption-color-thumb" />
             </ColorPicker.ChannelSlider>
-            <ColorPicker.ChannelInput channel="hex" className="vplayer__caption-hex-input" />
           </ColorPicker.Content>
           <ColorPicker.HiddenInput />
         </ColorPicker.Root>

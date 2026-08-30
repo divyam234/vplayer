@@ -33,12 +33,12 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@tanstack/store": "^0.8.0",
-    "dashjs": "^5.1.1",
-    "hls.js": "^1.6.16"
+    "@tanstack/store": "^0.11.1",
+    "dashjs": "^5.2.1",
+    "hls.js": "^1.7.1"
   },
   "devDependencies": {
-    "typescript": "^6.0.2",
-    "vite": "^8.0.0"
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
   }
 }
