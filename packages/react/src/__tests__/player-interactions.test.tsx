@@ -455,6 +455,48 @@ describe('VideoPlayer interactions', () => {
     expect(engine.playCalls).toBe(playCalls + 1)
   })
 
+  it('automatically resumes saved progress during autoplay without reopening the prompt on pause', async () => {
+    let resolveProgress!: (progress: { time: number; duration: number }) => void
+    const load = new Promise<{ time: number; duration: number }>((resolve) => {
+      resolveProgress = resolve
+    })
+    const store: PlaybackProgressStore = {
+      load: () => load,
+      save: async () => {},
+      clear: async () => {},
+    }
+    const { engine } = renderTestPlayer({ autoPlay: true, playbackProgress: { id: 'episode-a', store } })
+
+    act(() => engine.emit('loadedmetadata'))
+    await act(() => engine.play())
+    await act(async () => resolveProgress({ time: 42, duration: 100 }))
+
+    await waitFor(() => expect(engine.seekCalls.at(-1)).toBe(42))
+    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+
+    act(() => engine.pause())
+    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+  })
+
+  it('does not reveal delayed resume progress when the first observed playback event is playing', async () => {
+    let resolveProgress!: (progress: { time: number; duration: number }) => void
+    const load = new Promise<{ time: number; duration: number }>((resolve) => {
+      resolveProgress = resolve
+    })
+    const store: PlaybackProgressStore = {
+      load: () => load,
+      save: async () => {},
+      clear: async () => {},
+    }
+    const { engine } = renderTestPlayer({ playbackProgress: { id: 'episode-a', store } })
+
+    act(() => engine.emit('playing'))
+    await act(async () => resolveProgress({ time: 42, duration: 100 }))
+    act(() => engine.pause())
+
+    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+  })
+
   it('shows resume controls when streamed media duration resolves after metadata', async () => {
     const store: PlaybackProgressStore = {
       load: async () => ({ time: 42, duration: 100 }),
@@ -489,5 +531,86 @@ describe('VideoPlayer interactions', () => {
     expect(screen.queryByRole('button', { name: 'Start over' })).not.toBeInTheDocument()
     expect(engine.seekCalls.at(-1)).toBe(0)
     await waitFor(() => expect(clear).toHaveBeenCalledWith('episode-a'))
+  })
+
+  it('loads a local SRT file from caption settings and renders its active cue', async () => {
+    const user = userEvent.setup()
+    const { engine } = renderTestPlayer()
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByText('Subtitles'))
+    const input = screen.getByLabelText('Load subtitle file…')
+    await user.upload(
+      input,
+      new File(['1\n00:00:01,000 --> 00:00:03,000\nLoaded locally'], 'movie.srt', {
+        type: 'application/x-subrip',
+      }),
+    )
+
+    await waitFor(() => expect(screen.getByText('Local: movie.srt')).toBeInTheDocument())
+    act(() => {
+      engine.currentTime = 2
+      engine.emit('timeupdate')
+    })
+    expect(screen.getByText('Loaded locally')).toBeInTheDocument()
+  })
+
+  it('offers VLC-style caption typography, effects, position, and delay controls', async () => {
+    const user = userEvent.setup()
+    renderTestPlayer({
+      children: (
+        <>
+          <DefaultLayoutForTest />
+          <ContextProbe />
+        </>
+      ),
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByText('Subtitles'))
+    await user.click(screen.getByText('Caption appearance'))
+    await user.click(screen.getByRole('radio', { name: 'Serif' }))
+    const scale = screen.getByRole('slider', { name: 'Scale' })
+    scale.focus()
+    await user.keyboard('{Home}{ArrowRight>20/}')
+    await user.click(screen.getByRole('radio', { name: 'Outline' }))
+    const position = screen.getByRole('slider', { name: 'Vertical position' })
+    position.focus()
+    await user.keyboard('{Home}{ArrowRight>32/}')
+    const spacing = screen.getByRole('slider', { name: 'Line spacing' })
+    spacing.focus()
+    await user.keyboard('{Home}{ArrowRight>12/}')
+    await user.click(screen.getByRole('button', { name: 'Increase subtitle delay' }))
+
+    expect(latestCtx?.mediaStore.state.captionSettings).toMatchObject({
+      fontFamily: 'serif',
+      fontScale: 150,
+      edgeStyle: 'outline',
+      position: 12,
+      lineHeight: 1.6,
+      delay: 0.1,
+    })
+  })
+
+  it('opens the Ark color picker and updates caption color', async () => {
+    const user = userEvent.setup()
+    renderTestPlayer({
+      children: (
+        <>
+          <DefaultLayoutForTest />
+          <ContextProbe />
+        </>
+      ),
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByText('Subtitles'))
+    await user.click(screen.getByText('Caption appearance'))
+
+    const hexColor = screen.getByRole('textbox', { name: 'hex' })
+    await user.clear(hexColor)
+    await user.type(hexColor, 'ff0000{Enter}')
+
+    expect(latestCtx?.mediaStore.state.captionSettings.textColor).toBe('#FF0000')
   })
 })

@@ -9,7 +9,6 @@
       },
       "devDependencies": {
         "@changesets/cli": "^2.31.1",
-        "@playwright/test": "^1.60.0",
         "@tailwindcss/postcss": "^4.1.18",
         "@testing-library/dom": "^10.4.1",
         "@testing-library/jest-dom": "^6.9.1",
@@ -45,7 +44,7 @@
     },
     "packages/core": {
       "name": "@vplayer/core",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
         "@tanstack/store": "^0.8.0",
         "dashjs": "^5.1.1",
@@ -58,7 +57,7 @@
     },
     "packages/react": {
       "name": "@vplayer/react",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "dependencies": {
         "@ark-ui/react": "5.36.2",
         "@tanstack/react-store": "^0.8.0",
@@ -245,8 +244,6 @@
     "@parcel/watcher-linux-x64-glibc": ["@parcel/watcher-linux-x64-glibc@2.5.6", "", { "os": "linux", "cpu": "x64" }, ""],
 
     "@parcel/watcher-linux-x64-musl": ["@parcel/watcher-linux-x64-musl@2.5.6", "", { "os": "linux", "cpu": "x64" }, ""],
-
-    "@playwright/test": ["@playwright/test@1.60.0", "", { "dependencies": { "playwright": "1.60.0" }, "bin": { "playwright": "cli.js" } }, ""],
 
     "@rolldown/binding-linux-x64-gnu": ["@rolldown/binding-linux-x64-gnu@1.0.3", "", { "os": "linux", "cpu": "x64" }, ""],
 
@@ -837,10 +834,6 @@
     "pify": ["pify@4.0.1", "", {}, "sha512-uB80kBFb/tfd68bVleG9T5GGsGPjJrLAUpR5PZIrhBnIaRTQRjqdJSsIKkOP6OAIFbj7GOrcudc5pNjZ+geV2g=="],
 
     "pkg-types": ["pkg-types@2.3.1", "", { "dependencies": { "confbox": "^0.2.4", "exsolve": "^1.0.8", "pathe": "^2.0.3" } }, "sha512-y+ichcgc2LrADuhLNAx8DFjVfgz91pRxfZdI3UDhxHvcVEZsenLO+7XaU5vOp0u/7V/wZ+plyuQxtrDlZJ+yeg=="],
-
-    "playwright": ["playwright@1.60.0", "", { "dependencies": { "playwright-core": "1.60.0" }, "bin": "cli.js" }, ""],
-
-    "playwright-core": ["playwright-core@1.60.0", "", { "bin": "cli.js" }, ""],
 
     "postcss": ["postcss@8.5.15", "", { "dependencies": { "nanoid": "^3.3.12", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, ""],
 

@@ -1,3 +1,4 @@
+import { FileUpload } from '@ark-ui/react/file-upload'
 import { Menu } from '@ark-ui/react/menu'
 import { Slider } from '@ark-ui/react/slider'
 import { Tooltip } from '@ark-ui/react/tooltip'
@@ -5,6 +6,7 @@ import { getThumbnailAtTime, formatTime } from '@vplayer/core'
 import clsx from 'clsx'
 import { useCallback, useEffect, useState, type CSSProperties, type FC, type PointerEvent, type ReactNode } from 'react'
 
+import { CaptionSettingsPanel } from './components/caption-settings-panel'
 import { useMiniPlayer, usePlayerRemote, usePlayerState, usePlayerContext } from './context'
 import { Icon } from './icon'
 import type { PlayerLabels } from './types'
@@ -289,15 +291,21 @@ function getAspectRatioLabel(labels: PlayerLabels, value: (typeof ASPECT_RATIO_O
 export const SettingsTrigger: FC = () => {
   const { labels, icons, controlsVisibility } = usePlayerContext()
   const remote = usePlayerRemote()
-  const playbackRate = usePlayerState('playbackRate')
   const qualities = usePlayerState('qualities')
   const activeQuality = usePlayerState('activeQuality')
   const subtitleTracks = usePlayerState('subtitleTracks')
   const activeSubtitle = usePlayerState('activeSubtitle')
+  const subtitleStatus = usePlayerState('subtitleStatus')
+  const subtitleError = usePlayerState('subtitleError')
+  const subtitleCatalogStatus = usePlayerState('subtitleCatalogStatus')
+  const subtitleCatalogError = usePlayerState('subtitleCatalogError')
+  const playbackRate = usePlayerState('playbackRate')
   const flip = usePlayerState('flip')
   const aspectRatio = usePlayerState('aspectRatio')
   const [isOpen, setIsOpen] = useState(false)
-  const [view, setView] = useState<'main' | 'speed' | 'quality' | 'subtitles' | 'flip' | 'aspectRatio'>('main')
+  const [view, setView] = useState<
+    'main' | 'speed' | 'quality' | 'subtitles' | 'captionAppearance' | 'flip' | 'aspectRatio'
+  >('main')
   const speeds = [0.5, 1, 1.25, 1.5, 2]
 
   useEffect(() => {
@@ -335,14 +343,12 @@ export const SettingsTrigger: FC = () => {
                   <span className="vplayer__menu-value">{activeQuality}</span>
                 </Menu.Item>
               )}
-              {subtitleTracks.length > 0 && (
-                <Menu.Item value="subtitles" onSelect={() => setView('subtitles')} className="vplayer__menu-item">
-                  <span className="vplayer__menu-label">{labels.subtitles}</span>
-                  <span className="vplayer__menu-value vplayer__menu-value--truncate">
-                    {activeSubtitle?.label ?? labels.off}
-                  </span>
-                </Menu.Item>
-              )}
+              <Menu.Item value="subtitles" onSelect={() => setView('subtitles')} className="vplayer__menu-item">
+                <span className="vplayer__menu-label">{labels.subtitles}</span>
+                <span className="vplayer__menu-value vplayer__menu-value--truncate">
+                  {activeSubtitle?.label ?? labels.off}
+                </span>
+              </Menu.Item>
               <Menu.Item value="flip" onSelect={() => setView('flip')} className="vplayer__menu-item">
                 <Icon icon={icons.flip} width={14} className="vplayer__menu-icon" />
                 <span className="vplayer__menu-label">{labels.flip}</span>
@@ -472,14 +478,7 @@ export const SettingsTrigger: FC = () => {
                 <span className="vplayer__menu-label">{labels.subtitles}</span>
               </Menu.Item>
               <Menu.Separator className="vplayer__menu-separator" />
-              <Menu.Item
-                value="off"
-                onSelect={() => {
-                  remote.setActiveSubtitle(null)
-                  setIsOpen(false)
-                }}
-                className="vplayer__menu-item"
-              >
+              <Menu.Item value="off" onSelect={() => remote.setActiveSubtitle(null)} className="vplayer__menu-item">
                 <span className={!activeSubtitle ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'}>
                   {labels.off}
                 </span>
@@ -487,30 +486,83 @@ export const SettingsTrigger: FC = () => {
               </Menu.Item>
               {subtitleTracks.map((track) => (
                 <Menu.Item
-                  key={track.lang}
-                  value={`sub-${track.lang}`}
-                  onSelect={() => {
-                    remote.setActiveSubtitle(subtitleTracks.find((t) => t.lang === track.lang) ?? null)
-                    setIsOpen(false)
-                  }}
+                  key={track.id}
+                  value={`sub-${track.id}`}
+                  onSelect={() => remote.setActiveSubtitle(track)}
                   className="vplayer__menu-item"
                 >
                   <span
                     className={
-                      activeSubtitle?.lang === track.lang
-                        ? 'vplayer__menu-value--active'
-                        : 'vplayer__menu-value--inactive'
+                      activeSubtitle?.id === track.id ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'
                     }
                   >
-                    {track.label}
+                    {track.local ? `Local: ${track.label}` : track.label}
                   </span>
-                  {activeSubtitle?.lang === track.lang && (
+                  {activeSubtitle?.id === track.id && (
                     <Icon icon={icons.check} width={14} className="vplayer__menu-check" />
                   )}
                 </Menu.Item>
               ))}
+              <Menu.Separator className="vplayer__menu-separator" />
+              <FileUpload.Root
+                accept={{
+                  'text/vtt': ['.vtt'],
+                  'application/x-subrip': ['.srt'],
+                }}
+                maxFiles={1}
+                maxFileSize={5 * 1024 * 1024}
+                onFileChange={(details) => {
+                  const file = details.acceptedFiles[0]
+                  if (!file) return
+                  void file.text().then((content) => {
+                    remote.addSubtitleTrack({
+                      id: `local:${Date.now()}:${file.name}`,
+                      content,
+                      format: file.name.toLowerCase().endsWith('.srt')
+                        ? 'srt'
+                        : file.name.toLowerCase().endsWith('.vtt')
+                          ? 'vtt'
+                          : undefined,
+                      lang: 'und',
+                      label: file.name,
+                      local: true,
+                    })
+                  })
+                }}
+              >
+                <FileUpload.Trigger className="vplayer__menu-item vplayer__subtitle-upload-trigger">
+                  <span className="vplayer__menu-label">{labels.loadSubtitleFile}</span>
+                </FileUpload.Trigger>
+                <FileUpload.HiddenInput aria-label={labels.loadSubtitleFile} />
+              </FileUpload.Root>
+              <Menu.Item
+                value="appearance"
+                onSelect={() => setView('captionAppearance')}
+                className="vplayer__menu-item"
+              >
+                <span className="vplayer__menu-label">{labels.captionAppearance}</span>
+                <span className="vplayer__menu-check" aria-hidden="true">
+                  ›
+                </span>
+              </Menu.Item>
+              {(subtitleStatus === 'loading' || subtitleCatalogStatus === 'loading') && (
+                <div className="vplayer__menu-status" role="status">
+                  Loading…
+                </div>
+              )}
+              {(subtitleError || subtitleCatalogError) && (
+                <div className="vplayer__menu-error" role="status" aria-live="polite">
+                  {labels.subtitleLoadError}: {subtitleError ?? subtitleCatalogError}
+                  {subtitleCatalogError && (
+                    <button type="button" className="vplayer__menu-retry" onClick={remote.reloadSubtitleCatalog}>
+                      {labels.retry}
+                    </button>
+                  )}
+                </div>
+              )}
             </>
           )}
+          {view === 'captionAppearance' && <CaptionSettingsPanel onBack={() => setView('subtitles')} />}
         </Menu.Content>
       </Menu.Positioner>
     </Menu.Root>

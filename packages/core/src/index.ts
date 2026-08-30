@@ -13,6 +13,7 @@ export type { HotkeyBinding } from './hotkey-registry'
 export {
   parseSRT,
   parseVTT,
+  parseSubtitles,
   fetchSubtitles,
   getActiveCue,
   fetchThumbnails,
@@ -20,7 +21,16 @@ export {
   getThumbnailAtTime,
   parseTimestamp,
 } from './subtitle-parser'
-export type { SubtitleCue, SubtitleTrack, ThumbnailCue } from './subtitle-parser'
+export type {
+  CaptionSettings,
+  SubtitleCatalog,
+  SubtitleCue,
+  SubtitleFormat,
+  SubtitleParseError,
+  SubtitleParseResult,
+  SubtitleTrack,
+  ThumbnailCue,
+} from './subtitle-parser'
 export { detectSourceKind, toPlayerSource, createResolvedMediaEngine } from './source-resolver'
 export type { PlayerSource, SourceKind } from './source-resolver'
 export {
@@ -66,6 +76,7 @@ export type {
   PlayerOptions,
   TransformThumbnailVTT,
   MediaState,
+  ResumeState,
   MediaRemote,
   PlayerLabels,
   PlayerInstance,

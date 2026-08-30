@@ -7,6 +7,7 @@ import clsx from 'clsx'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
 import { AutoResumeOverlay } from './components/auto-resume-overlay'
+import { CaptionOverlay } from './components/caption-overlay'
 import { ContextMenu } from './components/context-menu'
 import { ErrorOverlay } from './components/error-overlay'
 import { InfoPanel } from './components/info-panel'
@@ -59,6 +60,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const type = options.type
   const autoPlay = options.autoPlay
   const subtitles = options.subtitles
+  const subtitleCatalog = options.subtitleCatalog
   const qualities = options.qualities
   const thumbnails = options.thumbnails
   const transformThumbnailVTT = options.transformThumbnailVTT
@@ -98,6 +100,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       title,
       poster,
       subtitles,
+      subtitleCatalog,
       qualities,
       thumbnails,
       transformThumbnailVTT,
@@ -110,6 +113,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
     title,
     poster,
     subtitles,
+    subtitleCatalog,
     qualities,
     thumbnails,
     hasThumbnailVTTTransform,
@@ -294,6 +298,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
 
           {/* Overlays & floating UI */}
           {miniPlayer.active && <MiniProgressBar />}
+          <CaptionOverlay />
           <ErrorOverlay />
           <AutoResumeOverlay />
           <ContextMenu />

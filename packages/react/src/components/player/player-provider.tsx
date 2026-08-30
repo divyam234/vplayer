@@ -58,6 +58,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   const poster = options.poster
   const autoPlay = options.autoPlay
   const subtitles = options.subtitles
+  const subtitleCatalog = options.subtitleCatalog
   const qualities = options.qualities
   const thumbnails = options.thumbnails
   const transformThumbnailVTT = options.transformThumbnailVTT
@@ -85,6 +86,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
       poster,
       autoPlay,
       subtitles,
+      subtitleCatalog,
       qualities,
       thumbnails,
       transformThumbnailVTT,
@@ -97,6 +99,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
     poster,
     autoPlay,
     subtitles,
+    subtitleCatalog,
     qualities,
     thumbnails,
     hasThumbnailVTTTransform,

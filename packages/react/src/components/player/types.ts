@@ -1,5 +1,6 @@
 import type { Store } from '@tanstack/store'
 import type {
+  CaptionSettings,
   EventBus,
   HotkeyRegistry,
   I18n,
@@ -10,6 +11,7 @@ import type {
   PlayerInstance,
   PlayerOptions,
   Storage,
+  SubtitleCatalog,
   SubtitleTrack,
   ThumbnailCue,
 } from '@vplayer/core'
@@ -40,7 +42,7 @@ export type {
   PluginAPI,
   SettingRegistration,
 }
-export type { EventBus, HotkeyRegistry, I18n, Storage, SubtitleTrack, ThumbnailCue }
+export type { CaptionSettings, EventBus, HotkeyRegistry, I18n, Storage, SubtitleCatalog, SubtitleTrack, ThumbnailCue }
 
 export interface PlayerSlots {
   playButton?: ReactNode

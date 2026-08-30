@@ -9,12 +9,11 @@ import type { PlaybackProgressOptions } from './playback-progress'
 import type { PlayerPlugin } from './plugin-api'
 import type { AspectRatioState, FlipState } from './plugin-api'
 import type { PlayerSource } from './source-resolver'
-import type { PlaybackStatus } from './state/slices'
-import type { MediaState } from './state/slices'
+import type { MediaState, PlaybackStatus, ResumeState } from './state/slices'
 import type { Storage } from './storage'
-import type { SubtitleTrack } from './subtitle-parser'
+import type { CaptionSettings, SubtitleCatalog, SubtitleTrack } from './subtitle-parser'
 
-export type { MediaState }
+export type { MediaState, ResumeState }
 
 export interface PlayerOptions {
   src: string
@@ -24,6 +23,7 @@ export interface PlayerOptions {
   title?: string
   poster?: string
   subtitles?: SubtitleTrack[]
+  subtitleCatalog?: SubtitleCatalog
   qualities?: string[]
   autoPlay?: boolean
   thumbnails?: string
@@ -96,6 +96,11 @@ export interface MediaRemote {
   toggleFullscreen: () => void
   togglePiP: () => void
   setActiveSubtitle: (track: SubtitleTrack | null) => void
+  addSubtitleTrack: (track: SubtitleTrack) => void
+  removeSubtitleTrack: (id: string) => void
+  reloadSubtitleCatalog: () => void
+  setCaptionSettings: (patch: Partial<CaptionSettings>) => void
+  resetCaptionSettings: () => void
   setActiveQuality: (q: string) => void
   takeScreenshot: () => void
   setFlip: (flip: FlipState) => void
@@ -122,6 +127,29 @@ export interface PlayerLabels {
   quality: string
   subtitles: string
   off: string
+  loadSubtitleFile: string
+  captionAppearance: string
+  captionSize: string
+  captionTextColor: string
+  captionBackgroundColor: string
+  captionBackgroundOpacity: string
+  captionSmall: string
+  captionMedium: string
+  captionLarge: string
+  captionFontFamily: string
+  captionFontScale: string
+  captionTextOpacity: string
+  captionEdgeStyle: string
+  captionEdgeNone: string
+  captionEdgeShadow: string
+  captionEdgeOutline: string
+  captionEdgeColor: string
+  captionPosition: string
+  captionLineHeight: string
+  captionDelay: string
+  captionPreview: string
+  captionReset: string
+  subtitleLoadError: string
   endedTitle: string
   screenshot: string
   flip: string
@@ -173,6 +201,7 @@ export interface PlayerInstance {
         | 'poster'
         | 'autoPlay'
         | 'subtitles'
+        | 'subtitleCatalog'
         | 'qualities'
         | 'thumbnails'
         | 'transformThumbnailVTT'

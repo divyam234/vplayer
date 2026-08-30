@@ -9,7 +9,6 @@ bun run dev         # Vite playground
 bun run build       # core → react → playground
 bun run typecheck   # core → react → playground
 bun run test        # core and React Vitest suites
-bun run test:e2e    # Playwright against the Vite preview
 bun run lint        # oxlint
 bun run format      # oxfmt
 ```
@@ -57,5 +56,3 @@ bun run typecheck
 bun run lint
 bun run build
 ```
-
-Run Playwright only when player behavior or browser interactions change.

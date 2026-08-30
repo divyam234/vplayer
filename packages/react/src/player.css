@@ -365,6 +365,178 @@
     color: color-mix(in srgb, white 75%, transparent);
   }
 
+  .vplayer__visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .vplayer__menu-status,
+  .vplayer__menu-error {
+    @apply px-2 py-1.5 text-xs;
+    color: color-mix(in srgb, white 65%, transparent);
+  }
+  .vplayer__menu-error {
+    color: #fca5a5;
+  }
+  .vplayer__menu-retry {
+    @apply ml-2 underline underline-offset-2;
+  }
+  .vplayer__caption-panel {
+    width: min(22rem, calc(100vw - 2rem));
+    max-height: min(58vh, 32rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  .vplayer__caption-panel-header {
+    @apply flex items-center justify-between gap-2 px-1;
+  }
+  .vplayer__caption-back,
+  .vplayer__caption-reset {
+    @apply flex min-h-10 items-center gap-2 rounded-md px-2 text-xs;
+    color: color-mix(in srgb, white 75%, transparent);
+    transition-property: background-color, color, scale;
+    transition-duration: 140ms;
+  }
+  .vplayer__caption-back:hover,
+  .vplayer__caption-reset:hover {
+    color: white;
+    background: color-mix(in srgb, white 10%, transparent);
+  }
+  .vplayer__caption-back:active,
+  .vplayer__caption-reset:active,
+  .vplayer__caption-choice-item:active,
+  .vplayer__caption-delay-stepper button:active {
+    scale: 0.96;
+  }
+  .vplayer__caption-preview {
+    @apply mx-1 mb-2 rounded-lg px-4 py-3 text-center;
+    min-height: 3rem;
+    box-shadow:
+      0 8px 22px rgb(0 0 0 / 0.28),
+      inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  }
+  .vplayer__caption-section {
+    @apply mx-1 mb-2 rounded-lg p-2.5;
+    background: color-mix(in srgb, white 5%, transparent);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  }
+  .vplayer__caption-section h3 {
+    @apply mb-2 text-[10px] font-semibold tracking-widest uppercase;
+    color: color-mix(in srgb, white 42%, transparent);
+  }
+  .vplayer__caption-control,
+  .vplayer__caption-delay-stepper {
+    @apply grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-1.5 text-xs;
+    color: color-mix(in srgb, white 76%, transparent);
+  }
+  .vplayer__caption-control-value,
+  .vplayer__caption-delay-stepper output {
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in srgb, white 52%, transparent);
+  }
+  .vplayer__caption-slider-control {
+    @apply relative col-span-2 flex min-h-10 items-center;
+    touch-action: none;
+  }
+  .vplayer__caption-slider-track {
+    @apply relative h-1.5 w-full overflow-hidden rounded-full;
+    background: color-mix(in srgb, white 14%, transparent);
+  }
+  .vplayer__caption-slider-range {
+    @apply absolute h-full rounded-full;
+    background: var(--vplayer-accent);
+  }
+  .vplayer__caption-slider-thumb {
+    @apply h-4 w-4 rounded-full bg-white shadow-md outline-none;
+    box-shadow:
+      0 2px 8px rgb(0 0 0 / 0.35),
+      0 0 0 1px rgb(0 0 0 / 0.15);
+  }
+  .vplayer__caption-slider-thumb[data-focus] {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--vplayer-accent) 55%, transparent);
+  }
+  .vplayer__caption-delay-stepper > div {
+    @apply flex items-center rounded-md;
+    background: color-mix(in srgb, white 8%, transparent);
+  }
+  .vplayer__caption-delay-stepper button {
+    @apply min-h-10 min-w-10 rounded-md text-base;
+    transition-property: background-color, scale;
+    transition-duration: 120ms;
+  }
+  .vplayer__caption-delay-stepper button:hover {
+    background: color-mix(in srgb, white 12%, transparent);
+  }
+  .vplayer__caption-delay-stepper output {
+    min-width: 3.5rem;
+    text-align: center;
+  }
+  .vplayer__caption-choice {
+    @apply py-1.5 text-xs;
+    color: color-mix(in srgb, white 76%, transparent);
+  }
+  .vplayer__caption-choice > [data-part='label'] {
+    @apply mb-1 block;
+  }
+  .vplayer__caption-choice-items {
+    @apply grid grid-cols-3 gap-1;
+  }
+  .vplayer__caption-choice-item {
+    @apply relative flex min-h-10 items-center justify-center rounded-md px-2 text-xs;
+    color: color-mix(in srgb, white 58%, transparent);
+    background: color-mix(in srgb, white 7%, transparent);
+    transition-property: background-color, color, scale;
+    transition-duration: 140ms;
+  }
+  .vplayer__caption-choice-item[data-state='checked'] {
+    color: white;
+    background: color-mix(in srgb, var(--vplayer-accent) 42%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vplayer-accent) 65%, white 10%);
+  }
+  .vplayer__caption-choice-item [data-part='item-control'] {
+    @apply absolute inset-0 rounded-md;
+  }
+  .vplayer__caption-color-editor {
+    @apply mt-2 rounded-lg p-2 text-xs;
+    color: color-mix(in srgb, white 70%, transparent);
+    background: color-mix(in srgb, black 24%, transparent);
+  }
+  .vplayer__caption-color-editor > [data-part='label'] {
+    @apply mb-2 block;
+  }
+  .vplayer__caption-color-popover {
+    @apply w-full;
+  }
+  .vplayer__caption-color-area {
+    @apply h-32 w-full overflow-hidden rounded-lg;
+  }
+  .vplayer__caption-hue-slider {
+    @apply relative mt-3 h-5 rounded-full;
+  }
+  .vplayer__caption-color-thumb {
+    @apply h-4 w-4 rounded-full border-2 border-white shadow-md;
+  }
+  .vplayer__caption-hex-input {
+    @apply mt-3 min-h-10 w-full rounded-md px-2 text-xs uppercase outline-none;
+    color: white;
+    background: color-mix(in srgb, white 9%, black);
+  }
+  .vplayer__caption-panel button:focus-visible,
+  .vplayer__caption-panel input:focus-visible {
+    outline: 2px solid var(--vplayer-accent);
+    outline-offset: 2px;
+  }
+  .vplayer__subtitle-upload-trigger {
+    min-height: 2.5rem;
+  }
+
   .vplayer__overlay {
     @apply pointer-events-none absolute inset-0 z-20 flex items-center justify-center transition-opacity duration-200;
   }
@@ -424,7 +596,6 @@
     border: 1px solid var(--vplayer-tooltip-border);
     color: var(--vplayer-tooltip-fg);
   }
-
   /* ── Mini Progress Bar ─────────────────────────────────────── */
   .vplayer__mini-progress {
     @apply pointer-events-none absolute right-0 bottom-0 left-0 z-30 hidden h-[3px] transition-opacity duration-300;
@@ -461,6 +632,30 @@
     @apply mt-2 rounded-full px-5 py-1.5 text-sm text-white transition-colors hover:bg-white/20;
     background: color-mix(in srgb, white 12%, transparent);
     border: 1px solid color-mix(in srgb, white 14%, transparent);
+  }
+
+  /* ── Captions ─────────────────────────────────────────────── */
+  .vplayer__captions {
+    @apply pointer-events-none absolute inset-x-4 z-20 flex justify-center text-center;
+    bottom: var(--vplayer-caption-position);
+    color: var(--vplayer-caption-color);
+    font-family: var(--vplayer-caption-font);
+    font-size: var(--vplayer-caption-size);
+    line-height: var(--vplayer-caption-line-height);
+    text-shadow: var(--vplayer-caption-edge);
+    transition-property: bottom;
+    transition-duration: 160ms;
+    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  .vplayer__caption-cue {
+    max-width: min(90%, 72ch);
+    padding: 0.15em 0.4em;
+    white-space: pre-line;
+    background: var(--vplayer-caption-background);
+    border-radius: 0.2em;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
   }
 
   /* ── Auto Resume Overlay ────────────────────────────────────── */

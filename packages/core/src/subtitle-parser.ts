@@ -1,102 +1,166 @@
+export type SubtitleFormat = 'vtt' | 'srt'
+
 export interface SubtitleCue {
   index: number
-  start: number // seconds
-  end: number // seconds
+  start: number
+  end: number
   text: string
+  id?: string
+  settings?: string
 }
 
 export interface SubtitleTrack {
-  src: string
+  id?: string
+  src?: string
+  content?: string
   lang: string
   label: string
+  format?: SubtitleFormat
   default?: boolean
+  local?: boolean
 }
 
-/** Parse HH:MM:SS.mmm or HH:MM:SS,mmm timestamp → total seconds */
-export function parseTimestamp(ts: string): number {
-  const cleaned = ts.replace(',', '.')
-  const parts = cleaned.split(':')
-  if (parts.length === 3) {
-    return Number(parts[0]) * 3600 + Number(parts[1]) * 60 + Number(parts[2])
-  }
-  if (parts.length === 2) {
-    return Number(parts[0]) * 60 + Number(parts[1])
-  }
-  return Number(parts[0])
+export interface SubtitleCatalog {
+  list(signal: AbortSignal): Promise<SubtitleTrack[]>
 }
 
-/** Parse SRT format text into cues */
+export interface CaptionSettings {
+  fontSize: 'small' | 'medium' | 'large'
+  fontScale: number
+  fontFamily: 'sans' | 'serif' | 'monospace'
+  textColor: string
+  textOpacity: number
+  backgroundColor: string
+  backgroundOpacity: number
+  edgeStyle: 'none' | 'shadow' | 'outline'
+  edgeColor: string
+  position: number
+  lineHeight: number
+  delay: number
+}
+
+export const DEFAULT_CAPTION_SETTINGS: CaptionSettings = {
+  fontSize: 'medium',
+  fontScale: 100,
+  fontFamily: 'sans',
+  textColor: '#ffffff',
+  textOpacity: 1,
+  backgroundColor: '#000000',
+  backgroundOpacity: 0.75,
+  edgeStyle: 'shadow',
+  edgeColor: '#000000',
+  position: 0,
+  lineHeight: 1.35,
+  delay: 0,
+}
+
+export interface SubtitleParseError {
+  code: 'unsupported-format' | 'malformed'
+  message: string
+}
+
+export type SubtitleParseResult =
+  | { ok: true; format: SubtitleFormat; cues: SubtitleCue[] }
+  | { ok: false; format?: undefined; error: SubtitleParseError }
+
+const TIMESTAMP_SOURCE = '(?:\\d{2}:)?\\d{2}:\\d{2}[.,]\\d{3}'
+const TIMING_PATTERN = new RegExp(`^(${TIMESTAMP_SOURCE})\\s*-->\\s*(${TIMESTAMP_SOURCE})(?:\\s+(.*))?$`)
+
+function normalizeSubtitleText(content: string): string {
+  return content.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n')
+}
+
+/** Parse HH:MM:SS.mmm, MM:SS.mmm, and comma-separated variants. */
+export function parseTimestamp(timestamp: string): number {
+  const parts = timestamp.replace(',', '.').split(':').map(Number)
+  if (parts.some((part) => !Number.isFinite(part))) return Number.NaN
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
+  if (parts.length === 2) return parts[0] * 60 + parts[1]
+  return parts[0]
+}
+
+function parseCueBlocks(content: string, format: SubtitleFormat): SubtitleCue[] {
+  let text = normalizeSubtitleText(content).trim()
+  if (format === 'vtt') {
+    const firstBreak = text.indexOf('\n')
+    text = (firstBreak === -1 ? '' : text.slice(firstBreak + 1)).trim()
+  }
+
+  const cues: SubtitleCue[] = []
+  for (const block of text.split(/\n{2,}/)) {
+    const lines = block.split('\n').map((line) => line.trimEnd())
+    const first = lines[0]?.trim()
+    if (!first || first.startsWith('NOTE') || first === 'STYLE' || first === 'REGION') continue
+    const timingIndex = lines.findIndex((line) => TIMING_PATTERN.test(line.trim()))
+    if (timingIndex === -1) continue
+    const match = TIMING_PATTERN.exec(lines[timingIndex].trim())
+    if (!match) continue
+    const start = parseTimestamp(match[1])
+    const end = parseTimestamp(match[2])
+    const cueText = lines
+      .slice(timingIndex + 1)
+      .filter((line) => line.trim().length > 0)
+      .join('\n')
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start || !cueText) continue
+    const id = timingIndex > 0 ? lines[timingIndex - 1]?.trim() : undefined
+    cues.push({
+      index: cues.length + 1,
+      start,
+      end,
+      text: cueText,
+      ...(id && !/^\d+$/.test(id) ? { id } : {}),
+      ...(match[3] ? { settings: match[3] } : {}),
+    })
+  }
+  return cues
+}
+
 export function parseSRT(content: string): SubtitleCue[] {
-  const blocks = content.trim().replace(/\r\n/g, '\n').split(/\n\n+/)
-  return blocks
-    .map((block) => {
-      const lines = block.split('\n')
-      if (lines.length < 3) return null
-
-      const index = Number.parseInt(lines[0], 10)
-      if (Number.isNaN(index)) return null
-
-      const timeMatch = lines[1].match(/(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/)
-      if (!timeMatch) return null
-
-      const text = lines.slice(2).join('\n')
-      return {
-        index,
-        start: parseTimestamp(timeMatch[1]),
-        end: parseTimestamp(timeMatch[2]),
-        text,
-      }
-    })
-    .filter((c): c is SubtitleCue => c !== null)
+  return parseCueBlocks(content, 'srt')
 }
 
-/** Parse VTT format text into cues */
 export function parseVTT(content: string): SubtitleCue[] {
-  // Remove WEBVTT header and metadata
-  let text = content.replace(/\r\n/g, '\n')
-  const headerEnd = text.indexOf('\n\n')
-  if (headerEnd > 0) {
-    text = text.slice(headerEnd + 2)
-  }
-
-  const blocks = text.trim().split(/\n\n+/)
-  let index = 0
-  return blocks
-    .map((block) => {
-      const lines = block.split('\n')
-
-      // Skip notes and styles
-      if (lines[0]?.startsWith('NOTE') || lines[0]?.startsWith('STYLE')) return null
-
-      const timeLineIndex = lines.findIndex((l) => l.includes('-->'))
-      if (timeLineIndex === -1) return null
-
-      const timeMatch = lines[timeLineIndex].match(/(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/)
-      if (!timeMatch) return null
-
-      const textLines = lines.slice(timeLineIndex + 1).filter((l) => l.trim().length > 0)
-      if (textLines.length === 0) return null
-
-      index++
-      return {
-        index,
-        start: parseTimestamp(timeMatch[1]),
-        end: parseTimestamp(timeMatch[2]),
-        text: textLines.join('\n'),
-      }
-    })
-    .filter((c): c is SubtitleCue => c !== null)
+  return parseCueBlocks(content, 'vtt')
 }
 
-/** Fetch and parse subtitles from URL */
-export async function fetchSubtitles(track: SubtitleTrack): Promise<SubtitleCue[]> {
-  const resp = await fetch(track.src)
-  const text = await resp.text()
+export function parseSubtitles(
+  content: string,
+  hint: { format?: SubtitleFormat; fileName?: string; mimeType?: string } = {},
+): SubtitleParseResult {
+  const normalized = normalizeSubtitleText(content).trimStart()
+  const extension = hint.fileName?.toLowerCase().match(/\\.(vtt|srt)$/)?.[1] as SubtitleFormat | undefined
+  const mimeFormat = hint.mimeType === 'text/vtt' ? 'vtt' : hint.mimeType === 'application/x-subrip' ? 'srt' : undefined
+  const detected = normalized.startsWith('WEBVTT')
+    ? 'vtt'
+    : TIMING_PATTERN.test(normalized.split('\n')[0] ?? '')
+      ? 'srt'
+      : undefined
+  const format = hint.format ?? mimeFormat ?? extension ?? detected
+  if (!format)
+    return { ok: false, error: { code: 'unsupported-format', message: 'Expected a WebVTT or SRT subtitle file.' } }
+  const cues = format === 'vtt' ? parseVTT(normalized) : parseSRT(normalized)
+  if (cues.length === 0)
+    return { ok: false, error: { code: 'malformed', message: `No valid ${format.toUpperCase()} cues were found.` } }
+  return { ok: true, format, cues }
+}
 
-  if (track.src.endsWith('.srt')) {
-    return parseSRT(text)
+/** Fetch and parse subtitles from URL. */
+export async function fetchSubtitles(track: SubtitleTrack, signal?: AbortSignal): Promise<SubtitleCue[]> {
+  if (track.content !== undefined) {
+    const result = parseSubtitles(track.content, { format: track.format, fileName: track.label })
+    if (!result.ok) throw new Error(result.error.message)
+    return result.cues
   }
-  return parseVTT(text)
+  if (!track.src) throw new Error('Subtitle track has no source.')
+  const response = await fetch(track.src, { signal })
+  if (!response.ok) throw new Error(`Failed to fetch subtitles: ${response.status}`)
+  const result = parseSubtitles(await response.text(), {
+    format: track.format,
+    fileName: track.src,
+    mimeType: response.headers.get('content-type')?.split(';')[0],
+  })
+  if (!result.ok) throw new Error(result.error.message)
+  return result.cues
 }
 
 /** Get active cue at a given time */

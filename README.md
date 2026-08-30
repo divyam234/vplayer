@@ -1,114 +1,234 @@
 # VPlayer
 
-A React-first video player with a browser-safe headless TypeScript core.
+A React video player with an independent, browser-safe TypeScript core. Use the default accessible controls, replace individual slots, or build a fully custom player on the same state and command APIs.
+
+## Features
+
+- Native MP4, WebM, and Ogg playback
+- HLS and DASH source selection from file extensions or MIME hints
+- React controls with keyboard shortcuts, fullscreen, Picture-in-Picture, mini-player, screenshots, and responsive layouts
+- WebVTT and SRT captions from configured URLs, consumer-provided catalogs, or local files
+- Caption size, color, background, and opacity controls
+- Persisted playback progress with explicit resume behavior
+- Thumbnail VTT previews, including sprite sheets with `#xywh=x,y,w,h`
+- Headless core, React hooks, slots, custom layouts, and plugins
+- CSS-variable theming with one distributable stylesheet
+
+## Install
+
+```bash
+bun add @vplayer/react
+```
+
+Import the player and its base stylesheet:
 
 ```tsx
 import { VideoPlayer } from '@vplayer/react'
 import '@vplayer/react/player.css'
 
 export function App() {
-  return <VideoPlayer src="/video.mp4" poster="/poster.jpg" thumbnails="/thumbs.vtt" />
+  return <VideoPlayer src="/video.mp4" poster="/poster.jpg" />
 }
 ```
 
-## Architecture
+React 18.3 or newer is required.
 
-```txt
-@vplayer/core   -> headless playback/state/events/providers/parsers/plugins
-@vplayer/react  -> React provider, hooks, default UI, custom controls
-apps/playground -> Vite playground for manual development and generated examples
+## Default player
+
+```tsx
+import { VideoPlayer } from '@vplayer/react'
+import '@vplayer/react/player.css'
+
+export function LessonPlayer() {
+  return (
+    <VideoPlayer
+      src="/lesson.m3u8"
+      type="application/vnd.apple.mpegurl"
+      title="Introduction"
+      poster="/lesson-poster.jpg"
+      subtitles={[
+        {
+          id: 'english',
+          src: '/captions/lesson.en.vtt',
+          lang: 'en',
+          label: 'English',
+          default: true,
+        },
+      ]}
+      thumbnails="/thumbnails.vtt"
+      playbackProgress={{ id: 'lesson-1' }}
+      persistPreferences
+      onError={(message) => console.error(message)}
+    />
+  )
+}
 ```
 
-Removed intentionally:
+The default UI includes playback, seeking, volume, speed, quality labels, captions, mini-player, screenshot, Picture-in-Picture, fullscreen, and keyboard controls.
 
-```txt
-@vplayer/framework
-@vplayer/solid
-Next.js/Fumadocs documentation app
-```
+### Controls
 
-The rule is simple: **core owns behavior, React owns rendering**. Core never renders buttons, menus, sliders, icons, or CSS. React renders the UI and talks to core through the stable remote/store/plugin API.
+| Control            | Behavior                                                                        |
+| ------------------ | ------------------------------------------------------------------------------- |
+| Play / Pause       | Starts or pauses playback; replay is shown after completion                     |
+| Skip               | Moves backward or forward by 10 seconds                                         |
+| Seekbar            | Seeks through finite media and shows thumbnail previews when configured         |
+| Volume             | Changes volume and toggles mute                                                 |
+| Settings           | Opens playback speed, quality labels, captions, flip, and aspect-ratio controls |
+| Screenshot         | Captures the current video frame when the active engine supports it             |
+| Mini-player        | Switches to the compact in-page player                                          |
+| Picture-in-Picture | Uses the browser Picture-in-Picture API when available                          |
+| Fullscreen         | Enters or exits browser fullscreen                                              |
 
-## Features
+Keyboard shortcuts run only while focus is inside the player and never intercept text fields:
 
-- Native `<video>` engine with automatic source setup.
-- HLS/DASH provider selection via source extension/MIME hints.
-- Browser capability detection for MSE, native HLS, fullscreen, PiP, and text tracks.
-- Safe `play()` handling for autoplay/user-gesture rejections.
-- Nullable engine contract before mount and after unmount.
-- VTT/SRT subtitle parsing.
-- Thumbnail VTT preview parsing, including sprite URLs with `#xywh=x,y,w,h` and plain image cues.
-- AbortController cleanup for thumbnail fetch changes/unmounts.
-- Plugin registration for controls, settings, layers, hotkeys, notifications, and context menu items.
-- React slots and children for custom controls while preserving the current default UI.
-- Compact YouTube-like mini-player layout with auto-hiding controls.
-- Single default stylesheet with stable class names and CSS variables for app-level overrides.
-- Vitest unit/component tests and Playwright cross-browser smoke-test config.
+| Key            | Action                             |
+| -------------- | ---------------------------------- |
+| `Space` or `K` | Play or pause                      |
+| `←` / `→`      | Seek backward or forward 5 seconds |
+| `↑` / `↓`      | Raise or lower volume by 10%       |
+| `M`            | Mute or unmute                     |
+| `F`            | Toggle fullscreen                  |
+| `L`            | Toggle looping                     |
+| `A`            | Cycle aspect ratio                 |
+| `I`            | Toggle playback information        |
 
-## Quick start
+Set `defaultHotkeys={false}` to disable the built-in bindings.
 
-```bash
-bun install
-bun run dev
-```
+## Captions
 
-## Scripts
+### URL tracks
 
-```bash
-bun run typecheck   # TypeScript for core, React, and playground
-bun run test        # Vitest unit/component tests
-bun run lint        # oxlint
-bun run build       # production builds for packages and Vite playground
-bun run test:e2e    # Playwright against the Vite preview
-bun run test:all    # typecheck + tests + build + e2e
-```
-
-Before running Playwright locally or in CI, install browsers once:
-
-```bash
-bunx playwright install chromium
-```
-
-## Playground
-
-The repository contains one application: `apps/playground`, a minimal React + Vite app for configuring and manually exercising `@vplayer/react`.
-
-```bash
-bun run dev
-```
-
-Vite serves the playground at `/`. There is no Next.js or documentation application.
-
-## React default UI
+Provide WebVTT or SRT tracks directly:
 
 ```tsx
 <VideoPlayer
   src="/video.mp4"
-  type="video/mp4"
-  poster="/poster.jpg"
-  qualities={['Auto', '1080p', '720p', '480p']}
-  subtitles={[{ lang: 'en', label: 'English', src: '/subs/en.vtt', default: true }]}
-  thumbnails="/thumbs.vtt"
-  onTimeUpdate={(time) => console.log(time)}
-  onEnded={() => console.log('ended')}
-  onError={(message) => console.error(message)}
+  subtitles={[
+    { id: 'en', src: '/captions/en.vtt', lang: 'en', label: 'English', default: true },
+    { id: 'es', src: '/captions/es.srt', lang: 'es', label: 'Español' },
+  ]}
 />
 ```
 
-## Styling
+Track IDs should be stable and unique. Multiple tracks may use the same language.
 
-Import the single base stylesheet:
+### Remote subtitle catalogs
+
+Applications can decide how available tracks are discovered. Implement `SubtitleCatalog` and pass it to the player:
 
 ```tsx
-import '@vplayer/react/player.css'
+import { VideoPlayer, type SubtitleCatalog } from '@vplayer/react'
+
+const subtitleCatalog: SubtitleCatalog = {
+  async list(signal) {
+    const response = await fetch('/api/videos/lesson-1/subtitles', { signal })
+    if (!response.ok) throw new Error(`Subtitle catalog failed: ${response.status}`)
+    return response.json()
+  },
+}
+
+export function Player() {
+  return <VideoPlayer src="/video.mp4" subtitleCatalog={subtitleCatalog} />
+}
 ```
 
-There is no built-in skin prop or extra skin bundle. Consumers can override the stable `.vplayer*` classes and CSS variables from their app stylesheet:
+The catalog returns `SubtitleTrack[]`. VPlayer handles loading state, cancellation, errors, retry, and merging catalog entries with configured and local tracks.
+
+### Local files
+
+The default Captions menu always includes **Load subtitle file…**. Users can select `.vtt` or `.srt` files from their device. Files are read in the browser with `File.text()` and are never uploaded, assigned a blob URL, or persisted. Local tracks are discarded when the player is destroyed.
+
+The Caption appearance panel provides a VLC-style live preview and controls for:
+
+- small, default, or large base size;
+- precise scaling from 50% to 200%;
+- sans-serif, serif, or monospace fonts;
+- text color and opacity;
+- background color and opacity;
+- no edge, drop shadow, or outline with a configurable edge color;
+- vertical position and line spacing;
+- subtitle delay from −10 to +10 seconds in 0.1-second steps;
+- reset to defaults.
+
+Positive subtitle delay displays cues later; negative delay displays them earlier. Appearance and sync preferences persist only when `persistPreferences` is enabled.
+
+### Parsing captions directly
+
+The framework-independent parser detects WebVTT and SRT from an explicit format, MIME type, filename, or content signature:
+
+```ts
+import { parseSubtitles } from '@vplayer/core'
+
+const result = parseSubtitles(sourceText, { fileName: 'captions.srt' })
+
+if (result.ok) {
+  console.log(result.format, result.cues)
+} else {
+  console.error(result.error.code, result.error.message)
+}
+```
+
+## Playback progress
+
+Progress is stored per media source by default, or under an explicit ID:
+
+```tsx
+<VideoPlayer src="/episode.mp4" playbackProgress={{ id: 'series-1:episode-4' }} />
+```
+
+You may inject your own asynchronous store:
+
+```ts
+import type { PlaybackProgressStore } from '@vplayer/react'
+
+const progressStore: PlaybackProgressStore = {
+  async load(id) {
+    return database.loadProgress(id)
+  },
+  async save(id, progress) {
+    await database.saveProgress(id, progress)
+  },
+  async clear(id) {
+    await database.clearProgress(id)
+  },
+}
+```
+
+```tsx
+<VideoPlayer src="/episode.mp4" playbackProgress={{ id: 'episode-4', store: progressStore }} />
+```
+
+Manual playback presents Continue and Start over choices. Autoplay restores valid progress automatically. Progress checkpoints are throttled during playback and flushed on pause, seek, page hide, source changes, and teardown.
+
+## Thumbnail previews
+
+Provide a thumbnail WebVTT file:
+
+```tsx
+<VideoPlayer src="/video.mp4" thumbnails="/thumbnails.vtt" />
+```
+
+Sprite-sheet cue:
+
+```vtt
+WEBVTT
+
+00:00:00.000 --> 00:00:05.000
+thumbs.jpg#xywh=0,0,160,90
+```
+
+Plain image cues are also supported. Relative image URLs are resolved against the thumbnail VTT response URL.
+
+## Theming
+
+Override scoped CSS variables or stable `.vplayer*` classes in your application stylesheet:
 
 ```css
 .vplayer {
-  --vplayer-accent: #ff0033;
-  --vplayer-radius: 12px;
+  --vplayer-accent: #ff3b5c;
+  --vplayer-radius: 14px;
+  --vplayer-bg: #08090c;
 }
 
 .vplayer__button {
@@ -116,24 +236,37 @@ There is no built-in skin prop or extra skin bundle. Consumers can override the 
 }
 ```
 
+There is no skin prop or separate theme bundle.
+
 ## Mini-player
-
-The default layout switches to compact mini-player controls when mini mode is active. It does not render the big play overlay, skip buttons, volume slider, settings, screenshot, PiP, or fullscreen controls. It keeps only:
-
-```txt
-close / restore button
-center play-pause button
-compact seekbar
-bottom mini progress
-```
 
 ```tsx
 <VideoPlayer src="/video.mp4" miniPlayer={{ enabled: true, auto: true, position: 'bottom-right', width: 360 }} />
 ```
 
-## Custom controls
+Mini-player mode uses a compact play button, seekbar, progress indicator, and close control.
 
-Pass children to replace the default layout while keeping the internal video element, provider, overlays, and player lifecycle.
+## Customize the UI
+
+### Replace individual controls
+
+Use slots when most of the default layout should remain:
+
+```tsx
+<VideoPlayer
+  src="/video.mp4"
+  slots={{
+    playButton: <MyPlayButton />,
+    seekBar: <MySeekBar />,
+    volumeControl: <MyVolumeControl />,
+    fullscreenButton: <MyFullscreenButton />,
+  }}
+/>
+```
+
+### Replace the layout
+
+Children replace the default layout while preserving the internal video element, context, overlays, and lifecycle:
 
 ```tsx
 import { VideoPlayer, usePlayerRemote, usePlayerState } from '@vplayer/react'
@@ -144,9 +277,15 @@ function MyControls() {
 
   return (
     <div className="my-controls">
-      <button onClick={remote.togglePlay}>{isPlaying ? 'Pause' : 'Play'}</button>
-      <button onClick={() => remote.skip(-10)}>Back 10s</button>
-      <button onClick={() => remote.skip(10)}>Forward 10s</button>
+      <button type="button" onClick={remote.togglePlay}>
+        {isPlaying ? 'Pause' : 'Play'}
+      </button>
+      <button type="button" onClick={() => remote.skip(-10)}>
+        Back 10s
+      </button>
+      <button type="button" onClick={() => remote.skip(10)}>
+        Forward 10s
+      </button>
     </div>
   )
 }
@@ -160,107 +299,66 @@ export function CustomPlayer() {
 }
 ```
 
-## Slots
+### Own all markup
 
-Replace individual default controls without replacing the whole layout.
-
-```tsx
-<VideoPlayer
-  src="/video.mp4"
-  slots={{
-    playButton: <MyPlayButton />,
-    seekBar: <MySeekBar />,
-    volumeControl: <MyVolume />,
-    fullscreenButton: <MyFullscreen />,
-  }}
-/>
-```
-
-## Headless hook
-
-Use `usePlayer` when you want to own all markup, including the `<video>` element.
+Use `usePlayer` when your application should own the container and `<video>` element:
 
 ```tsx
-import { usePlayer } from '@vplayer/react'
 import { useEffect, useRef } from 'react'
+import { usePlayer } from '@vplayer/react'
 
 function HeadlessPlayer({ src }: { src: string }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const { state, remote, attach, detach, updateOptions } = usePlayer({ src })
+  const player = usePlayer({ src })
 
   useEffect(() => {
-    attach(containerRef.current!, videoRef.current!)
-    return () => detach()
-  }, [attach, detach])
+    player.attach(containerRef.current!, videoRef.current!)
+    return player.detach
+  }, [player.attach, player.detach])
 
   useEffect(() => {
-    updateOptions({ src })
-  }, [src, updateOptions])
+    player.updateOptions({ src })
+  }, [player.updateOptions, src])
 
   return (
     <div ref={containerRef}>
       <video ref={videoRef} playsInline />
-      <button onClick={remote.togglePlay}>{state.isPlaying ? 'Pause' : 'Play'}</button>
+      <button type="button" onClick={player.remote.togglePlay}>
+        {player.state.isPlaying ? 'Pause' : 'Play'}
+      </button>
     </div>
   )
 }
 ```
 
-## Thumbnail VTT
+## Packages
 
-Sprite thumbnails:
-
-```vtt
-WEBVTT
-
-00:00:00.000 --> 00:00:05.000
-thumbs.jpg#xywh=0,0,160,90
-
-00:00:05.000 --> 00:00:10.000
-thumbs.jpg#xywh=160,0,160,90
+```text
+@vplayer/core   Headless state, engines, events, source resolution, parsers, progress, and plugins
+@vplayer/react  React provider, hooks, controls, layouts, overlays, and stylesheet
+playground      Vite application for manual development
 ```
 
-Plain image thumbnails are also accepted:
+Core owns behavior and state. React owns rendering and CSS.
 
-```vtt
-WEBVTT
+## Development
 
-00:00:00.000 --> 00:00:05.000
-thumb-0001.jpg
+This repository uses Bun workspaces:
+
+```bash
+bun install
+bun run dev
 ```
 
-Relative thumbnail URLs are resolved against the VTT file URL.
+Validation commands:
 
-## Provider/source behavior
-
-```txt
-.mp4/.webm/.ogg or video/* -> native video
-.m3u8 / MPEGURL type       -> native HLS on Safari, hls.js elsewhere
-.mpd / DASH type           -> dash.js provider
-custom engine              -> supplied engine/factory
+```bash
+bun run format
+bun run typecheck
+bun run lint
+bun run test
+bun run build
 ```
 
-The active `player.engine` is `null` before mount and after unmount. This avoids pretending the media element exists before React refs are available.
-
-## Testing coverage added
-
-Core Vitest:
-
-- VTT parser regression for the previous `startsWith('')` bug.
-- Timestamp parser coverage.
-- Thumbnail sprite and plain-image cue parsing.
-- Source resolver native/HLS/DASH detection.
-- Player mount/unmount nullable engine contract.
-- Engine event to store-state updates.
-- Thumbnail request abort behavior.
-
-React Vitest:
-
-- Custom children can replace the default layout and control the player through hooks.
-
-Playwright:
-
-- Demo smoke test.
-- Playground setting toggle interaction.
-- Configured for Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari emulation.
+`bun run dev` starts the Vite playground. There is no Next.js or documentation application.

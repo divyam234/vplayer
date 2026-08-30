@@ -18,7 +18,8 @@ import type { PlaybackProgress } from '../playback-progress'
 import type { ControlRegistration, ContextMenuItem, FlipState, AspectRatioState } from '../plugin-api'
 import type { LayerRegistration, SettingRegistration } from '../plugin-api'
 import type { PlayerSource } from '../source-resolver'
-import type { SubtitleTrack, ThumbnailCue } from '../subtitle-parser'
+import { DEFAULT_CAPTION_SETTINGS } from '../subtitle-parser'
+import type { CaptionSettings, SubtitleCue, SubtitleTrack, ThumbnailCue } from '../subtitle-parser'
 
 export type PlaybackStatus =
   | 'idle'
@@ -62,6 +63,12 @@ export interface PreferencesSlice {
   aspectRatio: AspectRatioState
   activeSubtitle: SubtitleTrack | null
   subtitleTracks: SubtitleTrack[]
+  subtitleCues: SubtitleCue[]
+  subtitleStatus: 'idle' | 'loading' | 'ready' | 'error'
+  subtitleError: string | null
+  subtitleCatalogStatus: 'idle' | 'loading' | 'ready' | 'error'
+  subtitleCatalogError: string | null
+  captionSettings: CaptionSettings
   activeQuality: string
   qualities: string[]
 }
@@ -100,8 +107,10 @@ export interface ErrorSlice {
 
 // ── Slice 8: Playback progress ─────────────────────────────
 
+export type ResumeState = { status: 'idle' } | { status: 'loading' } | { status: 'prompt'; progress: PlaybackProgress }
+
 export interface PlaybackProgressSlice {
-  resumeProgress: PlaybackProgress | null
+  resumeState: ResumeState
 }
 
 // ── Composed MediaState ───────────────────────────────────
@@ -156,6 +165,12 @@ export function getInitialMediaState(): MediaState {
     aspectRatio: 'default' as AspectRatioState,
     activeSubtitle: null,
     subtitleTracks: [],
+    subtitleCues: [],
+    subtitleStatus: 'idle',
+    subtitleError: null,
+    subtitleCatalogStatus: 'idle',
+    subtitleCatalogError: null,
+    captionSettings: { ...DEFAULT_CAPTION_SETTINGS },
     activeQuality: 'Auto',
     qualities: [],
 
@@ -186,7 +201,7 @@ export function getInitialMediaState(): MediaState {
     error: null,
 
     // Playback progress
-    resumeProgress: null,
+    resumeState: { status: 'idle' },
   }
 }
 
@@ -206,7 +221,7 @@ export const selectMedia = (s: MediaState) => ({
   bufferedPercent: s.bufferedPercent,
   playbackRate: s.playbackRate,
   isLive: s.isLive,
-  resumeProgress: s.resumeProgress,
+  resumeState: s.resumeState,
 })
 
 export const selectAudio = (s: MediaState) => ({ volume: s.volume, isMuted: s.isMuted })
@@ -216,6 +231,12 @@ export const selectPreferences = (s: MediaState) => ({
   aspectRatio: s.aspectRatio,
   activeSubtitle: s.activeSubtitle,
   subtitleTracks: s.subtitleTracks,
+  subtitleCues: s.subtitleCues,
+  subtitleStatus: s.subtitleStatus,
+  subtitleError: s.subtitleError,
+  subtitleCatalogStatus: s.subtitleCatalogStatus,
+  subtitleCatalogError: s.subtitleCatalogError,
+  captionSettings: s.captionSettings,
   activeQuality: s.activeQuality,
   qualities: s.qualities,
 })

@@ -27,10 +27,13 @@ import type { PluginAPI, PlayerPlugin, ContextMenuItem, FlipState, AspectRatioSt
 import { createResolvedMediaEngine, toPlayerSource } from './source-resolver'
 import { createMediaStore } from './state/slices'
 import { Storage, STORAGE_KEYS } from './storage'
-import { fetchThumbnails } from './subtitle-parser'
+import { DEFAULT_CAPTION_SETTINGS, fetchSubtitles, fetchThumbnails } from './subtitle-parser'
+import type { CaptionSettings, SubtitleTrack } from './subtitle-parser'
 import type { PlayerOptions, MediaRemote, PlayerInstance } from './types'
 
 const ASPECT_RATIO_CYCLE: AspectRatioState[] = ['default', '16:9', '4:3', '21:9', 'cover', 'fill']
+const PROGRESS_CHECKPOINT_INTERVAL_MS = 5000
+const PROGRESS_CHECKPOINT_DELTA_SECONDS = 2
 
 const ASPECT_RATIO_CSS: Partial<Record<AspectRatioState, string>> = {
   '16:9': '16 / 9',
@@ -68,6 +71,13 @@ function objectFitForAspectRatio(ratio: AspectRatioState): 'contain' | 'cover' |
   return 'contain'
 }
 
+function normalizeSubtitleTrack(track: SubtitleTrack): SubtitleTrack {
+  return {
+    ...track,
+    id: track.id ?? `${track.local ? 'local' : 'track'}:${track.src ?? track.label}:${track.lang}`,
+  }
+}
+
 export function createPlayer(options: PlayerOptions): PlayerInstance {
   // ── Core services ──────────────────────────────────────────
   const store = createMediaStore()
@@ -87,10 +97,13 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   let containerEl: HTMLDivElement | null = null
   let engine: MediaEngine | null = null
   let fullscreenHandler: (() => void) | null = null
-  let progressTimer: ReturnType<typeof setInterval> | null = null
+  let lastProgressSaveAt = 0
+  let lastProgressTime = Number.NaN
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let reconnectAttempt = 0
   let thumbnailAbortController: AbortController | null = null
+  let subtitleAbortController: AbortController | null = null
+  let subtitleCatalogAbortController: AbortController | null = null
   let mediaSessionMetadata: MediaMetadata | null = null
   const defaultProgressStore = new LocalPlaybackProgressStore()
   let progressGeneration = 0
@@ -167,7 +180,19 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     ) {
       return
     }
+    lastProgressSaveAt = Date.now()
+    lastProgressTime = eng.currentTime
     enqueueProgressSave(target, { time: eng.currentTime, duration: eng.duration })
+  }
+
+  function checkpointProgress(eng: MediaEngine): void {
+    if (!store.state.isPlaying || Date.now() - lastProgressSaveAt < PROGRESS_CHECKPOINT_INTERVAL_MS) return
+    if (
+      Number.isFinite(lastProgressTime) &&
+      Math.abs(eng.currentTime - lastProgressTime) < PROGRESS_CHECKPOINT_DELTA_SECONDS
+    )
+      return
+    flushProgress(activeProgressTarget, eng)
   }
 
   function resetProgressGeneration(): void {
@@ -175,8 +200,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     activeProgressTarget = resolveProgressTarget(currentOptions)
     progressLoaded = false
     playbackBegun = false
-    stopProgressSave()
-    store.setState((prev) => ({ ...prev, resumeProgress: null }))
+    lastProgressSaveAt = 0
+    lastProgressTime = Number.NaN
+    store.setState((prev) => ({ ...prev, resumeState: { status: 'idle' } }))
   }
 
   function loadProgress(eng: MediaEngine): void {
@@ -184,26 +210,104 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     progressLoaded = true
     const target = activeProgressTarget
     const duration = eng.duration
+    store.setState((prev) => ({ ...prev, resumeState: { status: 'loading' } }))
     void target.store
       .load(target.id)
       .then((progress) => {
+        const autoResume = currentOptions.autoPlay === true
+        if (target.generation !== progressGeneration || eng !== engine) return
         if (
           !progress ||
-          target.generation !== progressGeneration ||
-          eng !== engine ||
-          playbackBegun ||
-          eng.currentTime !== 0 ||
+          (!autoResume && (playbackBegun || eng.currentTime !== 0)) ||
           !Number.isFinite(progress.time) ||
           !Number.isFinite(progress.duration) ||
           progress.time <= 3 ||
           progress.time >= duration - 3 ||
           Math.abs(progress.duration - duration) > Math.max(1, duration * 0.01)
-        )
+        ) {
+          store.setState((prev) => ({ ...prev, resumeState: { status: 'idle' } }))
           return
-        store.setState((prev) => ({ ...prev, resumeProgress: progress }))
+        }
+        if (autoResume) {
+          eng.seek(progress.time)
+          store.setState((prev) => ({ ...prev, resumeState: { status: 'idle' } }))
+        } else store.setState((prev) => ({ ...prev, resumeState: { status: 'prompt', progress } }))
       })
-      .catch((error) => console.warn('[vplayer] playback progress load failed:', error))
+      .catch((error) => {
+        if (target.generation === progressGeneration && eng === engine) {
+          store.setState((prev) => ({ ...prev, resumeState: { status: 'idle' } }))
+        }
+        console.warn('[vplayer] playback progress load failed:', error)
+      })
   }
+
+  function mergeSubtitleTracks(tracks: SubtitleTrack[]): void {
+    store.setState((prev) => {
+      const merged = new Map(prev.subtitleTracks.map((track) => [track.id, track]))
+      for (const track of tracks) {
+        const normalized = normalizeSubtitleTrack(track)
+        merged.set(normalized.id, normalized)
+      }
+      return { ...prev, subtitleTracks: [...merged.values()] }
+    })
+  }
+
+  function loadSubtitleTrack(track: SubtitleTrack): void {
+    subtitleAbortController?.abort()
+    const controller = new AbortController()
+    subtitleAbortController = controller
+    store.setState((prev) => ({
+      ...prev,
+      activeSubtitle: track,
+      subtitleCues: [],
+      subtitleStatus: 'loading',
+      subtitleError: null,
+    }))
+    void fetchSubtitles(track, controller.signal).then(
+      (cues) => {
+        if (controller.signal.aborted) return
+        store.setState((prev) => ({ ...prev, subtitleCues: cues, subtitleStatus: 'ready', subtitleError: null }))
+      },
+      (error) => {
+        if (controller.signal.aborted) return
+        store.setState((prev) => ({
+          ...prev,
+          subtitleCues: [],
+          subtitleStatus: 'error',
+          subtitleError: error instanceof Error ? error.message : String(error),
+        }))
+      },
+    )
+  }
+
+  function loadSubtitleCatalog(): void {
+    subtitleCatalogAbortController?.abort()
+    const catalog = currentOptions.subtitleCatalog
+    if (!catalog) {
+      store.setState((prev) => ({ ...prev, subtitleCatalogStatus: 'idle', subtitleCatalogError: null }))
+      return
+    }
+    const controller = new AbortController()
+    subtitleCatalogAbortController = controller
+    store.setState((prev) => ({ ...prev, subtitleCatalogStatus: 'loading', subtitleCatalogError: null }))
+    void catalog.list(controller.signal).then(
+      (tracks) => {
+        if (controller.signal.aborted) return
+        mergeSubtitleTracks(tracks)
+        store.setState((prev) => ({ ...prev, subtitleCatalogStatus: 'ready', subtitleCatalogError: null }))
+      },
+      (error) => {
+        if (controller.signal.aborted) return
+        store.setState((prev) => ({
+          ...prev,
+          subtitleCatalogStatus: 'error',
+          subtitleCatalogError: error instanceof Error ? error.message : String(error),
+        }))
+      },
+    )
+  }
+
+  if (currentOptions.subtitles?.length) mergeSubtitleTracks(currentOptions.subtitles)
 
   function clearMediaSessionMetadata(): void {
     if (
@@ -354,15 +458,15 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       else e.pause()
     },
     resumeFromSavedProgress: () => {
-      const progress = store.state.resumeProgress
-      if (!progress) return
-      store.setState((prev) => ({ ...prev, resumeProgress: null }))
-      engine?.seek(progress.time)
+      const resumeState = store.state.resumeState
+      if (resumeState.status !== 'prompt') return
+      store.setState((prev) => ({ ...prev, resumeState: { status: 'idle' } }))
+      engine?.seek(resumeState.progress.time)
       void engine?.play()
     },
     startPlaybackOver: () => {
       const target = activeProgressTarget
-      store.setState((prev) => ({ ...prev, resumeProgress: null }))
+      store.setState((prev) => ({ ...prev, resumeState: { status: 'idle' } }))
       engine?.seek(0)
       enqueueProgressClear(target)
     },
@@ -426,7 +530,49 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       }
     },
     setActiveSubtitle: (track) => {
-      store.setState((prev) => ({ ...prev, activeSubtitle: track }))
+      if (!track) {
+        subtitleAbortController?.abort()
+        store.setState((prev) => ({
+          ...prev,
+          activeSubtitle: null,
+          subtitleCues: [],
+          subtitleStatus: 'idle',
+          subtitleError: null,
+        }))
+        return
+      }
+      loadSubtitleTrack(track)
+    },
+    addSubtitleTrack: (track) => {
+      const normalized = normalizeSubtitleTrack(track)
+      mergeSubtitleTracks([normalized])
+      loadSubtitleTrack(normalized)
+    },
+    removeSubtitleTrack: (id) => {
+      if (store.state.activeSubtitle?.id === id) remote.setActiveSubtitle(null)
+      store.setState((prev) => ({ ...prev, subtitleTracks: prev.subtitleTracks.filter((track) => track.id !== id) }))
+    },
+    reloadSubtitleCatalog: loadSubtitleCatalog,
+    setCaptionSettings: (patch) => {
+      store.setState((prev) => ({
+        ...prev,
+        captionSettings: {
+          ...prev.captionSettings,
+          ...patch,
+          fontScale: Math.max(50, Math.min(200, patch.fontScale ?? prev.captionSettings.fontScale)),
+          textOpacity: Math.max(0, Math.min(1, patch.textOpacity ?? prev.captionSettings.textOpacity)),
+          backgroundOpacity: Math.max(
+            0,
+            Math.min(1, patch.backgroundOpacity ?? prev.captionSettings.backgroundOpacity),
+          ),
+          position: Math.max(-20, Math.min(30, patch.position ?? prev.captionSettings.position)),
+          lineHeight: Math.max(1, Math.min(2, patch.lineHeight ?? prev.captionSettings.lineHeight)),
+          delay: Math.max(-10, Math.min(10, patch.delay ?? prev.captionSettings.delay)),
+        },
+      }))
+    },
+    resetCaptionSettings: () => {
+      store.setState((prev) => ({ ...prev, captionSettings: { ...DEFAULT_CAPTION_SETTINGS } }))
     },
     setActiveQuality: (q: string) => {
       store.setState((prev) => ({ ...prev, activeQuality: q }))
@@ -496,7 +642,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     return [
       eng.on('play', () => {
         playbackBegun = true
-        store.setState((prev) => ({ ...prev, resumeProgress: null }))
+        store.setState((prev) => ({ ...prev, resumeState: { status: 'idle' } }))
         syncMediaSessionMetadata()
         store.setState((prev) => ({
           ...prev,
@@ -523,7 +669,8 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       }),
 
       eng.on('ended', () => {
-        stopProgressSave()
+        lastProgressSaveAt = 0
+        lastProgressTime = Number.NaN
         for (let index = progressOperations.length - 1; index >= 0; index--) {
           const operation = progressOperations[index]
           if (operation?.kind === 'save' && operation.target.generation === activeProgressTarget.generation) {
@@ -539,7 +686,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
           isBuffering: false,
           isEnded: true,
           controlsVisible: true,
-          resumeProgress: null,
+          resumeState: { status: 'idle' },
         }))
         currentOptions.onEnded?.()
       }),
@@ -547,6 +694,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       eng.on('timeupdate', () => {
         store.setState((prev) => ({ ...prev, currentTime: eng.currentTime }))
         currentOptions.onTimeUpdate?.(eng.currentTime)
+        checkpointProgress(eng)
       }),
 
       eng.on('loadedmetadata', () => {
@@ -612,10 +760,19 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
       eng.on('seeked', () => {
         store.setState((prev) => ({ ...prev, status: prev.isPlaying ? 'playing' : 'ready' }))
+        flushProgress(activeProgressTarget, eng)
       }),
 
       eng.on('playing', () => {
-        store.setState((prev) => ({ ...prev, status: 'playing', isPlaying: true, isPaused: false, isBuffering: false }))
+        playbackBegun = true
+        store.setState((prev) => ({
+          ...prev,
+          status: 'playing',
+          isPlaying: true,
+          isPaused: false,
+          isBuffering: false,
+          resumeState: { status: 'idle' },
+        }))
       }),
 
       eng.on('volumechange', () => {
@@ -667,26 +824,6 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     ]
   }
 
-  // ── Progress persistence ─────────────────────────────────
-  function startProgressSave(): void {
-    stopProgressSave()
-    progressTimer = setInterval(() => flushProgress(), 5000)
-  }
-
-  function stopProgressSave(): void {
-    if (progressTimer !== null) {
-      clearInterval(progressTimer)
-      progressTimer = null
-    }
-  }
-
-  const unsubProgress = store.subscribe(() => {
-    const s = store.state
-    if (s.isPlaying && s.duration > 0 && !s.isLive) {
-      if (progressTimer === null) startProgressSave()
-    } else stopProgressSave()
-  })
-
   // ── Preference persistence (opt-in) ──────────────────────
   let unsubPersist: (() => void) | null = null
 
@@ -699,6 +836,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     const loop = storage.get<boolean>(STORAGE_KEYS.LOOP)
     const flip = storage.get<FlipState>(STORAGE_KEYS.FLIP)
     const aspectRatio = storage.get<AspectRatioState>(STORAGE_KEYS.ASPECT_RATIO)
+    const captionSettings = storage.get<CaptionSettings>(STORAGE_KEYS.CAPTION_SETTINGS)
     store.setState((prev) => ({
       ...prev,
       volume: volume ?? prev.volume,
@@ -707,6 +845,13 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       isLooping: loop ?? prev.isLooping,
       flip: flip ?? prev.flip,
       aspectRatio: normalizeAspectRatio(aspectRatio),
+      captionSettings: captionSettings
+        ? {
+            ...DEFAULT_CAPTION_SETTINGS,
+            ...captionSettings,
+            backgroundOpacity: Math.max(0, Math.min(1, captionSettings.backgroundOpacity)),
+          }
+        : prev.captionSettings,
     }))
 
     unsubPersist = store.subscribe(() => {
@@ -720,6 +865,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       else storage.remove(STORAGE_KEYS.FLIP)
       if (s.aspectRatio !== 'default') storage.set(STORAGE_KEYS.ASPECT_RATIO, s.aspectRatio)
       else storage.remove(STORAGE_KEYS.ASPECT_RATIO)
+      storage.set(STORAGE_KEYS.CAPTION_SETTINGS, s.captionSettings)
     })
   }
 
@@ -934,6 +1080,8 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       const thumbnailTransformChanged =
         Object.hasOwn(opts, 'transformThumbnailVTT') &&
         opts.transformThumbnailVTT !== currentOptions.transformThumbnailVTT
+      const subtitleCatalogChanged =
+        Object.hasOwn(opts, 'subtitleCatalog') && opts.subtitleCatalog !== currentOptions.subtitleCatalog
       const nextOptions = { ...currentOptions, ...opts }
       const nextTarget = resolveProgressTarget(nextOptions)
       const progressTargetChanged =
@@ -947,17 +1095,10 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       }
 
       store.setState((prev) => {
-        const subtitleTracks = opts.subtitles ?? prev.subtitleTracks
         const qualities = opts.qualities ?? prev.qualities
         return {
           ...prev,
-          subtitleTracks,
           qualities,
-          activeSubtitle: opts.subtitles
-            ? prev.activeSubtitle && opts.subtitles.some((t) => t.lang === prev.activeSubtitle!.lang)
-              ? prev.activeSubtitle
-              : (opts.subtitles.find((s) => s.default) ?? opts.subtitles[0] ?? null)
-            : prev.activeSubtitle,
           activeQuality: opts.qualities
             ? opts.qualities.includes(prev.activeQuality)
               ? prev.activeQuality
@@ -965,6 +1106,14 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
             : prev.activeQuality,
         }
       })
+      if (opts.subtitles) {
+        mergeSubtitleTracks(opts.subtitles)
+        if (!store.state.activeSubtitle) {
+          const initialTrack = opts.subtitles.find((track) => track.default) ?? null
+          if (initialTrack) remote.setActiveSubtitle(normalizeSubtitleTrack(initialTrack))
+        }
+      }
+      if (subtitleCatalogChanged) loadSubtitleCatalog()
 
       if (thumbnailsChanged || thumbnailTransformChanged) {
         doFetchThumbnails(currentOptions.thumbnails)
@@ -1018,6 +1167,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       window.addEventListener('pagehide', pagehideHandler)
 
       doFetchThumbnails(currentOptions.thumbnails)
+      loadSubtitleCatalog()
+      const defaultSubtitle = store.state.subtitleTracks.find((track) => track.default)
+      if (defaultSubtitle) remote.setActiveSubtitle(defaultSubtitle)
       setupPreferencePersistence()
       remote.setAspectRatio(store.state.aspectRatio)
     },
@@ -1029,6 +1181,10 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       containerEl = null
       thumbnailAbortController?.abort()
       thumbnailAbortController = null
+      subtitleAbortController?.abort()
+      subtitleAbortController = null
+      subtitleCatalogAbortController?.abort()
+      subtitleCatalogAbortController = null
       teardownPreferencePersistence()
 
       if (reconnectTimer !== null) {
@@ -1047,6 +1203,11 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
       store.setState((prev) => ({
         ...prev,
+        activeSubtitle: null,
+        subtitleTracks: prev.subtitleTracks.filter((track) => !track.local),
+        subtitleCues: [],
+        subtitleStatus: 'idle',
+        subtitleError: null,
         status: 'idle',
         isPlaying: false,
         isPaused: true,
@@ -1057,7 +1218,6 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
     destroy(): void {
       this.unmount()
-      unsubProgress()
       events.clear()
     },
   }

@@ -257,7 +257,9 @@ describe('createPlayer core contract', () => {
     const second = createPlayer({ src: '/video-a.mp4', engine: (video) => new FakeEngine(video) })
     second.mount(document.createElement('video'), document.createElement('div'))
     ;(second.engine as FakeEngine).emit('loadedmetadata')
-    await vi.waitFor(() => expect(second.store.state.resumeProgress).toEqual({ time: 42, duration: 120 }))
+    await vi.waitFor(() =>
+      expect(second.store.state.resumeState).toEqual({ status: 'prompt', progress: { time: 42, duration: 120 } }),
+    )
     second.destroy()
   })
 
@@ -281,7 +283,9 @@ describe('createPlayer core contract', () => {
     engine.duration = 120
     engine.emit('durationchange')
 
-    await vi.waitFor(() => expect(player.store.state.resumeProgress).toEqual({ time: 42, duration: 120 }))
+    await vi.waitFor(() =>
+      expect(player.store.state.resumeState).toEqual({ status: 'prompt', progress: { time: 42, duration: 120 } }),
+    )
     player.destroy()
   })
 
@@ -300,7 +304,7 @@ describe('createPlayer core contract', () => {
     })
     player.mount(document.createElement('video'), document.createElement('div'))
     ;(player.engine as FakeEngine).emit('loadedmetadata')
-    await vi.waitFor(() => expect(player.store.state.resumeProgress).toBeNull())
+    await vi.waitFor(() => expect(player.store.state.resumeState).toEqual({ status: 'idle' }))
     player.destroy()
   })
 
@@ -326,7 +330,7 @@ describe('createPlayer core contract', () => {
     player.mount(document.createElement('video'), document.createElement('div'))
     ;(player.engine as FakeEngine).emit('loadedmetadata')
     await Promise.resolve()
-    expect(player.store.state.resumeProgress).toBeNull()
+    expect(player.store.state.resumeState).toEqual({ status: 'idle' })
     player.destroy()
   })
 
@@ -350,8 +354,7 @@ describe('createPlayer core contract', () => {
     player.updateOptions({ src: '/b.mp4', playbackProgress: { id: 'b', store: adapter } })
     ;(player.engine as FakeEngine).emit('loadedmetadata')
     resolveFirstLoad({ time: 42, duration: 120 })
-    await Promise.resolve()
-    expect(player.store.state.resumeProgress).toBeNull()
+    await vi.waitFor(() => expect(player.store.state.resumeState).toEqual({ status: 'idle' }))
     player.remote.play()
     expect(player.store.state.isPlaying).toBe(true)
     player.destroy()
@@ -387,6 +390,91 @@ describe('createPlayer core contract', () => {
     expect(calls).toEqual(['save:21'])
     releaseSave()
     await vi.waitFor(() => expect(calls).toEqual(['save:21', 'clear']))
+    player.destroy()
+  })
+
+  it('checkpoints moving playback from time updates and flushes important transitions', async () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(10_000)
+    const save = vi.fn<PlaybackProgressStore['save']>(async () => {})
+    const adapter: PlaybackProgressStore = { load: async () => null, save, clear: async () => {} }
+    const player = createPlayer({
+      src: '/video.mp4',
+      playbackProgress: { store: adapter },
+      engine: (video) => new FakeEngine(video),
+    })
+    player.mount(document.createElement('video'), document.createElement('div'))
+    const engine = player.engine as FakeEngine
+    await engine.play()
+
+    engine.currentTime = 10
+    engine.emit('timeupdate')
+    await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(1))
+
+    now.mockReturnValue(13_000)
+    engine.currentTime = 20
+    engine.emit('timeupdate')
+    expect(save).toHaveBeenCalledTimes(1)
+
+    now.mockReturnValue(15_000)
+    engine.emit('timeupdate')
+    await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2))
+
+    engine.currentTime = 25
+    engine.pause()
+    await vi.waitFor(() => expect(save).toHaveBeenLastCalledWith('/video.mp4', { time: 25, duration: 120 }))
+
+    engine.currentTime = 35
+    engine.emit('seeked')
+    await vi.waitFor(() => expect(save).toHaveBeenLastCalledWith('/video.mp4', { time: 35, duration: 120 }))
+
+    player.destroy()
+    now.mockRestore()
+  })
+
+  it('loads consumer-provided subtitle catalogs and parses selected local tracks', async () => {
+    const list = vi.fn(async () => [{ id: 'remote-en', src: '/captions/en.vtt', lang: 'en', label: 'Remote English' }])
+    const player = createPlayer({
+      src: '/video.mp4',
+      subtitleCatalog: { list },
+      engine: (video) => new FakeEngine(video),
+    })
+    player.mount(document.createElement('video'), document.createElement('div'))
+
+    await vi.waitFor(() =>
+      expect(player.store.state.subtitleTracks).toEqual([expect.objectContaining({ id: 'remote-en' })]),
+    )
+    expect(list).toHaveBeenCalledOnce()
+
+    player.remote.addSubtitleTrack({
+      id: 'local-file',
+      content: '1\n00:00:01,000 --> 00:00:03,000\nLocal caption',
+      format: 'srt',
+      lang: 'und',
+      label: 'movie.srt',
+      local: true,
+    })
+    await vi.waitFor(() => expect(player.store.state.subtitleStatus).toBe('ready'))
+    expect(player.store.state.activeSubtitle?.id).toBe('local-file')
+    expect(player.store.state.subtitleCues[0]?.text).toBe('Local caption')
+
+    player.remote.setCaptionSettings({
+      fontSize: 'large',
+      fontScale: 300,
+      textOpacity: -1,
+      backgroundOpacity: 2,
+      position: 50,
+      lineHeight: 4,
+      delay: -20,
+    })
+    expect(player.store.state.captionSettings).toMatchObject({
+      fontSize: 'large',
+      fontScale: 200,
+      textOpacity: 0,
+      backgroundOpacity: 1,
+      position: 30,
+      lineHeight: 2,
+      delay: -10,
+    })
     player.destroy()
   })
 })

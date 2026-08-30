@@ -4,19 +4,18 @@ import { type FC } from 'react'
 import { usePlayerState, usePlayerContext, usePlayerRemote } from '../context'
 
 export const AutoResumeOverlay: FC = () => {
-  const resumeProgress = usePlayerState('resumeProgress')
-  const isPlaying = usePlayerState('isPlaying')
+  const resumeState = usePlayerState('resumeState')
   const { labels } = usePlayerContext()
   const remote = usePlayerRemote()
 
-  if (resumeProgress === null || isPlaying) return null
+  if (resumeState.status !== 'prompt') return null
 
   return (
     <div className="vplayer__auto-resume-overlay">
       <div className="vplayer__auto-resume-content">
         <p className="vplayer__auto-resume-text">
           {labels.continuePlay}{' '}
-          <span className="font-medium text-white tabular-nums">{formatTime(resumeProgress.time)}</span>?
+          <span className="font-medium text-white tabular-nums">{formatTime(resumeState.progress.time)}</span>?
         </p>
         <div className="vplayer__auto-resume-actions">
           <button

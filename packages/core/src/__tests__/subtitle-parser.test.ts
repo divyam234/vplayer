@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { fetchThumbnails, getThumbnailAtTime, parseThumbnailVTT, parseTimestamp, parseVTT } from '../subtitle-parser'
+import {
+  fetchThumbnails,
+  getThumbnailAtTime,
+  parseSubtitles,
+  parseThumbnailVTT,
+  parseTimestamp,
+  parseVTT,
+} from '../subtitle-parser'
 
 const originalFetch = globalThis.fetch
 
@@ -25,6 +32,22 @@ describe('subtitle and thumbnail parsing', () => {
   it('parses comma and dot timestamps', () => {
     expect(parseTimestamp('00:01:02.500')).toBe(62.5)
     expect(parseTimestamp('00:01:02,250')).toBe(62.25)
+  })
+
+  it('detects BOM-prefixed WebVTT and index-less SRT content', () => {
+    expect(parseSubtitles('\uFEFFWEBVTT\n\ncue-id\n00:00:01.000 --> 00:00:03.500 line:90%\nHello').format).toBe('vtt')
+    expect(parseSubtitles('00:00:01,000 --> 00:00:02,000\nHello from SRT').format).toBe('srt')
+  })
+
+  it('rejects unsupported and malformed subtitle content with diagnostics', () => {
+    expect(parseSubtitles('plain text')).toMatchObject({
+      ok: false,
+      error: { code: 'unsupported-format' },
+    })
+    expect(parseSubtitles('WEBVTT\n\n00:00:03.000 --> 00:00:01.000\nBackwards')).toMatchObject({
+      ok: false,
+      error: { code: 'malformed' },
+    })
   })
 
   it('parses sprite and non-sprite thumbnail VTT cues', () => {
