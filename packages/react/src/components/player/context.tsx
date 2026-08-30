@@ -19,13 +19,11 @@ export function usePlayerState<K extends keyof MediaState, TSelected>(
   keyOrSelector?: K | ((state: MediaState) => TSelected),
 ) {
   const ctx = usePlayerContext()
-  if (typeof keyOrSelector === 'function') {
-    return useStore(ctx.mediaStore, keyOrSelector)
-  }
-  if (!keyOrSelector) {
-    return useStore(ctx.mediaStore, (state) => state)
-  }
-  return useStore(ctx.mediaStore, (state) => state[keyOrSelector])
+  return useStore(ctx.mediaStore, (state) => {
+    if (typeof keyOrSelector === 'function') return keyOrSelector(state)
+    if (keyOrSelector === undefined) return state
+    return state[keyOrSelector]
+  })
 }
 
 export function usePlayerRemote(): MediaRemote {

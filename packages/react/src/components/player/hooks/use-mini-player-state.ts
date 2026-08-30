@@ -25,6 +25,12 @@ export function useMiniPlayerState(
 ): MiniPlayerState {
   const config = useMemo(() => normalizeMiniPlayerOptions(miniPlayer), [miniPlayer])
   const [active, setActive] = useState(false)
+  const [previousEnabled, setPreviousEnabled] = useState(config.enabled)
+
+  if (previousEnabled !== config.enabled) {
+    setPreviousEnabled(config.enabled)
+    if (!config.enabled) setActive(false)
+  }
 
   const enter = useCallback(() => {
     if (config.enabled) setActive(true)
@@ -35,10 +41,6 @@ export function useMiniPlayerState(
   const toggle = useCallback(() => {
     if (!config.enabled) return
     setActive((prev) => !prev)
-  }, [config.enabled])
-
-  useEffect(() => {
-    if (!config.enabled) setActive(false)
   }, [config.enabled])
 
   useEffect(() => {

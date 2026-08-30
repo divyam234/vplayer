@@ -781,9 +781,19 @@
 
   /* ── Info Panel ──────────────────────────────────────────────── */
   .vplayer__info-panel {
-    @apply pointer-events-none absolute top-2 right-2 z-50 max-w-[min(24rem,calc(100%-1rem))] rounded-md px-3 py-2 font-mono text-xs leading-relaxed;
+    @apply pointer-events-auto absolute top-2 right-2 z-50 max-w-[min(24rem,calc(100%-1rem))] rounded-md px-3 py-2 pr-8 font-mono text-xs leading-relaxed;
     background: color-mix(in srgb, black 70%, transparent);
     color: color-mix(in srgb, white 85%, transparent);
+  }
+  .vplayer__info-panel-close {
+    @apply absolute top-1.5 right-1.5 flex size-5 items-center justify-center rounded text-sm leading-none transition-colors;
+    color: color-mix(in srgb, white 70%, transparent);
+  }
+  .vplayer__info-panel-close:hover,
+  .vplayer__info-panel-close:focus-visible {
+    background: color-mix(in srgb, white 12%, transparent);
+    color: white;
+    outline: none;
   }
   .vplayer__info-source {
     @apply truncate;

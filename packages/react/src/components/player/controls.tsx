@@ -3,7 +3,7 @@ import { Menu } from '@ark-ui/react/menu'
 import { Slider } from '@ark-ui/react/slider'
 import { Tooltip } from '@ark-ui/react/tooltip'
 import { getThumbnailAtTime, formatTime } from '@vplayer/core'
-import clsx from 'clsx'
+import { clsx } from 'clsx'
 import { useCallback, useEffect, useState, type CSSProperties, type FC, type PointerEvent, type ReactNode } from 'react'
 
 import { CaptionSettingsPanel } from './components/caption-settings-panel'
@@ -95,6 +95,7 @@ export const SeekBar: FC = () => {
 
   const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0
   const progress = safeDuration > 0 ? (currentTime / safeDuration) * 100 : 0
+  if (overrideValue !== null && Math.abs(progress - overrideValue) <= 0.5) setOverrideValue(null)
   const displayValue = overrideValue ?? progress
   const hoverTime = hoverPercent !== null && safeDuration > 0 ? hoverPercent * safeDuration : null
   const thumbnailCue =
@@ -106,12 +107,6 @@ export const SeekBar: FC = () => {
     : 1
   const scaledThumbnailWidth = thumbnailCue ? thumbnailCue.w * thumbnailScale : 0
   const scaledThumbnailHeight = thumbnailCue ? thumbnailCue.h * thumbnailScale : 0
-
-  useEffect(() => {
-    if (overrideValue !== null && Math.abs(progress - overrideValue) <= 0.5) {
-      setOverrideValue(null)
-    }
-  }, [progress, overrideValue])
 
   const handlePointerMove = useCallback(
     (e: PointerEvent) => {

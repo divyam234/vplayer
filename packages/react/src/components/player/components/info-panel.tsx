@@ -1,7 +1,7 @@
 import { useEffect, useState, type FC } from 'react'
 
 import packageMetadata from '../../../../package.json'
-import { usePlayerState, usePlayerContext } from '../context'
+import { usePlayerRemote, usePlayerState, usePlayerContext } from '../context'
 
 const NETWORK_LABELS = ['Empty', 'Idle', 'Loading', 'No Source'] as const
 const READY_LABELS = ['Nothing', 'Metadata', 'Current Data', 'Future Data', 'Enough Data'] as const
@@ -31,6 +31,7 @@ export const InfoPanel: FC = () => {
   const state = usePlayerState()
   const infoPanelVisible = usePlayerState('infoPanelVisible')
   const { videoRef } = usePlayerContext()
+  const remote = usePlayerRemote()
   const [meta, setMeta] = useState<VideoMeta>({
     width: 0,
     height: 0,
@@ -72,6 +73,14 @@ export const InfoPanel: FC = () => {
 
   return (
     <div className="vplayer__info-panel">
+      <button
+        type="button"
+        className="vplayer__info-panel-close"
+        aria-label="Close debug stats"
+        onClick={remote.toggleInfoPanel}
+      >
+        ×
+      </button>
       <div>Version: {packageMetadata.version}</div>
       <div>Status: {state.status}</div>
       <div className="vplayer__info-source" title={state.source?.src}>

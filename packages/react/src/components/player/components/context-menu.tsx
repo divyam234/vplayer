@@ -23,6 +23,9 @@ export const ContextMenu: FC = () => {
     if (!container || !contextMenuEnabled) return
 
     const handleContextMenu = (e: MouseEvent) => {
+      const target = e.target
+      if (target instanceof Element && target.closest('.vplayer__controls')) return
+
       e.preventDefault()
       e.stopPropagation()
       setPosition({ x: e.clientX, y: e.clientY })
@@ -31,7 +34,7 @@ export const ContextMenu: FC = () => {
 
     container.addEventListener('contextmenu', handleContextMenu)
     return () => container.removeEventListener('contextmenu', handleContextMenu)
-  }, [containerRef, contextMenuEnabled])
+  })
 
   // Close on click outside or Escape
   useEffect(() => {

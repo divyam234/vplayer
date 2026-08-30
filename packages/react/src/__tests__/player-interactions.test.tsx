@@ -18,7 +18,13 @@ function restoreProperty(target: object, key: PropertyKey, descriptor?: Property
 }
 
 function ContextProbe() {
-  latestCtx = usePlayerContext()
+  const ctx = usePlayerContext()
+  useEffect(() => {
+    latestCtx = ctx
+    return () => {
+      if (latestCtx === ctx) latestCtx = null
+    }
+  }, [ctx])
   return null
 }
 
@@ -146,6 +152,28 @@ describe('VideoPlayer interactions', () => {
 
     fireEvent.doubleClick(screen.getByTestId('vplayer-root'))
     await waitFor(() => expect(requestFullscreen).toHaveBeenCalledOnce())
+  })
+
+  it('opens the player context menu on the media surface, not on controls', () => {
+    renderTestPlayer()
+
+    fireEvent.contextMenu(screen.getByRole('toolbar', { name: /playback controls/i }))
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+
+    fireEvent.contextMenu(screen.getByTestId('vplayer-media-viewport'))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+  })
+
+  it('closes the debug stats panel from its close button', () => {
+    renderTestPlayer()
+
+    fireEvent.contextMenu(screen.getByTestId('vplayer-media-viewport'))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Debug stats' }))
+
+    const closeButton = screen.getByRole('button', { name: 'Close debug stats' })
+    expect(closeButton).toBeInTheDocument()
+    fireEvent.click(closeButton)
+    expect(screen.queryByRole('button', { name: 'Close debug stats' })).not.toBeInTheDocument()
   })
 
   it('runs keyboard shortcuts only when focus is inside the player, not editing text', async () => {

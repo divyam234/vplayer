@@ -4,46 +4,40 @@ import type { GestureHandlers, MediaRemote, MediaState } from '@vplayer/core'
 /**
  * React adapter for the framework-agnostic GestureEngine from @vplayer/core.
  *
- * ## Usage from inside VideoPlayer / PlayerProvider (no context yet)
+ * ## Usage
  * ```ts
- * const gestures = usePlayerGestures(instance.store, instance.remote)
- * ```
- *
- * ## Usage from descendant consumer components (context available)
- * ```ts
- * const gestures = usePlayerGestures() // reads from PlayerContext automatically
+ * const gestures = usePlayerGestures() // reads from PlayerContext
+ * const internalGestures = usePlayerGestures(instance.store, instance.remote)
  * ```
  */
-import { useMemo } from 'react'
+import { useContext, useMemo } from 'react'
 
-import { usePlayerContext, usePlayerRemote } from '../context'
+import { PlayerContext } from '../context'
 
 export function usePlayerGestures(store?: Store<MediaState>, remote?: MediaRemote): GestureHandlers {
-  // When called with args from inside VideoPlayer, usePlayerContext is
-  // short-circuited by ?? — it's never evaluated. Only when called without
-  // args from consumer components does it read from context.
-  const s = store ?? usePlayerContext().mediaStore
-  const r = remote ?? usePlayerRemote()
+  const context = useContext(PlayerContext)
+  const resolvedStore = store ?? context?.mediaStore
+  const resolvedRemote = remote ?? context?.mediaRemote
 
-  const engine = useMemo(
-    () =>
-      createGestureEngine(
-        () => {
-          const st = s.state
-          return {
-            currentTime: st.currentTime,
-            volume: st.volume,
-            duration: st.duration,
-          }
-        },
-        {
-          seek: r.seek,
-          setVolume: r.setVolume,
-          skip: r.skip,
-        },
-      ),
-    [s, r],
-  )
+  const engine = useMemo(() => {
+    if (!resolvedStore || !resolvedRemote) return null
+    return createGestureEngine(
+      () => {
+        const state = resolvedStore.state
+        return {
+          currentTime: state.currentTime,
+          volume: state.volume,
+          duration: state.duration,
+        }
+      },
+      {
+        seek: resolvedRemote.seek,
+        setVolume: resolvedRemote.setVolume,
+        skip: resolvedRemote.skip,
+      },
+    )
+  }, [resolvedRemote, resolvedStore])
 
+  if (!engine) throw new Error('usePlayerGestures requires PlayerContext or explicit store and remote arguments')
   return engine
 }

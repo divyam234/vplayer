@@ -48,7 +48,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   children,
 }) => {
   const player = usePlayer(options)
-  const { instance } = player
+  const { instance, attach, detach } = player
   const containerRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
 
@@ -64,6 +64,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   const thumbnails = options.thumbnails
   const transformThumbnailVTT = options.transformThumbnailVTT
   const hasThumbnailVTTTransform = transformThumbnailVTT !== undefined
+  const transformThumbnailVTTRef = useRef(transformThumbnailVTT)
   const playbackProgressId = options.playbackProgress?.id
   const playbackProgressStore = options.playbackProgress?.store
   const plugins = options.plugins
@@ -73,10 +74,14 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
     const container = containerRef.current
     const video = videoRef.current
     if (container && video) {
-      player.attach(container, video)
+      attach(container, video)
     }
-    return () => player.detach()
-  }, [player.attach, player.detach])
+    return () => detach()
+  }, [attach, detach])
+
+  useEffect(() => {
+    transformThumbnailVTTRef.current = transformThumbnailVTT
+  }, [transformThumbnailVTT])
 
   // ── Sync reactive props to core ──
   useEffect(() => {
@@ -90,7 +95,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
       subtitleProviders,
       qualities,
       thumbnails,
-      transformThumbnailVTT,
+      transformThumbnailVTT: hasThumbnailVTTTransform ? transformThumbnailVTTRef.current : undefined,
       playbackProgress: { id: playbackProgressId, store: playbackProgressStore },
     })
   }, [

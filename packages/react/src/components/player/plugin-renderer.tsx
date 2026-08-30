@@ -2,7 +2,7 @@ import type { ControlRegistration, PluginAPI } from '@vplayer/core'
 /**
  * Renders plugin-registered controls, settings, and layers.
  */
-import { useEffect, useState, type FC } from 'react'
+import { useEffect, type FC } from 'react'
 
 import { usePlayerState, usePluginAPI } from './context'
 
@@ -74,8 +74,8 @@ function renderControl(def: ControlRegistration) {
 
 export const PluginLayers: FC = () => {
   const layers = usePlayerState('layers')
-  if (layers.length === 0) return null
   const api = usePluginAPI()
+  if (layers.length === 0) return null
   return (
     <>
       {layers.map((layer) => {
@@ -90,8 +90,8 @@ export const PluginLayers: FC = () => {
 
 export const PluginSettings: FC = () => {
   const settings = usePlayerState('settings')
-  if (settings.length === 0) return null
   const api = usePluginAPI()
+  if (settings.length === 0) return null
   return (
     <>
       {settings.map((setting) => {
@@ -110,22 +110,16 @@ export const PluginSettings: FC = () => {
 export const NotificationOverlay: FC = () => {
   const notification = usePlayerState('notification')
   const store = usePluginAPI().store
-  const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    if (!notification) {
-      setVisible(false)
-      return
-    }
-    setVisible(true)
+    if (!notification) return
     const timer = setTimeout(() => {
-      setVisible(false)
       store.setState((prev) => ({ ...prev, notification: null }))
     }, notification.duration)
     return () => clearTimeout(timer)
   }, [notification, store])
 
-  if (!visible || !notification) return null
+  if (!notification) return null
 
   return (
     <div className="vplayer__notice">

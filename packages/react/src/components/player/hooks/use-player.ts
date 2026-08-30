@@ -34,12 +34,12 @@
 import { useStore } from '@tanstack/react-store'
 import { createPlayer } from '@vplayer/core'
 import type { PlayerOptions, PlayerPlugin } from '@vplayer/core'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import type { UsePlayerResult } from '../adapter-types'
 
 export function usePlayer(options: PlayerOptions): UsePlayerResult {
-  const player = useMemo(() => createPlayer(options), [])
+  const [player] = useState(() => createPlayer(options))
 
   // ── Reactive state via @tanstack/react-store ──
   const state = useStore(player.store)

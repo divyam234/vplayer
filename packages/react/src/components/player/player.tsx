@@ -3,7 +3,7 @@
 
 import { useStore } from '@tanstack/react-store'
 import { defaultPlayerLabels } from '@vplayer/core'
-import clsx from 'clsx'
+import { clsx } from 'clsx'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
 import { AutoResumeOverlay } from './components/auto-resume-overlay'
@@ -66,6 +66,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const thumbnails = options.thumbnails
   const transformThumbnailVTT = options.transformThumbnailVTT
   const hasThumbnailVTTTransform = transformThumbnailVTT !== undefined
+  const transformThumbnailVTTRef = useRef(transformThumbnailVTT)
   const playbackProgressId = options.playbackProgress?.id
   const playbackProgressStore = options.playbackProgress?.store
   const plugins = options.plugins
@@ -74,24 +75,27 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const slots = options.slots ?? {}
   const miniPlayerProp = options.miniPlayer
   const thumbnailPreviewProp = options.thumbnailPreview
-  const [posterLoaded, setPosterLoaded] = useState(false)
-  const [hasStarted, setHasStarted] = useState(false)
+  const posterKey = poster ? `${src}\0${poster}` : null
+  const [loadedPosterKey, setLoadedPosterKey] = useState<string | null>(null)
+  const [startedSrc, setStartedSrc] = useState<string | null>(null)
+  const posterLoaded = posterKey !== null && loadedPosterKey === posterKey
 
   // ── Core player via contract hook ──
-  const player = usePlayer(options)
-  const { instance } = player
+  const { instance, attach, detach } = usePlayer(options)
 
   // ── Mount/unmount lifecycle ──
-  // Use stable function references for deps — player.attach/detach
-  // are useCallback'd inside usePlayer and never change identity.
   useEffect(() => {
     const video = videoRef.current
     const container = containerRef.current
     if (video && container) {
-      player.attach(container, video)
+      attach(container, video)
     }
-    return () => player.detach()
-  }, [player.attach, player.detach])
+    return () => detach()
+  }, [attach, detach])
+
+  useEffect(() => {
+    transformThumbnailVTTRef.current = transformThumbnailVTT
+  }, [transformThumbnailVTT])
 
   // ── Sync reactive props to core ──
   useEffect(() => {
@@ -104,7 +108,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       subtitleProviders,
       qualities,
       thumbnails,
-      transformThumbnailVTT,
+      transformThumbnailVTT: hasThumbnailVTTTransform ? transformThumbnailVTTRef.current : undefined,
       autoPlay,
       playbackProgress: { id: playbackProgressId, store: playbackProgressStore },
     })
@@ -133,17 +137,10 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const controls = useControlsVisibility(instance.store)
   const controlsVisible = useStore(instance.store, (s) => s.controlsVisible)
   const isPlaying = useStore(instance.store, (s) => s.isPlaying)
+  if (isPlaying && startedSrc !== src) setStartedSrc(src)
+  const hasStarted = startedSrc === src
   const miniPlayer = useMiniPlayerState(anchorRef, miniPlayerProp)
   const thumbnailPreview = useMemo(() => normalizeThumbnailPreviewOptions(thumbnailPreviewProp), [thumbnailPreviewProp])
-
-  useEffect(() => {
-    setPosterLoaded(false)
-    setHasStarted(false)
-  }, [src, poster])
-
-  useEffect(() => {
-    if (isPlaying) setHasStarted(true)
-  }, [isPlaying])
 
   useEffect(() => {
     if (miniPlayer.active) {
@@ -160,7 +157,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
 
     const delay = miniPlayer.active ? 1400 : 3000
     controls.scheduleHide(delay)
-  }, [controls, instance.store, isPlaying, miniPlayer.active])
+  }, [controls, isPlaying, miniPlayer.active])
 
   // ── Keyboard events through core's hotkey registry ──
   const onKeyDown = useCallback(
@@ -285,7 +282,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
                 alt=""
                 aria-hidden="true"
                 data-testid="vplayer-poster"
-                onLoad={() => setPosterLoaded(true)}
+                onLoad={() => setLoadedPosterKey(posterKey)}
                 className={clsx(
                   'vplayer__poster',
                   posterLoaded && 'vplayer__poster--loaded',
