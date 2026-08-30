@@ -2,13 +2,23 @@ name: Release packages
 
 on:
   workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump to apply to both public packages
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 concurrency:
   group: release-packages
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   release:
@@ -17,6 +27,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          ref: main
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -35,7 +47,25 @@ jobs:
           bun pm pack --cwd packages/core --dry-run
           bun pm pack --cwd packages/react --dry-run
 
+      - name: Bump package versions
+        run: |
+          bun pm version "${{ inputs.bump }}" --git-tag-version false --cwd packages/core
+          bun pm version "${{ inputs.bump }}" --git-tag-version false --cwd packages/react
+          CORE_VERSION="$(bun -p "require('./packages/core/package.json').version")"
+          bun pm pkg set "dependencies.@vplayer/core=workspace:^${CORE_VERSION}" --cwd packages/react
+
       - name: Publish packages
         run: bun run release
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Restore workspace dependency
+        run: bun pm pkg set 'dependencies.@vplayer/core=workspace:^' --cwd packages/react
+
+      - name: Commit released versions
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/core/package.json packages/react/package.json bun.lock
+          git commit -m "chore: release packages"
+          git push origin HEAD:main
