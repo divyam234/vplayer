@@ -483,7 +483,8 @@ describe('VideoPlayer interactions', () => {
     expect(engine.playCalls).toBe(playCalls + 1)
   })
 
-  it('automatically resumes saved progress during autoplay without reopening the prompt on pause', async () => {
+  it('lets the user choose whether to resume saved progress during autoplay', async () => {
+    const user = userEvent.setup()
     let resolveProgress!: (progress: { time: number; duration: number }) => void
     const load = new Promise<{ time: number; duration: number }>((resolve) => {
       resolveProgress = resolve
@@ -499,14 +500,31 @@ describe('VideoPlayer interactions', () => {
     await act(() => engine.play())
     await act(async () => resolveProgress({ time: 42, duration: 100 }))
 
-    await waitFor(() => expect(engine.seekCalls.at(-1)).toBe(42))
-    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
-
-    act(() => engine.pause())
-    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+    const continueButton = await screen.findByRole('button', { name: 'Continue' })
+    expect(engine.seekCalls).not.toContain(42)
+    await user.click(continueButton)
+    expect(engine.seekCalls.at(-1)).toBe(42)
   })
 
-  it('does not reveal delayed resume progress when the first observed playback event is playing', async () => {
+  it('dismisses the non-blocking resume prompt after the configured timeout', async () => {
+    const store: PlaybackProgressStore = {
+      load: async () => ({ time: 42, duration: 100 }),
+      save: async () => {},
+      clear: async () => {},
+    }
+    const { engine } = renderTestPlayer({
+      autoPlay: true,
+      playbackProgress: { store, resumePromptTimeout: 500 },
+    })
+
+    act(() => engine.emit('loadedmetadata'))
+    expect(await screen.findByRole('button', { name: 'Continue' })).toBeVisible()
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument())
+    expect(engine.seekCalls).not.toContain(42)
+    expect(engine.paused).toBe(false)
+  })
+
+  it('still offers delayed resume progress after playback has started', async () => {
     let resolveProgress!: (progress: { time: number; duration: number }) => void
     const load = new Promise<{ time: number; duration: number }>((resolve) => {
       resolveProgress = resolve
@@ -518,11 +536,12 @@ describe('VideoPlayer interactions', () => {
     }
     const { engine } = renderTestPlayer({ playbackProgress: { id: 'episode-a', store } })
 
+    act(() => engine.emit('loadedmetadata'))
     act(() => engine.emit('playing'))
     await act(async () => resolveProgress({ time: 42, duration: 100 }))
     act(() => engine.pause())
 
-    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Continue' })).toBeVisible()
   })
 
   it('shows resume controls when streamed media duration resolves after metadata', async () => {

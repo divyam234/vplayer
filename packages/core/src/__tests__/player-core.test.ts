@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MediaEngine, MediaEngineError, MediaEngineEvent, MediaEngineEventHandler } from '../media-engine'
+import { LocalPlaybackProgressStore } from '../playback-progress'
 import type { PlaybackProgress, PlaybackProgressStore } from '../playback-progress'
 import { createPlayer } from '../player'
 import type { SubtitleSearchItem } from '../subtitle-parser'
@@ -249,9 +250,9 @@ describe('createPlayer core contract', () => {
     first.remote.seek(42)
     first.remote.pause()
     await vi.waitFor(() => {
-      expect(localStorage.getItem(`vplayer:progress:${encodeURIComponent('/video-a.mp4')}`)).toBe(
-        JSON.stringify({ time: 42, duration: 120 }),
-      )
+      expect(JSON.parse(localStorage.getItem('vplayer:progress') ?? '{}')).toEqual({
+        'http://localhost:3000/video-a.mp4': { time: 42, duration: 120 },
+      })
     })
     first.destroy()
 
@@ -262,6 +263,20 @@ describe('createPlayer core contract', () => {
       expect(second.store.state.resumeState).toEqual({ status: 'prompt', progress: { time: 42, duration: 120 } }),
     )
     second.destroy()
+  })
+
+  it('stores bounded progress entries together and refreshes recently used entries', async () => {
+    const progressStore = new LocalPlaybackProgressStore(undefined, 2)
+    await progressStore.save('/a.mp4', { time: 10, duration: 120 })
+    await progressStore.save('/b.mp4', { time: 20, duration: 120 })
+    await progressStore.save('/a.mp4', { time: 30, duration: 120 })
+    await progressStore.save('/c.mp4', { time: 40, duration: 120 })
+
+    expect(JSON.parse(localStorage.getItem('vplayer:progress') ?? '{}')).toEqual({
+      '/a.mp4': { time: 30, duration: 120 },
+      '/c.mp4': { time: 40, duration: 120 },
+    })
+    expect(await progressStore.load('/b.mp4')).toBeNull()
   })
 
   it('restores progress when streamed media duration becomes finite after metadata', async () => {
@@ -307,6 +322,56 @@ describe('createPlayer core contract', () => {
     ;(player.engine as FakeEngine).emit('loadedmetadata')
     await vi.waitFor(() => expect(player.store.state.resumeState).toEqual({ status: 'idle' }))
     player.destroy()
+  })
+
+  it('normalizes URL progress identities by default and allows exact URLs', async () => {
+    const load = vi.fn(async () => null)
+    const adapter: PlaybackProgressStore = { load, save: async () => {}, clear: async () => {} }
+    const normalized = createPlayer({
+      src: '/video.mp4?token=temporary#chapter',
+      playbackProgress: { store: adapter },
+      engine: (video) => new FakeEngine(video),
+    })
+    normalized.mount(document.createElement('video'), document.createElement('div'))
+    ;(normalized.engine as FakeEngine).emit('loadedmetadata')
+    await vi.waitFor(() => expect(load).toHaveBeenCalledWith('http://localhost:3000/video.mp4'))
+    normalized.destroy()
+
+    const exact = createPlayer({
+      src: '/video.mp4?quality=1080#chapter',
+      playbackProgress: { store: adapter, normalizeUrl: false },
+      engine: (video) => new FakeEngine(video),
+    })
+    exact.mount(document.createElement('video'), document.createElement('div'))
+    ;(exact.engine as FakeEngine).emit('loadedmetadata')
+    await vi.waitFor(() => expect(load).toHaveBeenLastCalledWith('/video.mp4?quality=1080#chapter'))
+    exact.destroy()
+  })
+
+  it('does not recreate or overwrite saved progress when starting over or closing the prompt', async () => {
+    const save = vi.fn(async () => {})
+    const clear = vi.fn(async () => {})
+    const adapter: PlaybackProgressStore = {
+      load: async () => ({ time: 42, duration: 120 }),
+      save,
+      clear,
+    }
+    const player = createPlayer({
+      src: '/video.mp4',
+      playbackProgress: { id: 'episode-a', store: adapter },
+      engine: (video) => new FakeEngine(video),
+    })
+    player.mount(document.createElement('video'), document.createElement('div'))
+    const engine = player.engine as FakeEngine
+    engine.emit('loadedmetadata')
+    await vi.waitFor(() => expect(player.store.state.resumeState.status).toBe('prompt'))
+
+    player.remote.startPlaybackOver()
+    engine.emit('seeked')
+    player.destroy()
+
+    await vi.waitFor(() => expect(clear).toHaveBeenCalledWith('episode-a'))
+    expect(save).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -422,11 +487,15 @@ describe('createPlayer core contract', () => {
 
     engine.currentTime = 25
     engine.pause()
-    await vi.waitFor(() => expect(save).toHaveBeenLastCalledWith('/video.mp4', { time: 25, duration: 120 }))
+    await vi.waitFor(() =>
+      expect(save).toHaveBeenLastCalledWith('http://localhost:3000/video.mp4', { time: 25, duration: 120 }),
+    )
 
     engine.currentTime = 35
     engine.emit('seeked')
-    await vi.waitFor(() => expect(save).toHaveBeenLastCalledWith('/video.mp4', { time: 35, duration: 120 }))
+    await vi.waitFor(() =>
+      expect(save).toHaveBeenLastCalledWith('http://localhost:3000/video.mp4', { time: 35, duration: 120 }),
+    )
 
     player.destroy()
     now.mockRestore()

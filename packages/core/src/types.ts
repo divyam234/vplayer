@@ -94,6 +94,7 @@ export interface MediaRemote {
   togglePlay: () => void
   resumeFromSavedProgress: () => void
   startPlaybackOver: () => void
+  dismissSavedProgress: () => void
   seek: (time: number) => void
   skip: (seconds: number) => void
   setVolume: (v: number) => void
@@ -184,6 +185,7 @@ export interface PlayerLabels {
   continue: string
   continuePlay: string
   continueStartOver: string
+  dismiss: string
   error: string
   retry: string
   contextMenuPlay: string

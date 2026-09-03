@@ -69,6 +69,8 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const transformThumbnailVTTRef = useRef(transformThumbnailVTT)
   const playbackProgressId = options.playbackProgress?.id
   const playbackProgressStore = options.playbackProgress?.store
+  const playbackProgressNormalizeUrl = options.playbackProgress?.normalizeUrl
+  const resumePromptTimeout = options.playbackProgress?.resumePromptTimeout
   const plugins = options.plugins
   const labelsProp = options.labels
   const iconsProp = options.icons
@@ -110,7 +112,12 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       thumbnails,
       transformThumbnailVTT: hasThumbnailVTTTransform ? transformThumbnailVTTRef.current : undefined,
       autoPlay,
-      playbackProgress: { id: playbackProgressId, store: playbackProgressStore },
+      playbackProgress: {
+        id: playbackProgressId,
+        store: playbackProgressStore,
+        normalizeUrl: playbackProgressNormalizeUrl,
+        resumePromptTimeout,
+      },
     })
   }, [
     src,
@@ -125,6 +132,8 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
     autoPlay,
     playbackProgressId,
     playbackProgressStore,
+    playbackProgressNormalizeUrl,
+    resumePromptTimeout,
     instance,
   ])
 
@@ -299,7 +308,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
           {miniPlayer.active && <MiniProgressBar />}
           <CaptionOverlay />
           <ErrorOverlay />
-          <AutoResumeOverlay />
+          <AutoResumeOverlay timeout={resumePromptTimeout} />
           <ContextMenu />
           <InfoPanel />
 

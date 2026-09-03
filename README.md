@@ -194,11 +194,19 @@ if (result.ok) {
 
 ## Playback progress
 
-Progress is stored per media source by default, or under an explicit ID:
+Progress is stored in one localStorage record and keyed by normalized media URL by default. Query parameters and fragments are removed, which keeps expiring signed URLs stable. An explicit ID takes priority:
 
 ```tsx
 <VideoPlayer src="/episode.mp4" playbackProgress={{ id: 'series-1:episode-4' }} />
 ```
+
+Preserve the exact source URL or customize how long the non-blocking resume banner remains visible:
+
+```tsx
+<VideoPlayer src="/episode.mp4?quality=1080" playbackProgress={{ normalizeUrl: false, resumePromptTimeout: 10_000 }} />
+```
+
+The timeout defaults to 5 seconds. Set `resumePromptTimeout` to `0` to keep the banner visible until the user acts.
 
 You may inject your own asynchronous store:
 
@@ -222,7 +230,7 @@ const progressStore: PlaybackProgressStore = {
 <VideoPlayer src="/episode.mp4" playbackProgress={{ id: 'episode-4', store: progressStore }} />
 ```
 
-Manual playback presents Continue and Start over choices. Autoplay restores valid progress automatically. Progress checkpoints are throttled during playback and flushed on pause, seek, page hide, source changes, and teardown.
+Playback presents a non-blocking Continue and Start over banner, including during autoplay. Saved progress is restored only when the user chooses Continue. Progress checkpoints are throttled during playback and flushed on pause, seek, page hide, source changes, and teardown.
 
 ## Thumbnail previews
 

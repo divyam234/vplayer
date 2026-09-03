@@ -12,6 +12,7 @@ export interface RemoteRef {
   seek: (time: number) => void
   resumeFromSavedProgress: () => void
   startPlaybackOver: () => void
+  dismissSavedProgress: () => void
   skip: (seconds: number) => void
   setVolume: (v: number) => void
   toggleMute: () => void

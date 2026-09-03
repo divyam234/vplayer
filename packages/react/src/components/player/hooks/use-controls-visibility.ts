@@ -73,9 +73,12 @@ export function useControlsVisibility(mediaStore: Store<MediaState>) {
         clearHideTimer()
         mediaStore.setState((prev) => ({ ...prev, controlsVisible: true }))
       }
-    })
+    }) as unknown as (() => void) | { unsubscribe: () => void }
 
-    return () => subscription.unsubscribe()
+    return () => {
+      if (typeof subscription === 'function') subscription()
+      else subscription.unsubscribe()
+    }
   }, [clearHideTimer, mediaStore, scheduleHide])
 
   useEffect(() => {

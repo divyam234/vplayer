@@ -35,6 +35,17 @@ const ASPECT_RATIO_CYCLE: AspectRatioState[] = ['default', '16:9', '4:3', '21:9'
 const PROGRESS_CHECKPOINT_INTERVAL_MS = 5000
 const PROGRESS_CHECKPOINT_DELTA_SECONDS = 2
 
+function normalizeProgressUrl(src: string): string {
+  try {
+    const url = new URL(src, typeof document === 'undefined' ? undefined : document.baseURI)
+    url.search = ''
+    url.hash = ''
+    return url.href
+  } catch {
+    return src.split(/[?#]/, 1)[0] ?? src
+  }
+}
+
 const ASPECT_RATIO_CSS: Partial<Record<AspectRatioState, string>> = {
   '16:9': '16 / 9',
   '4:3': '4 / 3',
@@ -108,7 +119,6 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   const defaultProgressStore = new LocalPlaybackProgressStore()
   let progressGeneration = 0
   let progressLoaded = false
-  let playbackBegun = false
   let pagehideHandler: (() => void) | null = null
 
   interface ProgressTarget {
@@ -125,9 +135,12 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   let progressOperationRunning = false
 
   function resolveProgressTarget(opts: PlayerOptions): ProgressTarget {
+    const id =
+      opts.playbackProgress?.id ??
+      (opts.playbackProgress?.normalizeUrl === false ? opts.src : normalizeProgressUrl(opts.src))
     return {
       generation: progressGeneration,
-      id: opts.playbackProgress?.id ?? opts.src,
+      id,
       store: opts.playbackProgress?.store ?? defaultProgressStore,
     }
   }
@@ -174,8 +187,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     if (
       !eng ||
       eng.ended ||
+      store.state.resumeState.status === 'prompt' ||
       !Number.isFinite(eng.currentTime) ||
-      eng.currentTime < 0 ||
+      eng.currentTime <= 3 ||
       !isFiniteDuration(eng.duration)
     ) {
       return
@@ -199,7 +213,6 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     progressGeneration++
     activeProgressTarget = resolveProgressTarget(currentOptions)
     progressLoaded = false
-    playbackBegun = false
     lastProgressSaveAt = 0
     lastProgressTime = Number.NaN
     store.setState((prev) => ({ ...prev, resumeState: { status: 'idle' } }))
@@ -214,11 +227,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     void target.store
       .load(target.id)
       .then((progress) => {
-        const autoResume = currentOptions.autoPlay === true
         if (target.generation !== progressGeneration || eng !== engine) return
         if (
           !progress ||
-          (!autoResume && (playbackBegun || eng.currentTime !== 0)) ||
           !Number.isFinite(progress.time) ||
           !Number.isFinite(progress.duration) ||
           progress.time <= 3 ||
@@ -228,10 +239,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
           store.setState((prev) => ({ ...prev, resumeState: { status: 'idle' } }))
           return
         }
-        if (autoResume) {
-          eng.seek(progress.time)
-          store.setState((prev) => ({ ...prev, resumeState: { status: 'idle' } }))
-        } else store.setState((prev) => ({ ...prev, resumeState: { status: 'prompt', progress } }))
+        store.setState((prev) => ({ ...prev, resumeState: { status: 'prompt', progress } }))
       })
       .catch((error) => {
         if (target.generation === progressGeneration && eng === engine) {
@@ -564,6 +572,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       engine?.seek(0)
       enqueueProgressClear(target)
     },
+    dismissSavedProgress: () => {
+      store.setState((prev) => ({ ...prev, resumeState: { status: 'idle' } }))
+    },
     seek: (time: number) => engine?.seek(time),
     skip: (seconds: number) => {
       const e = engine
@@ -746,8 +757,6 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   function wireEngineEvents(eng: MediaEngine): Array<() => void> {
     return [
       eng.on('play', () => {
-        playbackBegun = true
-        store.setState((prev) => ({ ...prev, resumeState: { status: 'idle' } }))
         syncMediaSessionMetadata()
         store.setState((prev) => ({
           ...prev,
@@ -869,14 +878,12 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       }),
 
       eng.on('playing', () => {
-        playbackBegun = true
         store.setState((prev) => ({
           ...prev,
           status: 'playing',
           isPlaying: true,
           isPaused: false,
           isBuffering: false,
-          resumeState: { status: 'idle' },
         }))
       }),
 
@@ -976,7 +983,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
   function teardownPreferencePersistence(): void {
     if (unsubPersist) {
-      unsubPersist.unsubscribe()
+      const sub = unsubPersist as unknown as (() => void) | { unsubscribe: () => void }
+      if (typeof sub === 'function') sub()
+      else sub.unsubscribe()
       unsubPersist = null
     }
   }

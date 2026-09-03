@@ -66,6 +66,7 @@ export const defaultPlayerLabels: PlayerLabels = {
   continue: 'Continue',
   continuePlay: 'Continue playing at',
   continueStartOver: 'Start over',
+  dismiss: 'Dismiss',
   error: 'An error occurred',
   retry: 'Retry',
   contextMenuPlay: 'Play',

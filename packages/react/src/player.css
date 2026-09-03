@@ -616,10 +616,7 @@
     width: clamp(3rem, 12cqw, 5rem);
     height: clamp(3rem, 12cqw, 5rem);
     background: color-mix(in srgb, black 58%, transparent);
-    box-shadow:
-      0 1px 2px rgb(0 0 0 / 0.28),
-      0 8px 24px rgb(0 0 0 / 0.24),
-      inset 0 0 0 1px rgb(255 255 255 / 0.12);
+    box-shadow: none;
   }
   .vplayer__pause-icon {
     @apply ml-1;
@@ -727,23 +724,25 @@
 
   /* ── Auto Resume Overlay ────────────────────────────────────── */
   .vplayer__auto-resume-overlay {
-    @apply absolute inset-0 z-30 flex items-center justify-center;
-    background: color-mix(in srgb, black 60%, transparent);
+    @apply pointer-events-none absolute top-3 right-3 left-3 z-30 flex justify-center;
   }
   .vplayer__auto-resume-content {
-    @apply flex flex-col items-center gap-4 rounded-xl px-8 py-6 shadow-2xl;
-    background: color-mix(in srgb, black 90%, transparent);
-    border: 1px solid color-mix(in srgb, white 14%, transparent);
+    @apply pointer-events-auto flex max-w-full items-center gap-3 rounded-lg px-3 py-2 shadow-2xl;
+    background: color-mix(in srgb, black 82%, transparent);
+    box-shadow:
+      0 8px 30px color-mix(in srgb, black 35%, transparent),
+      inset 0 0 0 1px color-mix(in srgb, white 12%, transparent);
+    backdrop-filter: blur(14px);
   }
   .vplayer__auto-resume-text {
-    @apply text-sm;
+    @apply m-0 text-sm;
     color: color-mix(in srgb, white 80%, transparent);
   }
   .vplayer__auto-resume-actions {
-    @apply flex items-center gap-3;
+    @apply flex shrink-0 items-center gap-1;
   }
   .vplayer__auto-resume-btn {
-    @apply rounded-full px-5 py-1.5 text-sm text-white transition-colors;
+    @apply min-h-10 rounded-md px-3 text-sm text-white transition-colors active:scale-[0.96];
   }
   .vplayer__auto-resume-btn--primary {
     background: color-mix(in srgb, white 12%, transparent);
@@ -757,6 +756,15 @@
   }
   .vplayer__auto-resume-btn:not(.vplayer__auto-resume-btn--primary):hover {
     color: var(--vplayer-fg);
+  }
+
+  @container (max-width: 520px) {
+    .vplayer__auto-resume-content {
+      @apply flex-wrap justify-center gap-1.5;
+    }
+    .vplayer__auto-resume-text {
+      @apply w-full text-center;
+    }
   }
 
   /* ── Context Menu ────────────────────────────────────────────── */

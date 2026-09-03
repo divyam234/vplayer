@@ -67,6 +67,8 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   const transformThumbnailVTTRef = useRef(transformThumbnailVTT)
   const playbackProgressId = options.playbackProgress?.id
   const playbackProgressStore = options.playbackProgress?.store
+  const playbackProgressNormalizeUrl = options.playbackProgress?.normalizeUrl
+  const resumePromptTimeout = options.playbackProgress?.resumePromptTimeout
   const plugins = options.plugins
 
   // ── Mount/unmount lifecycle ──
@@ -96,7 +98,12 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
       qualities,
       thumbnails,
       transformThumbnailVTT: hasThumbnailVTTTransform ? transformThumbnailVTTRef.current : undefined,
-      playbackProgress: { id: playbackProgressId, store: playbackProgressStore },
+      playbackProgress: {
+        id: playbackProgressId,
+        store: playbackProgressStore,
+        normalizeUrl: playbackProgressNormalizeUrl,
+        resumePromptTimeout,
+      },
     })
   }, [
     src,
@@ -111,6 +118,8 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
     hasThumbnailVTTTransform,
     playbackProgressId,
     playbackProgressStore,
+    playbackProgressNormalizeUrl,
+    resumePromptTimeout,
     instance,
   ])
 
