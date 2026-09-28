@@ -37,6 +37,8 @@ export const defaultPlayerLabels: PlayerLabels = {
   captionMedium: 'Default',
   captionLarge: 'Large',
   captionReset: 'Reset',
+  captionSave: 'Save',
+  captionSaved: 'Saved',
   captionFontFamily: 'Font',
   captionFontScale: 'Scale',
   captionTextOpacity: 'Text opacity',

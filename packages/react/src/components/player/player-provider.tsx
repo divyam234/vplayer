@@ -56,6 +56,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   const type = options.type
   const title = options.title
   const poster = options.poster
+  const mediaSessionArtwork = options.mediaSessionArtwork
   const autoPlay = options.autoPlay
   const subtitles = options.subtitles
   const subtitleProviders = options.subtitleProviders
@@ -92,6 +93,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
       type,
       title,
       poster,
+      mediaSessionArtwork,
       autoPlay,
       subtitles,
       subtitleProviders,
@@ -110,6 +112,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
     type,
     title,
     poster,
+    mediaSessionArtwork,
     autoPlay,
     subtitles,
     subtitleProviders,

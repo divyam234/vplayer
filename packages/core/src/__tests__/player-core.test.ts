@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MediaEngine, MediaEngineError, MediaEngineEvent, MediaEngineEventHandler } from '../media-engine'
+import { NativeVideoEngine } from '../media-engine'
 import { LocalPlaybackProgressStore } from '../playback-progress'
 import type { PlaybackProgress, PlaybackProgressStore } from '../playback-progress'
 import { createPlayer } from '../player'
@@ -143,6 +144,78 @@ describe('createPlayer core contract', () => {
 
       player.unmount()
       expect(mediaSession.metadata).toBeNull()
+    } finally {
+      vi.unstubAllGlobals()
+      if (mediaSessionDescriptor) Object.defineProperty(navigator, 'mediaSession', mediaSessionDescriptor)
+      else Reflect.deleteProperty(navigator, 'mediaSession')
+    }
+  })
+
+  it('drives OS media controls: playback state, action handlers, and position', async () => {
+    const mediaSessionDescriptor = Object.getOwnPropertyDescriptor(navigator, 'mediaSession')
+    const handlers = new Map<MediaSessionAction, MediaSessionActionHandler | null>()
+    const mediaSession = {
+      metadata: null as MediaMetadata | null,
+      playbackState: 'none' as MediaSessionPlaybackState,
+      positionState: null as MediaPositionState | null,
+      setActionHandler(action: MediaSessionAction, handler: MediaSessionActionHandler | null) {
+        handlers.set(action, handler)
+      },
+      setPositionState(state: MediaPositionState) {
+        mediaSession.positionState = state
+      },
+    }
+    Object.defineProperty(navigator, 'mediaSession', { configurable: true, value: mediaSession })
+    vi.stubGlobal(
+      'MediaMetadata',
+      class {
+        title: string
+        artwork: readonly MediaImage[]
+
+        constructor(init: MediaMetadataInit = {}) {
+          this.title = init.title ?? ''
+          this.artwork = init.artwork ?? []
+        }
+      },
+    )
+
+    try {
+      const player = createPlayer({
+        src: '/video.mp4',
+        title: 'Demo video',
+        poster: '/poster.jpg',
+        engine: (video) => new FakeEngine(video),
+      })
+      player.mount(document.createElement('video'), document.createElement('div'))
+
+      for (const action of ['play', 'pause', 'seekbackward', 'seekforward', 'seekto'] as const) {
+        expect(handlers.get(action)).toEqual(expect.any(Function))
+      }
+
+      const engine = player.engine as FakeEngine
+      await player.remote.play()
+      expect(mediaSession.playbackState).toBe('playing')
+      expect(mediaSession.metadata).toMatchObject({ title: 'Demo video' })
+
+      engine.currentTime = 10
+      engine.emit('timeupdate')
+      expect(mediaSession.positionState).toMatchObject({ position: 10, duration: 120 })
+
+      handlers.get('pause')?.({ action: 'pause' })
+      expect(engine.paused).toBe(true)
+      expect(mediaSession.playbackState).toBe('paused')
+
+      handlers.get('seekforward')?.({ action: 'seekforward', seekOffset: 30 })
+      expect(engine.currentTime).toBe(40)
+
+      player.unmount()
+      expect(mediaSession.playbackState).toBe('none')
+      expect(mediaSession.metadata).toBeNull()
+      for (const action of ['play', 'pause', 'seekbackward', 'seekforward', 'seekto'] as const) {
+        expect(handlers.get(action)).toBeNull()
+      }
+
+      player.destroy()
     } finally {
       vi.unstubAllGlobals()
       if (mediaSessionDescriptor) Object.defineProperty(navigator, 'mediaSession', mediaSessionDescriptor)
@@ -585,5 +658,100 @@ describe('createPlayer core contract', () => {
     expect(player.store.state.subtitleCues[0]?.text).toBe('Remote caption')
 
     player.destroy()
+  })
+
+  it('pauses playback on unmount so audio does not continue in the background', async () => {
+    let activeEngine!: FakeEngine
+    const player = createPlayer({
+      src: '/video.mp4',
+      engine: (video) => {
+        activeEngine = new FakeEngine(video)
+        return activeEngine
+      },
+    })
+    player.mount(document.createElement('video'), document.createElement('div'))
+
+    await player.remote.play()
+    expect(activeEngine.paused).toBe(false)
+
+    player.unmount()
+    expect(activeEngine.paused).toBe(true)
+    expect(player.engine).toBeNull()
+
+    player.destroy()
+  })
+
+  it('pauses the video element when a native engine is destroyed', () => {
+    const video = document.createElement('video')
+    const pause = vi.spyOn(video, 'pause')
+    const engine = new NativeVideoEngine(video)
+
+    engine.destroy()
+
+    expect(pause).toHaveBeenCalledOnce()
+  })
+
+  it('saves caption settings on demand and restores them on mount', () => {
+    localStorage.clear()
+    try {
+      const first = createPlayer({ src: '/video.mp4', engine: (video) => new FakeEngine(video) })
+      first.mount(document.createElement('video'), document.createElement('div'))
+      first.remote.setCaptionSettings({ fontScale: 150, fontFamily: 'serif' })
+      first.remote.saveCaptionSettings()
+      first.destroy()
+
+      const second = createPlayer({ src: '/video.mp4', engine: (video) => new FakeEngine(video) })
+      second.mount(document.createElement('video'), document.createElement('div'))
+      expect(second.store.state.captionSettings).toMatchObject({ fontScale: 150, fontFamily: 'serif' })
+      second.destroy()
+    } finally {
+      localStorage.clear()
+    }
+  })
+
+  it('prefers mediaSessionArtwork over poster for OS media controls', async () => {
+    const mediaSessionDescriptor = Object.getOwnPropertyDescriptor(navigator, 'mediaSession')
+    const mediaSession = { metadata: null as MediaMetadata | null }
+    Object.defineProperty(navigator, 'mediaSession', { configurable: true, value: mediaSession })
+    vi.stubGlobal(
+      'MediaMetadata',
+      class {
+        title: string
+        artwork: readonly MediaImage[]
+
+        constructor(init: MediaMetadataInit = {}) {
+          this.title = init.title ?? ''
+          this.artwork = init.artwork ?? []
+        }
+      },
+    )
+
+    try {
+      const player = createPlayer({
+        src: '/video.mp4',
+        title: 'Demo video',
+        poster: '/poster-huge.jpg',
+        mediaSessionArtwork: '/poster-small.jpg',
+        engine: (video) => new FakeEngine(video),
+      })
+      player.mount(document.createElement('video'), document.createElement('div'))
+
+      await player.remote.play()
+      expect(mediaSession.metadata).toMatchObject({
+        title: 'Demo video',
+        artwork: [{ src: '/poster-small.jpg' }],
+      })
+
+      player.updateOptions({ mediaSessionArtwork: undefined })
+      expect(mediaSession.metadata).toMatchObject({
+        artwork: [{ src: '/poster-huge.jpg' }],
+      })
+
+      player.destroy()
+    } finally {
+      vi.unstubAllGlobals()
+      if (mediaSessionDescriptor) Object.defineProperty(navigator, 'mediaSession', mediaSessionDescriptor)
+      else Reflect.deleteProperty(navigator, 'mediaSession')
+    }
   })
 })

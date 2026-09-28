@@ -28,6 +28,12 @@ export interface PlayerOptions {
   /** Title exposed to browser and operating-system media controls. */
   title?: string
   poster?: string
+  /**
+   * Artwork URL for OS media controls (Media Session → MPRIS).
+   * Falls back to `poster` when omitted — useful for serving a scaled-down
+   * image when full-size posters are too big.
+   */
+  mediaSessionArtwork?: string
   subtitles?: SubtitleTrack[]
   subtitleProviders?: SubtitleProvider[]
   qualities?: string[]
@@ -110,6 +116,7 @@ export interface MediaRemote {
   clearSubtitleSearch: () => void
   setCaptionSettings: (patch: Partial<CaptionSettings>) => void
   resetCaptionSettings: () => void
+  saveCaptionSettings: () => void
   setActiveQuality: (q: string) => void
   takeScreenshot: () => void
   setFlip: (flip: FlipState) => void
@@ -168,6 +175,8 @@ export interface PlayerLabels {
   captionDelay: string
   captionPreview: string
   captionReset: string
+  captionSave: string
+  captionSaved: string
   subtitleLoadError: string
   endedTitle: string
   screenshot: string
@@ -219,6 +228,7 @@ export interface PlayerInstance {
         | 'type'
         | 'title'
         | 'poster'
+        | 'mediaSessionArtwork'
         | 'autoPlay'
         | 'subtitles'
         | 'subtitleProviders'

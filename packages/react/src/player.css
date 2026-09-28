@@ -451,20 +451,26 @@
   .vplayer__caption-panel-header {
     @apply flex items-center justify-between gap-2 px-1;
   }
+  .vplayer__caption-panel-actions {
+    @apply flex items-center gap-1;
+  }
   .vplayer__caption-back,
-  .vplayer__caption-reset {
+  .vplayer__caption-reset,
+  .vplayer__caption-save {
     @apply flex min-h-10 items-center gap-2 rounded-md px-2 text-xs;
     color: color-mix(in srgb, white 75%, transparent);
     transition-property: background-color, color, scale;
     transition-duration: 140ms;
   }
   .vplayer__caption-back:hover,
-  .vplayer__caption-reset:hover {
+  .vplayer__caption-reset:hover,
+  .vplayer__caption-save:hover {
     color: white;
     background: color-mix(in srgb, white 10%, transparent);
   }
   .vplayer__caption-back:active,
   .vplayer__caption-reset:active,
+  .vplayer__caption-save:active,
   .vplayer__caption-choice-item:active,
   .vplayer__caption-delay-stepper button:active {
     scale: 0.96;

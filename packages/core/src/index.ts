@@ -51,6 +51,8 @@ export {
 export type { MediaCapabilitiesSnapshot } from './media-capabilities'
 export { formatTime } from './utils'
 export { defaultPlayerLabels } from './defaults'
+export { createMediaSessionController } from './media-session'
+export type { MediaSessionController } from './media-session'
 
 // ── Media Engine ──────────────────────────────────────────
 export { BaseMediaEngine, NativeVideoEngine, HlsMediaEngine, DashMediaEngine } from './media-engine'

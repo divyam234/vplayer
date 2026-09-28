@@ -713,4 +713,30 @@ describe('VideoPlayer interactions', () => {
 
     expect(latestCtx?.mediaStore.state.captionSettings.textColor).toBe('#FF0000')
   })
+
+  it('saves caption settings from the subtitle menu', async () => {
+    const user = userEvent.setup()
+    localStorage.clear()
+    renderTestPlayer({
+      children: (
+        <>
+          <DefaultLayoutForTest />
+          <ContextProbe />
+        </>
+      ),
+    })
+
+    try {
+      await user.click(screen.getByRole('button', { name: 'Settings' }))
+      await user.click(screen.getByText('Subtitles'))
+      await user.click(screen.getByText('Caption appearance'))
+      await user.click(screen.getByRole('radio', { name: 'Serif' }))
+      await user.click(screen.getByRole('button', { name: 'Save' }))
+
+      expect(localStorage.getItem('vplayer:captionSettings')).toContain('"fontFamily":"serif"')
+      expect(screen.getByRole('button', { name: 'Saved' })).toBeInTheDocument()
+    } finally {
+      localStorage.clear()
+    }
+  })
 })

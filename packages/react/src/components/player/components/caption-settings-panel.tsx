@@ -4,7 +4,7 @@ import { NumberInput } from '@ark-ui/react/number-input'
 import { SegmentGroup } from '@ark-ui/react/segment-group'
 import { Slider } from '@ark-ui/react/slider'
 import type { CaptionSettings } from '@vplayer/core'
-import { useState, type FC, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FC, type ReactNode } from 'react'
 
 import { usePlayerContext, usePlayerRemote, usePlayerState } from '../context'
 import { Icon } from '../icon'
@@ -88,6 +88,23 @@ export const CaptionSettingsPanel: FC<{ onBack: () => void }> = ({ onBack }) => 
   const remote = usePlayerRemote()
   const settings = usePlayerState('captionSettings')
   const [colorTarget, setColorTarget] = useState<'textColor' | 'backgroundColor' | 'edgeColor'>('textColor')
+  const [saved, setSaved] = useState(false)
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(
+    () => () => {
+      if (savedTimer.current) clearTimeout(savedTimer.current)
+    },
+    [],
+  )
+  const handleSave = () => {
+    remote.saveCaptionSettings()
+    setSaved(true)
+    if (savedTimer.current) clearTimeout(savedTimer.current)
+    savedTimer.current = setTimeout(() => {
+      savedTimer.current = null
+      setSaved(false)
+    }, 1500)
+  }
   const selectedColor = settings[colorTarget]
   const previewEdge =
     settings.edgeStyle === 'outline'
@@ -108,9 +125,14 @@ export const CaptionSettingsPanel: FC<{ onBack: () => void }> = ({ onBack }) => 
           <Icon icon={icons.chevronLeft} width={14} className="vplayer__menu-icon" />
           <span>{labels.captionAppearance}</span>
         </button>
-        <button type="button" className="vplayer__caption-reset" onClick={remote.resetCaptionSettings}>
-          {labels.captionReset}
-        </button>
+        <div className="vplayer__caption-panel-actions">
+          <button type="button" className="vplayer__caption-save" onClick={handleSave} aria-live="polite">
+            {saved ? labels.captionSaved : labels.captionSave}
+          </button>
+          <button type="button" className="vplayer__caption-reset" onClick={remote.resetCaptionSettings}>
+            {labels.captionReset}
+          </button>
+        </div>
       </div>
       <Menu.Separator className="vplayer__menu-separator" />
 

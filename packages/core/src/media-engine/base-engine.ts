@@ -227,6 +227,11 @@ export abstract class BaseMediaEngine implements MediaEngine {
   destroy(): void {
     if (this.destroyed) return
     this.destroyed = true
+    // Stop audible playback on teardown. Removing a <video> from the DOM
+    // does not reliably stop audio (notably with MSE-backed HLS/DASH), so
+    // pause explicitly. Pause the raw element to avoid re-entrant engine
+    // events while tearing down.
+    this.element.pause()
     this.detachDOMListeners()
     this.listeners.clear()
   }

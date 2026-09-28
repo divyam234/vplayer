@@ -21,6 +21,7 @@ import { HotkeyRegistry } from './hotkey-registry'
 import { I18n } from './i18n'
 import { getMediaCapabilities, isFiniteDuration } from './media-capabilities'
 import type { MediaEngine } from './media-engine'
+import { createMediaSessionController } from './media-session'
 import { LocalPlaybackProgressStore } from './playback-progress'
 import type { PlaybackProgress, PlaybackProgressStore } from './playback-progress'
 import type { PluginAPI, PlayerPlugin, ContextMenuItem, FlipState, AspectRatioState, RemoteRef } from './plugin-api'
@@ -115,7 +116,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   let thumbnailAbortController: AbortController | null = null
   let subtitleAbortController: AbortController | null = null
   let subtitleSearchAbortController: AbortController | null = null
-  let mediaSessionMetadata: MediaMetadata | null = null
+  const mediaSession = createMediaSessionController()
   const defaultProgressStore = new LocalPlaybackProgressStore()
   let progressGeneration = 0
   let progressLoaded = false
@@ -411,35 +412,12 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
   syncSubtitleProviders()
 
-  function clearMediaSessionMetadata(): void {
-    if (
-      mediaSessionMetadata &&
-      typeof navigator !== 'undefined' &&
-      'mediaSession' in navigator &&
-      navigator.mediaSession.metadata === mediaSessionMetadata
-    ) {
-      navigator.mediaSession.metadata = null
-    }
-    mediaSessionMetadata = null
-  }
-
-  function syncMediaSessionMetadata(): void {
-    if (typeof navigator === 'undefined' || !('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') {
-      return
-    }
-
-    const title = currentOptions.title?.trim()
-    if (!title) {
-      clearMediaSessionMetadata()
-      return
-    }
-
-    const metadata = new MediaMetadata({
-      title,
-      artwork: currentOptions.poster ? [{ src: currentOptions.poster }] : [],
-    })
-    navigator.mediaSession.metadata = metadata
-    mediaSessionMetadata = metadata
+  // ── OS media controls (Media Session → MPRIS on Linux) ──
+  // Metadata/artwork alone leaves the OS entry stale with dead buttons.
+  // The controller additionally tracks playbackState, action handlers,
+  // and seek position.
+  function resolveMediaArtwork(): string | undefined {
+    return currentOptions.mediaSessionArtwork ?? currentOptions.poster
   }
 
   // ── Default keyboard shortcuts ────────────────────────────
@@ -690,6 +668,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     resetCaptionSettings: () => {
       store.setState((prev) => ({ ...prev, captionSettings: { ...DEFAULT_CAPTION_SETTINGS } }))
     },
+    saveCaptionSettings: () => {
+      storage.set(STORAGE_KEYS.CAPTION_SETTINGS, store.state.captionSettings)
+    },
     setActiveQuality: (q: string) => {
       store.setState((prev) => ({ ...prev, activeQuality: q }))
     },
@@ -757,7 +738,8 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   function wireEngineEvents(eng: MediaEngine): Array<() => void> {
     return [
       eng.on('play', () => {
-        syncMediaSessionMetadata()
+        mediaSession.syncMetadata(currentOptions.title, resolveMediaArtwork())
+        mediaSession.setPlaybackState('playing')
         store.setState((prev) => ({
           ...prev,
           status: 'playing',
@@ -779,6 +761,8 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
           isBuffering: false,
           controlsVisible: true,
         }))
+        mediaSession.setPlaybackState('paused')
+        mediaSession.syncPosition(eng.duration, eng.currentTime, eng.playbackRate, true)
         if (!eng.ended) flushProgress(activeProgressTarget, eng)
       }),
 
@@ -792,6 +776,8 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
           }
         }
         enqueueProgressClear(activeProgressTarget)
+        mediaSession.setPlaybackState('paused')
+        mediaSession.syncPosition(eng.duration, eng.currentTime, eng.playbackRate, true)
         store.setState((prev) => ({
           ...prev,
           status: 'ended',
@@ -808,6 +794,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       eng.on('timeupdate', () => {
         store.setState((prev) => ({ ...prev, currentTime: eng.currentTime }))
         currentOptions.onTimeUpdate?.(eng.currentTime)
+        mediaSession.syncPosition(eng.duration, eng.currentTime, eng.playbackRate)
         checkpointProgress(eng)
       }),
 
@@ -874,6 +861,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
       eng.on('seeked', () => {
         store.setState((prev) => ({ ...prev, status: prev.isPlaying ? 'playing' : 'ready' }))
+        mediaSession.syncPosition(eng.duration, eng.currentTime, eng.playbackRate, true)
         flushProgress(activeProgressTarget, eng)
       }),
 
@@ -936,8 +924,24 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     ]
   }
 
-  // ── Preference persistence (opt-in) ──────────────────────
+  // ── Preference persistence ─────────────────────────────
+  // Caption settings saved via saveCaptionSettings() are always restored
+  // on mount; the remaining preferences additionally auto-sync on every
+  // change when the persistPreferences option is enabled.
   let unsubPersist: ReturnType<typeof store.subscribe> | null = null
+
+  function loadSavedCaptionSettings(): void {
+    const captionSettings = storage.get<CaptionSettings>(STORAGE_KEYS.CAPTION_SETTINGS)
+    if (!captionSettings) return
+    store.setState((prev) => ({
+      ...prev,
+      captionSettings: {
+        ...DEFAULT_CAPTION_SETTINGS,
+        ...captionSettings,
+        backgroundOpacity: Math.max(0, Math.min(1, captionSettings.backgroundOpacity)),
+      },
+    }))
+  }
 
   function setupPreferencePersistence(): void {
     if (!currentOptions.persistPreferences) return
@@ -948,7 +952,6 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     const loop = storage.get<boolean>(STORAGE_KEYS.LOOP)
     const flip = storage.get<FlipState>(STORAGE_KEYS.FLIP)
     const aspectRatio = storage.get<AspectRatioState>(STORAGE_KEYS.ASPECT_RATIO)
-    const captionSettings = storage.get<CaptionSettings>(STORAGE_KEYS.CAPTION_SETTINGS)
     store.setState((prev) => ({
       ...prev,
       volume: volume ?? prev.volume,
@@ -957,14 +960,8 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       isLooping: loop ?? prev.isLooping,
       flip: flip ?? prev.flip,
       aspectRatio: normalizeAspectRatio(aspectRatio),
-      captionSettings: captionSettings
-        ? {
-            ...DEFAULT_CAPTION_SETTINGS,
-            ...captionSettings,
-            backgroundOpacity: Math.max(0, Math.min(1, captionSettings.backgroundOpacity)),
-          }
-        : prev.captionSettings,
     }))
+    loadSavedCaptionSettings()
 
     unsubPersist = store.subscribe(() => {
       const s = store.state
@@ -1129,6 +1126,10 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
     if (engine) {
       if (flushBeforeDestroy) flushProgress(activeProgressTarget, engine)
+      // Pause before destroy so custom engines that don't extend
+      // BaseMediaEngine also stop audible playback on unmount. Pause is
+      // idempotent; BaseMediaEngine.destroy() pauses again defensively.
+      engine.pause()
       engine.destroy()
       engine = null
       player.engine = null
@@ -1145,6 +1146,10 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     video.playsInline = true
     video.autoplay = Boolean(currentOptions.autoPlay)
     video.preload = video.preload || 'metadata'
+
+    // A fresh engine starts paused; keep OS controls in sync for the
+    // src-change case where the previous engine was playing.
+    mediaSession.setPlaybackState('paused')
 
     store.setState((prev) => ({
       ...prev,
@@ -1204,8 +1209,8 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       currentOptions = nextOptions
       if (srcChanged || progressTargetChanged) resetProgressGeneration()
 
-      if (store.state.isPlaying || mediaSessionMetadata) {
-        syncMediaSessionMetadata()
+      if (store.state.isPlaying || mediaSession.hasMetadata) {
+        mediaSession.syncMetadata(currentOptions.title, resolveMediaArtwork())
       }
 
       store.setState((prev) => {
@@ -1283,10 +1288,12 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       document.addEventListener('webkitfullscreenchange', fullscreenHandler as EventListener)
       pagehideHandler = () => flushProgress()
       window.addEventListener('pagehide', pagehideHandler)
+      mediaSession.setup(remote)
 
       doFetchThumbnails(currentOptions.thumbnails)
       const defaultSubtitle = store.state.subtitleTracks.find((track) => track.default)
       if (defaultSubtitle) remote.setActiveSubtitle(defaultSubtitle)
+      loadSavedCaptionSettings()
       setupPreferencePersistence()
       remote.setAspectRatio(store.state.aspectRatio)
     },
@@ -1294,7 +1301,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     unmount(): void {
       cleanupEngine()
       resetProgressGeneration()
-      clearMediaSessionMetadata()
+      mediaSession.teardown()
       containerEl = null
       thumbnailAbortController?.abort()
       thumbnailAbortController = null
