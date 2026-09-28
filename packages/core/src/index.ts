@@ -82,6 +82,7 @@ export {
 // ── Types ─────────────────────────────────────────────────
 export type {
   PlayerOptions,
+  MediaSessionMetadataOptions,
   TransformThumbnailVTT,
   MediaState,
   ResumeState,

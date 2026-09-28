@@ -21,6 +21,16 @@ import type {
 
 export type { MediaState, ResumeState }
 
+/** OS media-control metadata overrides (Media Session → MPRIS). */
+export interface MediaSessionMetadataOptions {
+  /** Overrides the artwork sent to OS controls; falls back to `poster`. */
+  artwork?: string
+  /** Artist line shown under the title (e.g. studio or channel name). */
+  artist?: string
+  /** Album line; rarely meaningful for video, supported for completeness. */
+  album?: string
+}
+
 export interface PlayerOptions {
   src: string
   /** MIME/content type hint used by source provider selection. */
@@ -29,11 +39,11 @@ export interface PlayerOptions {
   title?: string
   poster?: string
   /**
-   * Artwork URL for OS media controls (Media Session → MPRIS).
-   * Falls back to `poster` when omitted — useful for serving a scaled-down
-   * image when full-size posters are too big.
+   * OS media-control overrides (Media Session → MPRIS), e.g. a scaled-down
+   * artwork image when full-size posters are too big, or a studio name as
+   * the artist line. Artwork falls back to `poster` when omitted.
    */
-  mediaSessionArtwork?: string
+  mediaSession?: MediaSessionMetadataOptions
   subtitles?: SubtitleTrack[]
   subtitleProviders?: SubtitleProvider[]
   qualities?: string[]
@@ -228,7 +238,7 @@ export interface PlayerInstance {
         | 'type'
         | 'title'
         | 'poster'
-        | 'mediaSessionArtwork'
+        | 'mediaSession'
         | 'autoPlay'
         | 'subtitles'
         | 'subtitleProviders'

@@ -57,7 +57,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const src = options.src
   const title = options.title
   const poster = options.poster
-  const mediaSessionArtwork = options.mediaSessionArtwork
+  const mediaSession = options.mediaSession
   const type = options.type
   const autoPlay = options.autoPlay
   const subtitles = options.subtitles
@@ -107,7 +107,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       type,
       title,
       poster,
-      mediaSessionArtwork,
+      mediaSession,
       subtitles,
       subtitleProviders,
       qualities,
@@ -126,7 +126,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
     type,
     title,
     poster,
-    mediaSessionArtwork,
+    mediaSession,
     subtitles,
     subtitleProviders,
     qualities,

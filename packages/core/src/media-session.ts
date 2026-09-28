@@ -8,7 +8,7 @@
  */
 
 import { isFiniteDuration } from './media-capabilities'
-import type { MediaRemote } from './types'
+import type { MediaRemote, MediaSessionMetadataOptions } from './types'
 
 const SEEK_FALLBACK_SECONDS = 10
 const POSITION_SYNC_THRESHOLD_SECONDS = 1
@@ -19,7 +19,7 @@ const HANDLED_ACTIONS = ['play', 'pause', 'seekbackward', 'seekforward', 'seekto
 
 export interface MediaSessionController {
   setup(remote: MediaRemote): void
-  syncMetadata(title: string | undefined, poster: string | undefined): void
+  syncMetadata(title: string | undefined, metadata?: MediaSessionMetadataOptions, poster?: string): void
   setPlaybackState(state: SessionPlaybackState): void
   syncPosition(duration: number, currentTime: number, playbackRate: number, force?: boolean): void
   readonly hasMetadata: boolean
@@ -47,7 +47,9 @@ function trySetActionHandler(
 export function createMediaSessionController(): MediaSessionController {
   let metadata: MediaMetadata | null = null
   let lastTitle: string | undefined
-  let lastPoster: string | undefined
+  let lastArtwork: string | undefined
+  let lastArtist: string | undefined
+  let lastAlbum: string | undefined
   let handlersRegistered = false
   let lastSyncedPosition = Number.NaN
   let lastSyncedDuration = Number.NaN
@@ -60,7 +62,9 @@ export function createMediaSessionController(): MediaSessionController {
     }
     metadata = null
     lastTitle = undefined
-    lastPoster = undefined
+    lastArtwork = undefined
+    lastArtist = undefined
+    lastAlbum = undefined
   }
 
   function setup(remote: MediaRemote): void {
@@ -80,28 +84,42 @@ export function createMediaSessionController(): MediaSessionController {
     handlersRegistered = true
   }
 
-  function syncMetadata(title: string | undefined, poster: string | undefined): void {
+  function syncMetadata(title: string | undefined, overrides?: MediaSessionMetadataOptions, poster?: string): void {
     const session = getSession()
     if (!session || typeof MediaMetadata === 'undefined') return
 
     const normalizedTitle = title?.trim() || undefined
+    const normalizedArtwork = overrides?.artwork ?? poster
+    const normalizedArtist = overrides?.artist?.trim() || undefined
+    const normalizedAlbum = overrides?.album?.trim() || undefined
     if (!normalizedTitle) {
       clearMetadata()
       return
     }
     // Avoid recreating metadata (which resets the OS notification) when unchanged.
-    if (metadata && session.metadata === metadata && lastTitle === normalizedTitle && lastPoster === poster) {
+    if (
+      metadata &&
+      session.metadata === metadata &&
+      lastTitle === normalizedTitle &&
+      lastArtwork === normalizedArtwork &&
+      lastArtist === normalizedArtist &&
+      lastAlbum === normalizedAlbum
+    ) {
       return
     }
 
     const next = new MediaMetadata({
       title: normalizedTitle,
-      artwork: poster ? [{ src: poster }] : [],
+      ...(normalizedArtist ? { artist: normalizedArtist } : {}),
+      ...(normalizedAlbum ? { album: normalizedAlbum } : {}),
+      artwork: normalizedArtwork ? [{ src: normalizedArtwork }] : [],
     })
     session.metadata = next
     metadata = next
     lastTitle = normalizedTitle
-    lastPoster = poster
+    lastArtwork = normalizedArtwork
+    lastArtist = normalizedArtist
+    lastAlbum = normalizedAlbum
   }
 
   function setPlaybackState(state: SessionPlaybackState): void {

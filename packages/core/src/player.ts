@@ -416,9 +416,6 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   // Metadata/artwork alone leaves the OS entry stale with dead buttons.
   // The controller additionally tracks playbackState, action handlers,
   // and seek position.
-  function resolveMediaArtwork(): string | undefined {
-    return currentOptions.mediaSessionArtwork ?? currentOptions.poster
-  }
 
   // ── Default keyboard shortcuts ────────────────────────────
   function registerDefaultHotkeys(): void {
@@ -738,7 +735,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   function wireEngineEvents(eng: MediaEngine): Array<() => void> {
     return [
       eng.on('play', () => {
-        mediaSession.syncMetadata(currentOptions.title, resolveMediaArtwork())
+        mediaSession.syncMetadata(currentOptions.title, currentOptions.mediaSession, currentOptions.poster)
         mediaSession.setPlaybackState('playing')
         store.setState((prev) => ({
           ...prev,
@@ -1210,7 +1207,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       if (srcChanged || progressTargetChanged) resetProgressGeneration()
 
       if (store.state.isPlaying || mediaSession.hasMetadata) {
-        mediaSession.syncMetadata(currentOptions.title, resolveMediaArtwork())
+        mediaSession.syncMetadata(currentOptions.title, currentOptions.mediaSession, currentOptions.poster)
       }
 
       store.setState((prev) => {

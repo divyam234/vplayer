@@ -731,7 +731,7 @@ describe('createPlayer core contract', () => {
         src: '/video.mp4',
         title: 'Demo video',
         poster: '/poster-huge.jpg',
-        mediaSessionArtwork: '/poster-small.jpg',
+        mediaSession: { artwork: '/poster-small.jpg' },
         engine: (video) => new FakeEngine(video),
       })
       player.mount(document.createElement('video'), document.createElement('div'))
@@ -742,9 +742,54 @@ describe('createPlayer core contract', () => {
         artwork: [{ src: '/poster-small.jpg' }],
       })
 
-      player.updateOptions({ mediaSessionArtwork: undefined })
+      player.updateOptions({ mediaSession: {} })
       expect(mediaSession.metadata).toMatchObject({
         artwork: [{ src: '/poster-huge.jpg' }],
+      })
+
+      player.destroy()
+    } finally {
+      vi.unstubAllGlobals()
+      if (mediaSessionDescriptor) Object.defineProperty(navigator, 'mediaSession', mediaSessionDescriptor)
+      else Reflect.deleteProperty(navigator, 'mediaSession')
+    }
+  })
+
+  it('publishes artist and album lines from the media session packet', async () => {
+    const mediaSessionDescriptor = Object.getOwnPropertyDescriptor(navigator, 'mediaSession')
+    const mediaSession = { metadata: null as MediaMetadata | null }
+    Object.defineProperty(navigator, 'mediaSession', { configurable: true, value: mediaSession })
+    vi.stubGlobal(
+      'MediaMetadata',
+      class {
+        title: string
+        artist: string
+        album: string
+        artwork: readonly MediaImage[]
+
+        constructor(init: MediaMetadataInit = {}) {
+          this.title = init.title ?? ''
+          this.artist = init.artist ?? ''
+          this.album = init.album ?? ''
+          this.artwork = init.artwork ?? []
+        }
+      },
+    )
+
+    try {
+      const player = createPlayer({
+        src: '/video.mp4',
+        title: 'Demo video',
+        mediaSession: { artist: 'Demo studio', album: 'Demo collection' },
+        engine: (video) => new FakeEngine(video),
+      })
+      player.mount(document.createElement('video'), document.createElement('div'))
+
+      await player.remote.play()
+      expect(mediaSession.metadata).toMatchObject({
+        title: 'Demo video',
+        artist: 'Demo studio',
+        album: 'Demo collection',
       })
 
       player.destroy()
