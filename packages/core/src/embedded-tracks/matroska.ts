@@ -118,6 +118,15 @@ export type RangeReaderOptions = {
 }
 
 /**
+ * Block size of a request. Servers that fetch from remote storage (Teldrive reads from Telegram)
+ * take over a second to answer the first byte, so a small block costs mostly waiting: measured on
+ * such a server, 512 KiB blocks came in at 0.3 MB/s and 4 MiB blocks at 2 MB/s. Subtitles share
+ * their clusters with the video, so reading a stretch of them means reading all of its bytes.
+ */
+const DEFAULT_BLOCK_SIZE = 4 * 1024 * 1024
+const DEFAULT_MAX_BLOCKS = 6
+
+/**
  * Random-access reads over HTTP range requests with a small block cache. Requests are for whole
  * blocks and the next block is fetched ahead, so a sequential walk through a file costs one
  * request per block rather than one per read.
@@ -134,8 +143,8 @@ export class RangeReader {
     private readonly url: string,
     options: RangeReaderOptions = {},
   ) {
-    this.blockSize = options.blockSize ?? 512 * 1024
-    this.maxBlocks = options.maxBlocks ?? 8
+    this.blockSize = options.blockSize ?? DEFAULT_BLOCK_SIZE
+    this.maxBlocks = options.maxBlocks ?? DEFAULT_MAX_BLOCKS
     this.fetchFn = options.fetchFn ?? ((...args) => fetch(...args))
     this.signal = options.signal
   }

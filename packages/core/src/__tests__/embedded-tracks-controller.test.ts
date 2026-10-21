@@ -10,7 +10,52 @@ async function settle(tracks: EmbeddedTracks, status: 'ready' | 'error' = 'ready
   await vi.waitFor(() => expect(tracks.getSnapshot().subtitleStatus).toBe(status), { timeout: 10_000 })
 }
 
+function deferred() {
+  let resolve!: () => void
+  const promise = new Promise<void>((done) => {
+    resolve = done
+  })
+  return { promise, resolve }
+}
+
 describe('embedded subtitles controller', () => {
+  it('stops saying "loading" once what is about to be shown has been read', async () => {
+    const server = await serve(fixture('long-subs.mkv'))
+    try {
+      const tracks = new EmbeddedTracks({ url: server.url, locale: 'en', trackName: (n) => `Track ${n}` })
+      await tracks.load(new AbortController().signal)
+      // A scan that reads clusters at 0 s, 5 s, 20 s and 40 s and then waits, like a slow server.
+      const { promise: gate, resolve: release } = deferred()
+      const seen: number[] = []
+      const mkv = (tracks as unknown as { mkv: { scan: unknown } }).mkv
+      mkv.scan = async (
+        offset: number,
+        _wanted: unknown,
+        handlers: { onCluster: (time: number) => boolean | Promise<boolean> },
+      ) => {
+        for (const time of [0, 5, 20, 40]) {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- clusters arrive one after another
+          await handlers.onCluster(time)
+          seen.push(time)
+        }
+        await gate
+        return { endOffset: offset, reachedEnd: true }
+      }
+
+      tracks.selectSubtitle(2)
+      tracks.setPlayhead(0)
+      await vi.waitFor(() => expect(seen).toEqual([0, 5, 20, 40]))
+      // The next 15 s are covered (20 s and 40 s were read), though reading goes on.
+      expect(tracks.getSnapshot().subtitleStatus).toBe('ready')
+
+      release()
+      await settle(tracks)
+      tracks.dispose()
+    } finally {
+      await server.close()
+    }
+  })
+
   it('lists subtitles and plays the file directly when audio is playable as is', async () => {
     const server = await serve(fixture('single-track.mkv'))
     try {

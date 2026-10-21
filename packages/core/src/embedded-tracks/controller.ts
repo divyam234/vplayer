@@ -73,6 +73,8 @@ const EMBEDDED_PREFIX = 'embedded:'
 const LOOKAHEAD = 120
 /** A playhead jump bigger than this is a seek, so reading in the old place is abandoned. */
 const SEEK_JUMP = 10
+/** Subtitles count as ready once this much of what comes next has been read, in seconds. */
+const READY_AHEAD = 15
 const RETRY_AFTER_ERROR_MS = 10_000
 
 export const subtitleId = (number: number) => `${EMBEDDED_PREFIX}${number}`
@@ -334,6 +336,13 @@ export class EmbeddedTracks {
     return mergeOverlapping(this.cues.get(number)?.raw ?? [])
   }
 
+  /** Only while a track is selected, and never over an error. */
+  private setStatus(status: 'loading' | 'ready'): void {
+    const current = this.snapshot
+    if (current.activeSubtitle === undefined || current.subtitleStatus === 'error') return
+    if (current.subtitleStatus !== status) this.update({ subtitleStatus: status })
+  }
+
   private publish(): void {
     if (this.publishTimer) return
     this.publishTimer = setTimeout(() => {
@@ -355,6 +364,8 @@ export class EmbeddedTracks {
         const from = Math.max(0, this.playhead - 5)
         const gap = firstGap(stored.covered, from, this.playhead + LOOKAHEAD / 2)
         if (gap === undefined) break
+        // Reading what is about to be shown is "loading"; topping up further ahead is not.
+        if (gap <= this.playhead + READY_AHEAD) this.setStatus('loading')
         const finished = await this.fill(number, stored, gap)
         if (!finished) continue // abandoned for a seek or a new selection: look again
       }
@@ -390,6 +401,7 @@ export class EmbeddedTracks {
         onCluster: (time) => {
           firstCluster ??= time
           lastCluster = time
+          if (time > this.playhead + READY_AHEAD) this.setStatus('ready')
           return time <= this.playhead + LOOKAHEAD
         },
         onBlock: (block) => {

@@ -15,6 +15,25 @@ import { fixture, readTrack, round, serve } from './fixtures/helpers'
 // no browser.
 
 describe('Matroska reader', () => {
+  it('reads in large blocks, so a server that is slow to answer is not waited on 20 times for 10 MiB', async () => {
+    // Servers that fetch from remote storage take over a second to answer the first byte; with
+    // 512 KiB blocks that made reading subtitles slower than playing the video.
+    const size = 12 * 1024 * 1024
+    const server = await serve(Buffer.alloc(size))
+    try {
+      const reader = new RangeReader(server.url)
+      for (let offset = 0; offset < 10 * 1024 * 1024; offset += 100 * 1024) {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- a sequential walk is the point
+        await reader.read(offset, 100 * 1024)
+      }
+      expect(server.requests[0].end - server.requests[0].start + 1).toBe(4 * 1024 * 1024)
+      // 10 MiB walked sequentially: three 4 MiB blocks, at most one more read ahead.
+      expect(server.requests.length).toBeLessThanOrEqual(4)
+    } finally {
+      await server.close()
+    }
+  })
+
   it('lists tracks with their language, title and flags', async () => {
     const server = await serve(fixture('multi-track.mkv'))
     try {
