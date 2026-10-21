@@ -90,6 +90,22 @@ export interface PlayerOptions {
    * ```
    */
   engine?: MediaEngine | ((video: HTMLVideoElement) => MediaEngine)
+  /**
+   * Read the audio and subtitle tracks stored inside Matroska and WebM files, so the viewer can
+   * choose between audio tracks (dual audio) and embedded subtitles. Off by default.
+   *
+   * When it is off nothing about it is loaded or requested. When it is on, opening a `.mkv`,
+   * `.mka` or `.webm` source (or one with a matching `type`) loads the feature on demand, reads
+   * the file's track list with a few range requests, and:
+   *   - files with several audio tracks, or audio the browser cannot decode (E-AC-3), are played
+   *     through Media Source Extensions so the audio track can be selected;
+   *   - embedded text subtitles (SRT, ASS/SSA, WebVTT) are added to the subtitle list;
+   *   - other files play exactly as they do with this option off.
+   *
+   * The source server must support HTTP range requests. Playback falls back to the plain file if
+   * anything goes wrong.
+   */
+  embeddedTracks?: boolean
 }
 
 export type TransformThumbnailVTT = (content: string, responseUrl: string) => string | Promise<string>
@@ -119,6 +135,8 @@ export interface MediaRemote {
   toggleFullscreen: () => void
   togglePiP: () => void
   setActiveSubtitle: (track: SubtitleTrack | null) => void
+  /** Select an audio track listed in `audioTracks` (see the `embeddedTracks` option). */
+  setAudioTrack: (id: number) => void
   addSubtitleTrack: (track: SubtitleTrack) => void
   removeSubtitleTrack: (id: string) => void
   searchSubtitles: (query?: SubtitleSearchQuery) => void
@@ -212,6 +230,9 @@ export interface PlayerLabels {
   contextMenuLoop: string
   infoPanel: string
   loop: string
+  audio: string
+  audioUnsupported: string
+  subtitleUnsupported: string
 }
 
 export interface PlayerSystems {
@@ -246,6 +267,7 @@ export interface PlayerInstance {
         | 'thumbnails'
         | 'transformThumbnailVTT'
         | 'playbackProgress'
+        | 'embeddedTracks'
       >
     >,
   ): void

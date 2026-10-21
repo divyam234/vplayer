@@ -20,7 +20,7 @@ import { EventBus } from './event-bus'
 import { HotkeyRegistry } from './hotkey-registry'
 import { I18n } from './i18n'
 import { getMediaCapabilities, isFiniteDuration } from './media-capabilities'
-import type { MediaEngine } from './media-engine'
+import type { EngineSubtitleCuesEvent, EngineTracksEvent, MediaEngine } from './media-engine'
 import { createMediaSessionController } from './media-session'
 import { LocalPlaybackProgressStore } from './playback-progress'
 import type { PlaybackProgress, PlaybackProgressStore } from './playback-progress'
@@ -261,7 +261,61 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     })
   }
 
+  // ── Embedded tracks (the `embeddedTracks` option) ──────────
+  // Engines that read the tracks stored in the media report them through `tracks`,
+  // `audiotrackchange` and `subtitlecues` events; see MatroskaMediaEngine.
+  const rememberTracks = () => currentOptions.persistPreferences === true
+
+  function isEmbeddedActive(): boolean {
+    return store.state.activeSubtitle?.embedded === true
+  }
+
+  /** Stops reading an embedded subtitle track, when one is being read. */
+  function stopEmbeddedSubtitles(): void {
+    if (isEmbeddedActive()) engine?.selectSubtitleTrack?.(null)
+  }
+
+  function applyEmbeddedTracks(event: EngineTracksEvent): void {
+    const subtitleTracks: SubtitleTrack[] = event.subtitleTracks.map((track) => ({
+      id: track.id,
+      lang: track.lang ?? 'und',
+      label: track.label,
+      embedded: true,
+      unsupported: track.unsupported,
+    }))
+    store.setState((prev) => ({
+      ...prev,
+      audioTracks: event.audioTracks.map((track) => ({
+        id: track.id,
+        label: track.label,
+        detail: track.detail,
+        lang: track.lang,
+        unsupported: track.unsupported,
+      })),
+      activeAudioTrack: event.activeAudioTrack,
+      subtitleTracks: [...prev.subtitleTracks.filter((track) => !track.embedded), ...subtitleTracks],
+    }))
+    // Turn subtitles on again when the viewer last chose this language.
+    if (!rememberTracks() || store.state.activeSubtitle) return
+    const wanted = storage.get<string>(STORAGE_KEYS.SUBTITLE_LANG)
+    if (!wanted || wanted === 'off') return
+    const match = subtitleTracks.find((track) => !track.unsupported && track.lang === wanted)
+    if (match) remote.setActiveSubtitle(match)
+  }
+
+  function applyEmbeddedCues(event: EngineSubtitleCuesEvent): void {
+    // Cues of a track that is no longer selected arrive late; ignore them.
+    if (store.state.activeSubtitle?.id !== event.id) return
+    store.setState((prev) => ({
+      ...prev,
+      subtitleCues: event.cues,
+      subtitleStatus: event.status,
+      subtitleError: event.status === 'error' ? 'Could not read the subtitles from the file' : null,
+    }))
+  }
+
   function loadSubtitleTrack(track: SubtitleTrack): void {
+    stopEmbeddedSubtitles()
     subtitleAbortController?.abort()
     const controller = new AbortController()
     subtitleAbortController = controller
@@ -355,6 +409,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   }
 
   function loadSubtitleProviderResult(result: SubtitleProviderResult): void {
+    stopEmbeddedSubtitles()
     subtitleAbortController?.abort()
     const provider = (currentOptions.subtitleProviders ?? []).find((candidate) => candidate.id === result.providerId)
     if (!provider) {
@@ -611,6 +666,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     },
     setActiveSubtitle: (track) => {
       if (!track) {
+        // Switching embedded subtitles off is remembered, like choosing a language is.
+        if (isEmbeddedActive() && rememberTracks()) storage.set(STORAGE_KEYS.SUBTITLE_LANG, 'off')
+        stopEmbeddedSubtitles()
         subtitleAbortController?.abort()
         store.setState((prev) => ({
           ...prev,
@@ -621,7 +679,29 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
         }))
         return
       }
+      if (track.embedded) {
+        if (track.unsupported || !engine?.selectSubtitleTrack || !track.id) return
+        subtitleAbortController?.abort()
+        store.setState((prev) => ({
+          ...prev,
+          activeSubtitle: track,
+          subtitleCues: [],
+          subtitleStatus: 'loading',
+          subtitleError: null,
+        }))
+        engine.selectSubtitleTrack(track.id)
+        if (rememberTracks() && track.lang !== 'und') storage.set(STORAGE_KEYS.SUBTITLE_LANG, track.lang)
+        return
+      }
       loadSubtitleTrack(track)
+    },
+    setAudioTrack: (id) => {
+      const select = engine?.selectAudioTrack
+      if (!select) return
+      const lang = store.state.audioTracks.find((track) => track.id === id)?.lang
+      void select.call(engine, id).then((switched) => {
+        if (switched && lang && rememberTracks()) storage.set(STORAGE_KEYS.AUDIO_LANG, lang)
+      })
     },
     addSubtitleTrack: (track) => {
       const normalized = normalizeSubtitleTrack(track)
@@ -880,6 +960,14 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
         store.setState((prev) => ({ ...prev, playbackRate: eng.playbackRate }))
       }),
 
+      eng.on('tracks', (event: EngineTracksEvent) => applyEmbeddedTracks(event)),
+
+      eng.on('audiotrackchange', (event: { id: number }) => {
+        store.setState((prev) => ({ ...prev, activeAudioTrack: event.id }))
+      }),
+
+      eng.on('subtitlecues', (event: EngineSubtitleCuesEvent) => applyEmbeddedCues(event)),
+
       eng.on('playblocked', (err) => {
         const message = err?.message ?? 'Playback was blocked by the browser'
         store.setState((prev) => ({
@@ -1135,7 +1223,11 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
   function mountEngine(video: HTMLVideoElement): void {
     const source = toPlayerSource(currentOptions)
-    const eng = createResolvedMediaEngine(video, currentOptions)
+    const eng = createResolvedMediaEngine(video, currentOptions, {
+      locale: i18n.getLanguage(),
+      trackName: (number) => i18n.t('trackNumber', 'Track {number}', { number }),
+      preferredAudioLanguage: rememberTracks() ? storage.get<string>(STORAGE_KEYS.AUDIO_LANG) : undefined,
+    })
     engine = eng
     player.engine = eng
     engineEventCleanups = wireEngineEvents(eng)
@@ -1150,6 +1242,13 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
     store.setState((prev) => ({
       ...prev,
+      // Tracks read from the previous media do not carry over to the next.
+      audioTracks: [],
+      activeAudioTrack: null,
+      subtitleTracks: prev.subtitleTracks.filter((track) => !track.embedded),
+      activeSubtitle: prev.activeSubtitle?.embedded ? null : prev.activeSubtitle,
+      subtitleCues: prev.activeSubtitle?.embedded ? [] : prev.subtitleCues,
+      subtitleStatus: prev.activeSubtitle?.embedded ? 'idle' : prev.subtitleStatus,
       status: 'loading',
       source,
       isPlaying: false,
@@ -1192,6 +1291,9 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
     updateOptions(opts): void {
       const srcChanged = typeof opts.src === 'string' && opts.src !== currentOptions.src
       const typeChanged = Object.hasOwn(opts, 'type') && opts.type !== currentOptions.type
+      const embeddedTracksChanged =
+        Object.hasOwn(opts, 'embeddedTracks') &&
+        (opts.embeddedTracks === true) !== (currentOptions.embeddedTracks === true)
       const thumbnailsChanged = Object.hasOwn(opts, 'thumbnails') && opts.thumbnails !== currentOptions.thumbnails
       const thumbnailTransformChanged =
         Object.hasOwn(opts, 'transformThumbnailVTT') &&
@@ -1239,7 +1341,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
         doFetchThumbnails(currentOptions.thumbnails)
       }
 
-      if (srcChanged || typeChanged) {
+      if (srcChanged || typeChanged || embeddedTracksChanged) {
         replaceEngineForCurrentSource(!(srcChanged || progressTargetChanged))
       } else if (progressTargetChanged && engine && isFiniteDuration(engine.duration)) {
         loadProgress(engine)
@@ -1325,10 +1427,12 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       store.setState((prev) => ({
         ...prev,
         activeSubtitle: null,
-        subtitleTracks: prev.subtitleTracks.filter((track) => !track.local),
+        subtitleTracks: prev.subtitleTracks.filter((track) => !track.local && !track.embedded),
         subtitleCues: [],
         subtitleStatus: 'idle',
         subtitleError: null,
+        audioTracks: [],
+        activeAudioTrack: null,
         status: 'idle',
         isPlaying: false,
         isPaused: true,

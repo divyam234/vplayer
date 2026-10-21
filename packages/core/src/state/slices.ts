@@ -57,9 +57,24 @@ export interface MediaSlice {
 
 // ── Slice 2: Audio ────────────────────────────────────────
 
+/** An audio track of the media, chosen with `setAudioTrack`. */
+export interface AudioTrackInfo {
+  id: number
+  label: string
+  /** Codec and channel layout, e.g. "E-AC-3 5.1". */
+  detail?: string
+  /** Normalized language, when the media names one. */
+  lang?: string
+  /** Listed, but this browser cannot play it. */
+  unsupported?: boolean
+}
+
 export interface AudioSlice {
   volume: number
   isMuted: boolean
+  /** Audio tracks of the media. Only filled when `embeddedTracks` is on and the file has several. */
+  audioTracks: AudioTrackInfo[]
+  activeAudioTrack: number | null
 }
 
 // ── Slice 3: Preferences / display options ────────────────
@@ -167,6 +182,8 @@ export function getInitialMediaState(): MediaState {
     // Audio
     volume: 1,
     isMuted: false,
+    audioTracks: [],
+    activeAudioTrack: null,
 
     // Preferences
     isLooping: false,
@@ -235,7 +252,12 @@ export const selectMedia = (s: MediaState) => ({
   resumeState: s.resumeState,
 })
 
-export const selectAudio = (s: MediaState) => ({ volume: s.volume, isMuted: s.isMuted })
+export const selectAudio = (s: MediaState) => ({
+  volume: s.volume,
+  isMuted: s.isMuted,
+  audioTracks: s.audioTracks,
+  activeAudioTrack: s.activeAudioTrack,
+})
 export const selectPreferences = (s: MediaState) => ({
   isLooping: s.isLooping,
   flip: s.flip,

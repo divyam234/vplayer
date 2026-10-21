@@ -32,6 +32,7 @@ const EN: LanguageDict = {
   replayBtn: 'Replay',
   playBtn: 'Play',
   pauseBtn: 'Pause',
+  trackNumber: 'Track {number}',
 }
 
 /** Simplified Chinese */
@@ -61,6 +62,7 @@ const ZH_CN: LanguageDict = {
   replayBtn: '重新播放',
   playBtn: '播放',
   pauseBtn: '暂停',
+  trackNumber: '轨道 {number}',
 }
 
 /** Built-in language map */

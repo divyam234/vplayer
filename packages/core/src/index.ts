@@ -37,8 +37,8 @@ export type {
   SubtitleTrack,
   ThumbnailCue,
 } from './subtitle-parser'
-export { detectSourceKind, toPlayerSource, createResolvedMediaEngine } from './source-resolver'
-export type { PlayerSource, SourceKind } from './source-resolver'
+export { detectSourceKind, isMatroskaSource, toPlayerSource, createResolvedMediaEngine } from './source-resolver'
+export type { MediaEngineContext, PlayerSource, SourceKind } from './source-resolver'
 export {
   canUseMSE,
   canUseNativeHLS,
@@ -50,12 +50,19 @@ export {
 } from './media-capabilities'
 export type { MediaCapabilitiesSnapshot } from './media-capabilities'
 export { formatTime } from './utils'
+export type { AudioTrackInfo } from './state/slices'
 export { defaultPlayerLabels } from './defaults'
 export { createMediaSessionController } from './media-session'
 export type { MediaSessionController } from './media-session'
 
 // ── Media Engine ──────────────────────────────────────────
-export { BaseMediaEngine, NativeVideoEngine, HlsMediaEngine, DashMediaEngine } from './media-engine'
+export {
+  BaseMediaEngine,
+  NativeVideoEngine,
+  HlsMediaEngine,
+  DashMediaEngine,
+  MatroskaMediaEngine,
+} from './media-engine'
 export type {
   MediaEngine,
   MediaEngineDimensions,
@@ -64,6 +71,11 @@ export type {
   MediaEngineEventHandler,
   HlsMediaEngineOptions,
   DashMediaEngineOptions,
+  MatroskaMediaEngineOptions,
+  EngineAudioTrack,
+  EngineSubtitleTrack,
+  EngineTracksEvent,
+  EngineSubtitleCuesEvent,
 } from './media-engine'
 
 // ── State slices (advanced selectors) ─────────────────────
