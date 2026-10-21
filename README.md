@@ -10,6 +10,7 @@ A React video player with an independent, browser-safe TypeScript core. Use the 
 - WebVTT and SRT captions from configured URLs, consumer-provided catalogs, or local files
 - Caption size, color, background, and opacity controls
 - Persisted playback progress with explicit resume behavior
+- Optional audio-track and embedded-subtitle selection for Matroska and WebM files (off by default)
 - Thumbnail VTT previews, including sprite sheets with `#xywh=x,y,w,h`
 - Headless core, React hooks, slots, custom layouts, and plugins
 - CSS-variable theming with one distributable stylesheet
@@ -191,6 +192,27 @@ if (result.ok) {
   console.error(result.error.code, result.error.message)
 }
 ```
+
+## Embedded audio tracks and subtitles
+
+Matroska (`.mkv`) and WebM files often carry several audio tracks (dual audio) and subtitles inside the file. Browsers play only the first audio track and expose neither, so this is off unless you enable it:
+
+```tsx
+<VideoPlayer src="/episode.mkv" embeddedTracks />
+```
+
+With `embeddedTracks` on, opening a `.mkv`, `.mka` or `.webm` source (or one with a matching `type`) reads the file's track list with a few HTTP range requests, and:
+
+- **Audio.** A file with several audio tracks, or with audio the browser cannot decode (E-AC-3 / AC-3), is played through Media Source Extensions. The video is copied unchanged, and the chosen audio track is added. E-AC-3 and AC-3 are decoded in the browser and re-encoded as Opus, so the video is not silent. The **Audio** entry in the settings menu lists the tracks (title or language, codec, channels) and switches without restarting. `remote.setAudioTrack(id)` does the same, and `audioTracks` and `activeAudioTrack` are in the player state.
+- **Subtitles.** Embedded text subtitles (SRT, ASS/SSA, WebVTT) are added to the subtitle list next to loaded files, and are drawn with the caption settings. A track is read only once it is selected, only ahead of the playhead, and a part that was read is not read again. Image-based subtitles (PGS, VobSub) are listed as not supported. ASS styling (fonts, colors, positions, drawings) is not applied; the text is shown in your caption style.
+- With `persistPreferences`, the audio language, and the subtitle language or "off", are remembered for the next video.
+- A file with one audio track the browser can play, and any other kind of file, plays exactly as it does with the option off. If anything goes wrong while looking inside a file, the player falls back to the plain file at the same position.
+
+Nothing is loaded for this unless the option is on: the code that reads the file, and [Mediabunny](https://mediabunny.dev) which it uses, are separate chunks imported only when a Matroska or WebM source is opened with `embeddedTracks`. The option can be switched while the player exists (`updateOptions({ embeddedTracks })`), which reloads the current source.
+
+The server must support HTTP range requests. Playback through Media Source needs a browser that can play the video codec that way (HEVC, for instance, depends on hardware decoding), and converting E-AC-3 needs a secure context (HTTPS or `localhost`) because it uses WebCodecs.
+
+Engines can report their own tracks: emit `tracks`, `audiotrackchange` and `subtitlecues` events and implement `selectAudioTrack` and `selectSubtitleTrack` (see `MatroskaMediaEngine`).
 
 ## Playback progress
 

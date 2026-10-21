@@ -76,4 +76,7 @@ export const defaultPlayerLabels: PlayerLabels = {
   contextMenuLoop: 'Loop',
   infoPanel: 'Debug stats',
   loop: 'Loop',
+  audio: 'Audio',
+  audioUnsupported: 'Not supported by this browser',
+  subtitleUnsupported: 'Not supported',
 }

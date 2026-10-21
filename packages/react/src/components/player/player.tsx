@@ -73,6 +73,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const playbackProgressNormalizeUrl = options.playbackProgress?.normalizeUrl
   const resumePromptTimeout = options.playbackProgress?.resumePromptTimeout
   const plugins = options.plugins
+  const embeddedTracks = options.embeddedTracks
   const labelsProp = options.labels
   const iconsProp = options.icons
   const slots = options.slots ?? {}
@@ -112,6 +113,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       subtitleProviders,
       qualities,
       thumbnails,
+      embeddedTracks,
       transformThumbnailVTT: hasThumbnailVTTTransform ? transformThumbnailVTTRef.current : undefined,
       autoPlay,
       playbackProgress: {
@@ -131,6 +133,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
     subtitleProviders,
     qualities,
     thumbnails,
+    embeddedTracks,
     hasThumbnailVTTTransform,
     autoPlay,
     playbackProgressId,

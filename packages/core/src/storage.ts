@@ -72,6 +72,7 @@ export const STORAGE_KEYS = {
   MUTED: 'muted',
   PLAYBACK_RATE: 'playbackRate',
   SUBTITLE_LANG: 'subtitleLang',
+  AUDIO_LANG: 'audioLang',
   CAPTION_SETTINGS: 'captionSettings',
   QUALITY: 'quality',
   LOOP: 'loop',

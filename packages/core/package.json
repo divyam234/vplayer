@@ -33,9 +33,11 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@mediabunny/ac3": "1.61.4",
     "@tanstack/store": "^0.11.1",
     "dashjs": "^5.2.1",
-    "hls.js": "^1.7.1"
+    "hls.js": "^1.7.1",
+    "mediabunny": "1.61.4"
   },
   "devDependencies": {
     "typescript": "^7.0.2",

@@ -36,7 +36,7 @@ export default defineConfig(({ command }) => ({
                 external: [/^react(?:\/.*)?$/, /^react-dom(?:\/.*)?$/],
               }),
             ],
-            external: ['hls.js', 'dashjs'],
+            external: ['hls.js', 'dashjs', 'mediabunny', '@mediabunny/ac3'],
           },
         }
       : undefined,

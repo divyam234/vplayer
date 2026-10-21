@@ -71,6 +71,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   const playbackProgressNormalizeUrl = options.playbackProgress?.normalizeUrl
   const resumePromptTimeout = options.playbackProgress?.resumePromptTimeout
   const plugins = options.plugins
+  const embeddedTracks = options.embeddedTracks
 
   // ── Mount/unmount lifecycle ──
   useEffect(() => {
@@ -99,6 +100,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
       subtitleProviders,
       qualities,
       thumbnails,
+      embeddedTracks,
       transformThumbnailVTT: hasThumbnailVTTTransform ? transformThumbnailVTTRef.current : undefined,
       playbackProgress: {
         id: playbackProgressId,
@@ -118,6 +120,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
     subtitleProviders,
     qualities,
     thumbnails,
+    embeddedTracks,
     hasThumbnailVTTTransform,
     playbackProgressId,
     playbackProgressStore,

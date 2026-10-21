@@ -294,12 +294,22 @@ export const SettingsTrigger: FC = () => {
   const subtitleStatus = usePlayerState('subtitleStatus')
   const subtitleError = usePlayerState('subtitleError')
   const subtitleProviders = usePlayerState('subtitleProviders')
+  const audioTracks = usePlayerState('audioTracks')
+  const activeAudioTrack = usePlayerState('activeAudioTrack')
   const playbackRate = usePlayerState('playbackRate')
   const flip = usePlayerState('flip')
   const aspectRatio = usePlayerState('aspectRatio')
   const [isOpen, setIsOpen] = useState(false)
   const [view, setView] = useState<
-    'main' | 'speed' | 'quality' | 'subtitles' | 'subtitleSearch' | 'captionAppearance' | 'flip' | 'aspectRatio'
+    | 'main'
+    | 'speed'
+    | 'quality'
+    | 'audio'
+    | 'subtitles'
+    | 'subtitleSearch'
+    | 'captionAppearance'
+    | 'flip'
+    | 'aspectRatio'
   >('main')
   const speeds = [0.5, 1, 1.25, 1.5, 2]
 
@@ -320,6 +330,7 @@ export const SettingsTrigger: FC = () => {
     if (
       value === 'speed' ||
       value === 'quality' ||
+      value === 'audio' ||
       value === 'subtitles' ||
       value === 'flip' ||
       value === 'aspectRatio'
@@ -341,6 +352,11 @@ export const SettingsTrigger: FC = () => {
     }
     if (value.startsWith('speed-')) {
       remote.setPlaybackRate(Number(value.slice('speed-'.length)))
+      setIsOpen(false)
+      return
+    }
+    if (value.startsWith('audio-')) {
+      remote.setAudioTrack(Number(value.slice('audio-'.length)))
       setIsOpen(false)
       return
     }
@@ -389,7 +405,7 @@ export const SettingsTrigger: FC = () => {
             const item = (event.target as HTMLElement).closest<HTMLElement>(
               '[data-scope="menu"][data-part="item"][data-value]',
             )
-            if (!item || !event.currentTarget.contains(item)) return
+            if (!item || !event.currentTarget.contains(item) || item.hasAttribute('data-disabled')) return
             handleMenuSelect(item.dataset.value ?? '')
           }}
         >
@@ -399,6 +415,14 @@ export const SettingsTrigger: FC = () => {
                 <span className="vplayer__menu-label">{labels.speed}</span>
                 <span className="vplayer__menu-value">{playbackRate}x</span>
               </Menu.Item>
+              {audioTracks.length > 1 && (
+                <Menu.Item value="audio" className="vplayer__menu-item">
+                  <span className="vplayer__menu-label">{labels.audio}</span>
+                  <span className="vplayer__menu-value vplayer__menu-value--truncate">
+                    {audioTracks.find((track) => track.id === activeAudioTrack)?.label}
+                  </span>
+                </Menu.Item>
+              )}
               {qualities.length > 0 && (
                 <Menu.Item value="quality" className="vplayer__menu-item">
                   <span className="vplayer__menu-label">{labels.quality}</span>
@@ -461,6 +485,37 @@ export const SettingsTrigger: FC = () => {
               ))}
             </>
           )}
+          {view === 'audio' && (
+            <>
+              <Menu.Item value="back" className="vplayer__menu-item">
+                <Icon icon={icons.chevronLeft} width={14} className="vplayer__menu-icon" />
+                <span className="vplayer__menu-label">{labels.audio}</span>
+              </Menu.Item>
+              <Menu.Separator className="vplayer__menu-separator" />
+              {audioTracks.map((track) => (
+                <Menu.Item
+                  key={track.id}
+                  value={`audio-${track.id}`}
+                  disabled={track.unsupported}
+                  className="vplayer__menu-item"
+                >
+                  <span
+                    className={
+                      activeAudioTrack === track.id ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'
+                    }
+                  >
+                    {track.label}
+                  </span>
+                  <span className="vplayer__menu-value">
+                    {track.unsupported ? labels.audioUnsupported : track.detail}
+                  </span>
+                  {activeAudioTrack === track.id && (
+                    <Icon icon={icons.check} width={14} className="vplayer__menu-check" />
+                  )}
+                </Menu.Item>
+              ))}
+            </>
+          )}
           {view === 'flip' && (
             <>
               <Menu.Item value="back" className="vplayer__menu-item">
@@ -515,7 +570,12 @@ export const SettingsTrigger: FC = () => {
                 {!activeSubtitle && <Icon icon={icons.check} width={14} className="vplayer__menu-check" />}
               </Menu.Item>
               {subtitleTracks.map((track) => (
-                <Menu.Item key={track.id} value={`sub-${track.id}`} className="vplayer__menu-item">
+                <Menu.Item
+                  key={track.id}
+                  value={`sub-${track.id}`}
+                  disabled={track.unsupported}
+                  className="vplayer__menu-item"
+                >
                   <span
                     className={
                       activeSubtitle?.id === track.id ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'
@@ -523,6 +583,7 @@ export const SettingsTrigger: FC = () => {
                   >
                     {track.local ? `Local: ${track.label}` : track.label}
                   </span>
+                  {track.unsupported && <span className="vplayer__menu-value">{labels.subtitleUnsupported}</span>}
                   {activeSubtitle?.id === track.id && (
                     <Icon icon={icons.check} width={14} className="vplayer__menu-check" />
                   )}

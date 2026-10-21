@@ -47,6 +47,7 @@ type PlaygroundConfig = {
   captionsEnabled: boolean
   thumbnailsEnabled: boolean
   hotkeysEnabled: boolean
+  embeddedTracks: boolean
   miniEnabled: boolean
   miniAuto: boolean
   miniPosition: MiniPosition
@@ -118,6 +119,7 @@ const DEFAULT_CONFIG: PlaygroundConfig = {
   captionsEnabled: true,
   thumbnailsEnabled: true,
   hotkeysEnabled: true,
+  embeddedTracks: false,
   miniEnabled: true,
   miniAuto: false,
   miniPosition: 'bottom-right',
@@ -156,6 +158,7 @@ export function Playground() {
     captionsEnabled,
     thumbnailsEnabled,
     hotkeysEnabled,
+    embeddedTracks,
     miniEnabled,
     miniAuto,
     miniPosition,
@@ -206,6 +209,7 @@ export function Playground() {
     poster: poster.trim() || undefined,
     autoPlay,
     defaultHotkeys: hotkeysEnabled,
+    embeddedTracks,
     subtitles,
     thumbnails: thumbnailsEnabled ? thumbnailUrl.trim() || undefined : undefined,
     transformThumbnailVTT: THUMBNAIL_SPRITE?.id
@@ -230,6 +234,7 @@ export function Playground() {
     qualities,
     subtitles,
     thumbnails: thumbnailsEnabled ? thumbnailUrl : '',
+    embeddedTracks,
     miniEnabled,
     miniAuto,
     miniPosition,
@@ -429,6 +434,11 @@ export function Playground() {
                     label="Hotkeys"
                     checked={draftConfig.hotkeysEnabled}
                     onChange={(value) => updateDraft('hotkeysEnabled', value)}
+                  />
+                  <Toggle
+                    label="Embedded tracks (mkv/webm)"
+                    checked={draftConfig.embeddedTracks}
+                    onChange={(value) => updateDraft('embeddedTracks', value)}
                   />
                   <Toggle
                     label="Mini-player"
@@ -666,6 +676,7 @@ function buildSnippet({
   qualities,
   subtitles,
   thumbnails,
+  embeddedTracks,
   miniEnabled,
   miniAuto,
   miniPosition,
@@ -678,6 +689,7 @@ function buildSnippet({
   qualities: string[]
   subtitles: SubtitleTrack[]
   thumbnails: string
+  embeddedTracks: boolean
   miniEnabled: boolean
   miniAuto: boolean
   miniPosition: MiniPosition
@@ -689,7 +701,7 @@ import '@vplayer/react/player.css'
 
 <VideoPlayer
   src=${JSON.stringify(src)}${poster ? `\n  poster=${JSON.stringify(poster)}` : ''}
-  autoPlay={${autoPlay}}
+  autoPlay={${autoPlay}}${embeddedTracks ? '\n  embeddedTracks' : ''}
   qualities={${JSON.stringify(qualities)}}${subtitles.length ? `\n  subtitles={${JSON.stringify(subtitles, null, 2)}}` : ''}${thumbnails ? `\n  thumbnails=${JSON.stringify(thumbnails)}` : ''}
   miniPlayer={{ enabled: ${miniEnabled}, auto: ${miniAuto}, position: ${JSON.stringify(miniPosition)}, width: ${miniWidth} }}
   thumbnailPreview={${JSON.stringify(thumbnailPreview)}}

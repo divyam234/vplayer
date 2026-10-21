@@ -100,6 +100,7 @@ export type {
   SubtitleParseError,
   SubtitleParseResult,
   SubtitleTrack,
+  AudioTrackInfo,
   ThumbnailCue,
   LanguageDict,
   HotkeyBinding,

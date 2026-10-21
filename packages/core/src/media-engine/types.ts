@@ -57,6 +57,14 @@ export interface MediaEngine {
   setLooping(loop: boolean): void
   /** Reload the current source. */
   load(): void
+  /**
+   * Engines that can read the tracks stored in the media (see the `embeddedTracks` option) emit
+   * `tracks`, `audiotrackchange` and `subtitlecues` events and implement these. Switches the audio
+   * track; resolves false if the track cannot be played.
+   */
+  selectAudioTrack?(id: number): Promise<boolean>
+  /** Starts reading the embedded subtitle track with this id, or stops with `null`. */
+  selectSubtitleTrack?(id: string | null): void
   requestPictureInPicture(): Promise<void>
   exitPictureInPicture(): Promise<void>
   /** Capture a still frame from the current video frame. */

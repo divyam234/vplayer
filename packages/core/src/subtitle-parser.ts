@@ -18,6 +18,10 @@ export interface SubtitleTrack {
   format?: SubtitleFormat
   default?: boolean
   local?: boolean
+  /** Read from the media file itself (see the `embeddedTracks` option) rather than loaded separately. */
+  embedded?: boolean
+  /** Listed, but the player cannot show it (for example image-based subtitles). */
+  unsupported?: boolean
 }
 
 export interface SubtitleSearchQuery {
