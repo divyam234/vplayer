@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { EmbeddedTracks } from '../embedded-tracks/controller'
+import { MatroskaFile } from '../embedded-tracks/matroska'
 import { fixture, round, serve } from './fixtures/helpers'
 
 // The track controller against real files served over HTTP range requests, without a browser.
@@ -19,6 +20,103 @@ function deferred() {
 }
 
 describe('embedded subtitles controller', () => {
+  it('reads what is about to be shown first, then the captions that began just before the playhead, then the rest ahead', async () => {
+    const server = await serve(fixture('long-subs.mkv'))
+    try {
+      const tracks = new EmbeddedTracks({ url: server.url, locale: 'en', trackName: (n) => `Track ${n}` })
+      await tracks.load(new AbortController().signal)
+      // A file whose clusters start at these times; an "offset" here is just the cluster time.
+      const clusters = [780, 785, 790, 795, 800, 803.8, 809, 814, 820, 830, 850, 900, 940, 1000]
+      const scans: { from: number; announced: { time: number; go: boolean }[] }[] = []
+      const mkv = tracks as unknown as { mkv: Record<string, unknown> }
+      mkv.mkv.clusterOffsetFor = async (time: number) => clusters.toReversed().find((c) => c <= time) ?? clusters[0]
+      mkv.mkv.prefetch = () => undefined
+      mkv.mkv.scan = async (
+        offset: number,
+        _wanted: unknown,
+        handlers: { onCluster: (time: number) => boolean | Promise<boolean> },
+      ) => {
+        const scan = { from: offset, announced: [] as { time: number; go: boolean }[] }
+        scans.push(scan)
+        for (const time of clusters.filter((c) => c >= offset)) {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- clusters arrive one after another
+          const go = await handlers.onCluster(time)
+          scan.announced.push({ time, go })
+          if (!go) break
+        }
+        return { endOffset: offset, reachedEnd: false }
+      }
+
+      tracks.setPlayhead(805)
+      tracks.selectSubtitle(2)
+      await settle(tracks)
+
+      // First what is about to be shown, from the cluster that holds one second before the playhead...
+      expect(scans[0].from).toBe(803.8)
+      expect(scans[0].announced.at(-1)?.time).toBeGreaterThan(805 + 10)
+      // ...then back from eight seconds before it, up to but not into what was just read...
+      expect(scans[1].from).toBe(795)
+      expect(scans[1].announced.at(-1)).toEqual({ time: 803.8, go: false })
+      // ...and only then the rest of the lookahead.
+      expect(scans[2].from).toBeGreaterThan(805 + 10 - 6)
+      expect(scans.length).toBe(3)
+      tracks.dispose()
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('starts reading right before the playhead, not seconds earlier', async () => {
+    // Everything read before the first caption can show is waited for, so reading starts as close
+    // as the cue index allows.
+    const server = await serve(fixture('long-subs.mkv'))
+    const spy = vi.spyOn(MatroskaFile.prototype, 'clusterOffsetFor')
+    try {
+      const tracks = new EmbeddedTracks({ url: server.url, locale: 'en', trackName: (n) => `Track ${n}` })
+      await tracks.load(new AbortController().signal)
+      tracks.setPlayhead(300)
+      tracks.selectSubtitle(2)
+      await settle(tracks)
+      expect(spy.mock.calls[0][0]).toBe(299)
+      expect(tracks.getSnapshot().cues.some((cue) => cue.text === 'Cue 30')).toBe(true)
+      tracks.dispose()
+    } finally {
+      spy.mockRestore()
+      await server.close()
+    }
+  })
+
+  it('reads the cue index while loading when there are subtitles to choose from, and only then', async () => {
+    // Choosing a subtitle starts at the index, so it is read before the choice is made.
+    const spy = vi.spyOn(MatroskaFile.prototype, 'loadCues')
+    const options = { locale: 'en', trackName: (n: number) => `Track ${n}` }
+    try {
+      const withSubtitles = await serve(fixture('multi-track.mkv'))
+      try {
+        const tracks = new EmbeddedTracks({ url: withSubtitles.url, ...options })
+        await tracks.load(new AbortController().signal)
+        expect(spy).toHaveBeenCalledTimes(1)
+        tracks.dispose()
+      } finally {
+        await withSubtitles.close()
+      }
+
+      spy.mockClear()
+      const without = await serve(fixture('eac3-only.mkv'))
+      try {
+        const tracks = new EmbeddedTracks({ url: without.url, ...options })
+        await tracks.load(new AbortController().signal)
+        expect(tracks.getSnapshot().subtitles).toEqual([])
+        expect(spy).not.toHaveBeenCalled()
+        tracks.dispose()
+      } finally {
+        await without.close()
+      }
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
   it('stops saying "loading" once what is about to be shown has been read', async () => {
     const server = await serve(fixture('long-subs.mkv'))
     try {

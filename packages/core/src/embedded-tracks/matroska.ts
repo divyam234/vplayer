@@ -118,18 +118,22 @@ export type RangeReaderOptions = {
 }
 
 /**
- * Block size of a request. Servers that fetch from remote storage (Teldrive reads from Telegram)
- * take over a second to answer the first byte, so a small block costs mostly waiting: measured on
- * such a server, 512 KiB blocks came in at 0.3 MB/s and 4 MiB blocks at 2 MB/s. Subtitles share
- * their clusters with the video, so reading a stretch of them means reading all of its bytes.
+ * Servers that fetch from remote storage (Teldrive reads from Telegram) take over a second to
+ * answer the first byte, so the size of a request decides the speed: measured on such a server,
+ * 512 KiB requests came in at 0.3 MB/s, 4 MiB at 2 MB/s and 16 MiB at 3.3 MB/s. Subtitles share
+ * their clusters with the video and have no index, so reading a stretch of them means reading
+ * all of its bytes. But a big request also delays the first answer. So the first read after a
+ * jump is one small block, and a walk through the file then reads further and further ahead, in
+ * one request for several blocks.
  */
-const DEFAULT_BLOCK_SIZE = 4 * 1024 * 1024
-const DEFAULT_MAX_BLOCKS = 6
+const DEFAULT_BLOCK_SIZE = 1024 * 1024
+const DEFAULT_MAX_BLOCKS = 16
+/** Most blocks read ahead of a sequential walk, in a single request. */
+const MAX_READ_AHEAD = 4
 
 /**
- * Random-access reads over HTTP range requests with a small block cache. Requests are for whole
- * blocks and the next block is fetched ahead, so a sequential walk through a file costs one
- * request per block rather than one per read.
+ * Random-access reads over HTTP range requests with a small block cache. A sequential walk
+ * through a file reads ahead, so it costs one request per few blocks rather than one per read.
  */
 export class RangeReader {
   size: number | undefined
@@ -138,6 +142,9 @@ export class RangeReader {
   private readonly maxBlocks: number
   private readonly fetchFn: typeof fetch
   private readonly signal?: AbortSignal
+  /** The blocks of the previous read and how many reads in a row went on to a new block. */
+  private lastLast = -2
+  private streak = 0
 
   constructor(
     private readonly url: string,
@@ -149,18 +156,22 @@ export class RangeReader {
     this.signal = options.signal
   }
 
-  private fetchBlock(index: number): Promise<Uint8Array> {
+  private touch(index: number): Promise<Uint8Array> | undefined {
     const cached = this.blocks.get(index)
     if (cached) {
       // Refresh recency.
       this.blocks.delete(index)
       this.blocks.set(index, cached)
-      return cached
     }
-    const start = index * this.blockSize
-    const promise = (async () => {
+    return cached
+  }
+
+  /** One request for `count` blocks in a row from `first`, shared out as one promise per block. */
+  private fetchRun(first: number, count: number): Promise<Uint8Array>[] {
+    const start = first * this.blockSize
+    const run = (async () => {
       const response = await this.fetchFn(this.url, {
-        headers: { Range: `bytes=${start}-${start + this.blockSize - 1}` },
+        headers: { Range: `bytes=${start}-${start + count * this.blockSize - 1}` },
         signal: this.signal,
       })
       if (response.status === 416) return new Uint8Array(0)
@@ -171,17 +182,59 @@ export class RangeReader {
       if (total) this.size = Number(total)
       return new Uint8Array(await response.arrayBuffer())
     })()
-    // A failed block must not stay cached.
-    promise.catch(() => {
-      if (this.blocks.get(index) === promise) this.blocks.delete(index)
-    })
-    this.blocks.set(index, promise)
+    const promises: Promise<Uint8Array>[] = []
+    for (let i = 0; i < count; i++) {
+      const index = first + i
+      const block = run.then((data) => data.subarray(i * this.blockSize, (i + 1) * this.blockSize))
+      // A failed block must not stay cached.
+      block.catch(() => {
+        if (this.blocks.get(index) === block) this.blocks.delete(index)
+      })
+      this.blocks.set(index, block)
+      promises.push(block)
+    }
     while (this.blocks.size > this.maxBlocks) {
       const oldest = this.blocks.keys().next().value
       if (oldest === undefined) break
       this.blocks.delete(oldest)
     }
-    return promise
+    return promises
+  }
+
+  /**
+   * Requests the blocks from `first` to `last` that are not here yet, one request per gap, and
+   * returns the promises of the blocks up to `needed`.
+   */
+  private ensure(first: number, last: number, needed: number): Promise<Uint8Array>[] {
+    const wanted = new Map<number, Promise<Uint8Array>>()
+    let runStart: number | undefined
+    for (let index = first; index <= last + 1; index++) {
+      const cached = index <= last ? this.touch(index) : undefined
+      if (cached && index <= needed) wanted.set(index, cached)
+      const missing = index <= last && !cached
+      if (missing && runStart === undefined) runStart = index
+      if (!missing && runStart !== undefined) {
+        const promises = this.fetchRun(runStart, index - runStart)
+        promises.forEach((promise, i) => {
+          if (runStart! + i <= needed) wanted.set(runStart! + i, promise)
+        })
+        runStart = undefined
+      }
+    }
+    return Array.from({ length: needed - first + 1 }, (_, i) => wanted.get(first + i)!)
+  }
+
+  /**
+   * Starts fetching `length` bytes from `offset` without waiting for them, as a small request for
+   * the first block and one request for the rest, in parallel. For a read that is known to go on:
+   * the first bytes come back as soon as the server can send them, the rest not a round trip later.
+   */
+  warm(offset: number, length: number): void {
+    if (length <= 0 || offset < 0) return
+    const first = Math.floor(offset / this.blockSize)
+    const last = Math.floor((offset + length - 1) / this.blockSize)
+    this.ensure(first, first, first)
+    if (last > first) this.ensure(first + 1, last, first + 1)
   }
 
   /** Reads up to `length` bytes at `offset`; shorter only at the end of the file. */
@@ -189,14 +242,20 @@ export class RangeReader {
     if (length <= 0 || offset < 0) return new Uint8Array(0)
     const first = Math.floor(offset / this.blockSize)
     const last = Math.floor((offset + length - 1) / this.blockSize)
-    const pending: Promise<Uint8Array>[] = []
-    for (let index = first; index <= last; index++) pending.push(this.fetchBlock(index))
-    // Look ahead one block for sequential scans, unless the file is known to end before it.
-    const ahead = last + 1
-    if (this.size === undefined || ahead * this.blockSize < this.size) {
-      this.fetchBlock(ahead).catch(() => undefined)
+    // Blocks asked for in the same request as what a sequential walk will want next.
+    if (first <= this.lastLast + 1 && last > this.lastLast) this.streak++
+    else if (first > this.lastLast + 1 || last < this.lastLast) this.streak = 0
+    this.lastLast = last
+    const sequential = this.streak > 0
+    let ahead = sequential ? Math.min(MAX_READ_AHEAD, this.streak) : 0
+    // Never past the end of the file, once it is known.
+    if (this.size !== undefined) {
+      ahead = Math.min(ahead, Math.max(0, Math.ceil(this.size / this.blockSize) - 1 - last))
     }
-    const chunks = await Promise.all(pending)
+    // Read ahead only once what was read ahead before has been used up, so that each request is
+    // as big as the walk has earned rather than one block at a time.
+    const lead = ahead > 0 && !this.blocks.has(last + 1) ? ahead : 0
+    const chunks = await Promise.all(this.ensure(first, last + lead, last))
     const out = new Uint8Array(length)
     let written = 0
     for (let i = 0; i < chunks.length; i++) {
@@ -473,6 +532,11 @@ export class MatroskaFile {
       best = point.clusterOffset
     }
     return best ?? this.info.firstClusterOffset
+  }
+
+  /** Starts fetching the bytes a `scan` from `offset` is about to read. */
+  prefetch(offset: number, bytes: number): void {
+    this.reader.warm(offset, bytes)
   }
 
   /**
