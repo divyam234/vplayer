@@ -245,8 +245,13 @@ export class EmbeddedTracks {
       const { RemuxSession } = await import('./remux-session')
       if (!RemuxSession.isSupported()) return undefined
       const preferred = this.options.preferredAudioLanguage
+      // Audio tracks the file marks as disabled are still there to be chosen.
+      const enabledFlagOffsets = (this.mkv?.info.tracks ?? [])
+        .filter((track) => track.type === 'audio' && track.disabledFlagOffset !== undefined)
+        .map((track) => track.disabledFlagOffset!)
       const session = await RemuxSession.open(this.options.url, {
         signal,
+        enabledFlagOffsets,
         // Start on the language the viewer chose last time, if this file has it.
         pickAudio: (tracks) =>
           preferred

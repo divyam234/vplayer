@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { EmbeddedTracks } from '../embedded-tracks/controller'
 import { MatroskaFile } from '../embedded-tracks/matroska'
+import { RemuxSession } from '../embedded-tracks/remux-session'
 import { fixture, round, serve } from './fixtures/helpers'
 
 // The track controller against real files served over HTTP range requests, without a browser.
@@ -20,6 +21,50 @@ function deferred() {
 }
 
 describe('embedded subtitles controller', () => {
+  it('hands the places of disabled audio flags to the remux session, so those tracks can be chosen', async () => {
+    const fakeSession = {
+      audioTracks: [{ id: 2, codec: 'opus', channels: 2, sampleRate: 48000, isDefault: true, mode: 'copy' }],
+      activeAudio: 2,
+      objectUrl: 'blob:fake',
+      onError: () => () => undefined,
+      onAudioChange: () => () => undefined,
+      dispose: () => undefined,
+      attach: () => undefined,
+    }
+    const supported = vi.spyOn(RemuxSession, 'isSupported').mockReturnValue(true)
+    const open = vi.spyOn(RemuxSession, 'open').mockResolvedValue(fakeSession as unknown as RemuxSession)
+    const options = { locale: 'en', trackName: (n: number) => `Track ${n}` }
+    try {
+      const data = fixture('disabled-audio.mkv')
+      const server = await serve(data)
+      try {
+        const tracks = new EmbeddedTracks({ url: server.url, ...options })
+        await tracks.load(new AbortController().signal)
+        const offsets = open.mock.calls[0][1]?.enabledFlagOffsets ?? []
+        // One disabled audio track (the Japanese one), and the byte there is the FlagEnabled value 0.
+        expect(offsets.length).toBe(1)
+        expect([data[offsets[0] - 2], data[offsets[0] - 1], data[offsets[0]]]).toEqual([0xb9, 0x81, 0x00])
+        tracks.dispose()
+      } finally {
+        await server.close()
+      }
+
+      open.mockClear()
+      const normal = await serve(fixture('multi-track.mkv'))
+      try {
+        const tracks = new EmbeddedTracks({ url: normal.url, ...options })
+        await tracks.load(new AbortController().signal)
+        expect(open.mock.calls[0][1]?.enabledFlagOffsets).toEqual([])
+        tracks.dispose()
+      } finally {
+        await normal.close()
+      }
+    } finally {
+      supported.mockRestore()
+      open.mockRestore()
+    }
+  })
+
   it('reads what is about to be shown first, then the captions that began just before the playhead, then the rest ahead', async () => {
     const server = await serve(fixture('long-subs.mkv'))
     try {

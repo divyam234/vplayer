@@ -27,6 +27,7 @@ const ID = {
   TrackEntry: 0xae,
   TrackNumber: 0xd7,
   TrackType: 0x83,
+  FlagEnabled: 0xb9,
   FlagDefault: 0x88,
   FlagForced: 0x55aa,
   CodecID: 0x86,
@@ -80,6 +81,13 @@ export type MkvTrack = {
   name?: string
   isDefault: boolean
   isForced: boolean
+  /**
+   * False when the file marks the track as disabled (FlagEnabled = 0). Some releases do that to
+   * the alternate-language audio so that players hide it, and it is still in the file.
+   */
+  isEnabled: boolean
+  /** Where in the file the one byte of a FlagEnabled that is 0 is, for a track that is disabled. */
+  disabledFlagOffset?: number
   codecPrivate?: Uint8Array
 }
 
@@ -355,13 +363,15 @@ function trackType(value: number): MkvTrackType {
   return 'other'
 }
 
-function parseTrackEntry(payload: Uint8Array): MkvTrack | undefined {
+/** `payloadOffset` is where `payload` starts in the file, to say where a disabled flag is. */
+function parseTrackEntry(payload: Uint8Array, payloadOffset: number): MkvTrack | undefined {
   const track: MkvTrack = {
     number: 0,
     type: 'other',
     codecId: '',
     isDefault: true, // FlagDefault defaults to 1
     isForced: false,
+    isEnabled: true, // FlagEnabled defaults to 1
   }
   let language: string | undefined
   let bcp47: string | undefined
@@ -372,6 +382,12 @@ function parseTrackEntry(payload: Uint8Array): MkvTrack | undefined {
         break
       case ID.TrackType:
         track.type = trackType(toUint(child.data))
+        break
+      case ID.FlagEnabled:
+        track.isEnabled = toUint(child.data) !== 0
+        if (!track.isEnabled && child.data.length === 1) {
+          track.disabledFlagOffset = payloadOffset + (child.data.byteOffset - payload.byteOffset)
+        }
         break
       case ID.FlagDefault:
         track.isDefault = toUint(child.data) !== 0
@@ -471,7 +487,8 @@ export class MatroskaFile {
           }
         } else {
           for (const entry of children(payload).filter((c) => c.id === ID.TrackEntry)) {
-            const track = parseTrackEntry(entry.data)
+            // `entry.data` is a view into `payload`, which starts at `payloadAt` in the file.
+            const track = parseTrackEntry(entry.data, payloadAt + (entry.data.byteOffset - payload.byteOffset))
             if (track) info.tracks.push(track)
           }
         }
