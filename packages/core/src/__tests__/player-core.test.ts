@@ -246,6 +246,31 @@ describe('createPlayer core contract', () => {
     player.destroy()
   })
 
+  it('does not show an interrupted play() as an error, but still shows a blocked one', () => {
+    let engine: FakeEngine | null = null
+    const player = createPlayer({
+      src: '/video.mp4',
+      engine: (video) => {
+        engine = new FakeEngine(video)
+        return engine
+      },
+    })
+    player.mount(document.createElement('video'), document.createElement('div'))
+
+    // The source changed under a pending play() (a new load, or a fallback to the plain file).
+    engine!.emit('playblocked', {
+      name: 'AbortError',
+      message: 'The play() request was interrupted by a new load request.',
+    })
+    expect(player.store.state.error).toBeNull()
+
+    // The browser refusing to start playback is still reported.
+    engine!.emit('playblocked', { name: 'NotAllowedError', message: 'play() failed because the user did not interact' })
+    expect(player.store.state.error).toMatchObject({ message: 'play() failed because the user did not interact' })
+
+    player.destroy()
+  })
+
   it('aborts old thumbnail requests when thumbnail URL changes', async () => {
     const abortSpy = vi.fn()
     const originalFetch = globalThis.fetch
