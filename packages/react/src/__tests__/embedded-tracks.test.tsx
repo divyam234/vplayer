@@ -48,6 +48,71 @@ async function openSettings(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'Settings' }))
 }
 
+/** An engine that is still reading the file, like MatroskaMediaEngine before playback starts. */
+class StagedEngine extends TrackEngine {
+  loadStage: 'tracks' | 'preparing' | 'starting' | null = 'tracks'
+}
+
+describe('loading stages before playback', () => {
+  it('shows what is being done under the loading bars, and nothing once playback can start', () => {
+    let engine: StagedEngine | null = null
+    render(
+      <VideoPlayer
+        src="/video.mkv"
+        engine={(video) => {
+          engine = new StagedEngine(video)
+          return engine
+        }}
+      />,
+    )
+    // The stage the engine is in when the player mounts is shown at once.
+    expect(screen.getByText('Reading audio tracks and subtitles…')).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Reading audio tracks and subtitles…' })).toBeInTheDocument()
+
+    act(() => engine!.emit('loadstage', { stage: 'preparing' }))
+    expect(screen.getByText('Preparing audio…')).toBeInTheDocument()
+    expect(screen.queryByText('Reading audio tracks and subtitles…')).not.toBeInTheDocument()
+
+    act(() => engine!.emit('loadstage', { stage: 'starting' }))
+    expect(screen.getByText('Starting playback…')).toBeInTheDocument()
+
+    act(() => engine!.emit('loadstage', { stage: null }))
+    expect(screen.queryByText('Starting playback…')).not.toBeInTheDocument()
+    // The bars stay in the page but hidden, as before.
+    expect(screen.getByRole('status', { name: 'Loading video' })).toBeInTheDocument()
+  })
+
+  it('hides the play button while a stage is shown, so it does not sit on the loading text', () => {
+    let engine: StagedEngine | null = null
+    const { container } = render(
+      <VideoPlayer
+        src="/video.mkv"
+        engine={(video) => {
+          engine = new StagedEngine(video)
+          return engine
+        }}
+      />,
+    )
+    const pauseOrb = () => container.querySelector('.vplayer__pause-orb')!.parentElement!
+    expect(pauseOrb()).toHaveClass('vplayer__overlay--hidden')
+
+    // Once loading is over a paused player offers the play button again.
+    act(() => engine!.emit('loadstage', { stage: null }))
+    expect(pauseOrb()).not.toHaveClass('vplayer__overlay--hidden')
+  })
+
+  it('can be given other wording through labels', () => {
+    render(
+      <VideoPlayer
+        src="/video.mkv"
+        labels={{ loadingTracks: 'Lecture des pistes…' }}
+        engine={(video) => new StagedEngine(video)}
+      />,
+    )
+    expect(screen.getByText('Lecture des pistes…')).toBeInTheDocument()
+  })
+})
+
 describe('embedded tracks in the settings menu', () => {
   it('has no Audio entry when there is nothing to choose', async () => {
     const user = userEvent.setup()

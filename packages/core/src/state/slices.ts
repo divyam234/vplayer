@@ -41,12 +41,20 @@ export type PlaybackStatus =
 
 // ── Slice 1: Media playback ───────────────────────────────
 
+/**
+ * What a media engine is doing before playback can start, when that takes a while: reading the
+ * file's tracks, preparing the audio, starting playback. `null` once playback has started.
+ */
+export type LoadStage = 'tracks' | 'preparing' | 'starting'
+
 export interface MediaSlice {
   status: PlaybackStatus
   source: PlayerSource | null
   isPlaying: boolean
   isPaused: boolean
   isBuffering: boolean
+  /** The stage before playback starts, for engines that need one. See {@link LoadStage}. */
+  loadStage: LoadStage | null
   isEnded: boolean
   currentTime: number
   duration: number
@@ -172,6 +180,7 @@ export function getInitialMediaState(): MediaState {
     isPlaying: false,
     isPaused: true,
     isBuffering: false,
+    loadStage: null,
     isEnded: false,
     currentTime: 0,
     duration: 0,
@@ -243,6 +252,7 @@ export const selectMedia = (s: MediaState) => ({
   isPlaying: s.isPlaying,
   isPaused: s.isPaused,
   isBuffering: s.isBuffering,
+  loadStage: s.loadStage,
   isEnded: s.isEnded,
   currentTime: s.currentTime,
   duration: s.duration,

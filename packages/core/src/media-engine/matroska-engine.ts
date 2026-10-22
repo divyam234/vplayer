@@ -13,9 +13,11 @@
  *   - `tracks`            { audioTracks, activeAudioTrack, subtitleTracks }
  *   - `audiotrackchange`  { id }
  *   - `subtitlecues`      { id, cues, status }   (cues read so far for the selected subtitle track)
+ *   - `loadstage`         { stage }              (what is being done before playback starts; null when it has)
  */
 
 import type { EmbeddedTracks, TracksSnapshot } from '../embedded-tracks/controller'
+import type { LoadStage } from '../state/slices'
 import type { SubtitleCue } from '../subtitle-parser'
 import { BaseMediaEngine } from './base-engine'
 
@@ -67,6 +69,8 @@ export class MatroskaMediaEngine extends BaseMediaEngine {
   private sentStatus: TracksSnapshot['subtitleStatus'] | null = null
   private sentActiveSubtitle: number | undefined
   private remuxed = false
+  /** Reading the file starts at once, so that is where loading starts. */
+  loadStage: LoadStage | null = 'tracks'
   private readonly options: MatroskaMediaEngineOptions
   /** Resolves once the element has its source (or the plain file was chosen after a failure). */
   private ready: Promise<void>
@@ -79,6 +83,8 @@ export class MatroskaMediaEngine extends BaseMediaEngine {
       this.markReady = resolve
     })
     video.addEventListener('timeupdate', this.onTimeUpdate)
+    // Playback has started once there is something to show, or it has failed.
+    for (const event of ['canplay', 'playing', 'error'] as const) this.on(event, () => this.setStage(null))
     void this.start()
   }
 
@@ -87,6 +93,12 @@ export class MatroskaMediaEngine extends BaseMediaEngine {
     await this.ready
     if (this.destroyed) return
     return super.play()
+  }
+
+  private setStage(stage: LoadStage | null): void {
+    if (this.destroyed || this.loadStage === stage) return
+    this.loadStage = stage
+    this.emit('loadstage', { stage })
   }
 
   private onTimeUpdate = (): void => {
@@ -105,6 +117,7 @@ export class MatroskaMediaEngine extends BaseMediaEngine {
         locale: this.options.locale ?? 'en',
         trackName: this.options.trackName ?? ((number) => `Track ${number}`),
         preferredAudioLanguage: this.options.preferredAudioLanguage,
+        onStage: (stage) => this.setStage(stage),
       })
       this.tracks = tracks
       this.unsubscribe = tracks.subscribe(() => this.publish())
@@ -118,6 +131,7 @@ export class MatroskaMediaEngine extends BaseMediaEngine {
       this.remuxed = source.src !== this.options.src
       tracks.attachVideo(this.element)
       this.element.src = source.src
+      this.setStage('starting')
       this.markReady()
       this.publish()
     } catch (error) {
@@ -141,6 +155,7 @@ export class MatroskaMediaEngine extends BaseMediaEngine {
       )
     }
     video.src = this.options.src
+    this.setStage('starting')
     this.markReady()
     this.publish()
   }

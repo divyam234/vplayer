@@ -1,3 +1,5 @@
+import type { LoadStage } from '../state/slices'
+
 /**
  * MediaEngine — Strategy interface for media playback.
  *
@@ -37,6 +39,7 @@ export type MediaEngineEvent =
   | 'volumechange'
   | 'ratechange'
   | 'playblocked'
+  | 'loadstage'
   | 'error'
   | (string & {})
 
@@ -65,6 +68,12 @@ export interface MediaEngine {
   selectAudioTrack?(id: number): Promise<boolean>
   /** Starts reading the embedded subtitle track with this id, or stops with `null`. */
   selectSubtitleTrack?(id: string | null): void
+  /**
+   * An engine that has work to do before playback can start (reading the file's tracks, preparing
+   * the audio) says which stage it is in, and emits `loadstage` with `{ stage }` when it changes;
+   * `null` once playback has started. The player shows it, so the wait does not look like a hang.
+   */
+  readonly loadStage?: LoadStage | null
   requestPictureInPicture(): Promise<void>
   exitPictureInPicture(): Promise<void>
   /** Capture a still frame from the current video frame. */

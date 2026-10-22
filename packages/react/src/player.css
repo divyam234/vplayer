@@ -630,6 +630,15 @@
     height: clamp(1.5rem, 6cqw, 2.5rem);
     color: var(--vplayer-fg);
   }
+  .vplayer__loading {
+    @apply flex flex-col items-center gap-3 px-4 text-center;
+  }
+  .vplayer__loading-note {
+    @apply text-sm;
+    color: color-mix(in srgb, white 88%, transparent);
+    /* Legible over any picture, and over the black before there is one. */
+    text-shadow: 0 1px 4px color-mix(in srgb, black 80%, transparent);
+  }
   .vplayer__buffering-bars {
     @apply flex h-8 items-center gap-1.5;
   }
