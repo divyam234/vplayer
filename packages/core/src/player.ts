@@ -969,6 +969,10 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       eng.on('subtitlecues', (event: EngineSubtitleCuesEvent) => applyEmbeddedCues(event)),
 
       eng.on('playblocked', (err) => {
+        // play() is interrupted whenever the source changes under it (a new load, a fallback to the
+        // plain file after the embedded tracks could not be read). That is not a failure of
+        // playback, and the new source starts by itself, so it is not shown as an error.
+        if (err?.name === 'AbortError') return
         const message = err?.message ?? 'Playback was blocked by the browser'
         store.setState((prev) => ({
           ...prev,

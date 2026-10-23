@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { EmbeddedTracks } from '../embedded-tracks/controller'
+import { MatroskaFile } from '../embedded-tracks/matroska'
+import { RemuxSession } from '../embedded-tracks/remux-session'
 import { fixture, round, serve } from './fixtures/helpers'
 
 // The track controller against real files served over HTTP range requests, without a browser.
@@ -10,7 +12,193 @@ async function settle(tracks: EmbeddedTracks, status: 'ready' | 'error' = 'ready
   await vi.waitFor(() => expect(tracks.getSnapshot().subtitleStatus).toBe(status), { timeout: 10_000 })
 }
 
+function deferred() {
+  let resolve!: () => void
+  const promise = new Promise<void>((done) => {
+    resolve = done
+  })
+  return { promise, resolve }
+}
+
 describe('embedded subtitles controller', () => {
+  it('hands the places of disabled audio flags to the remux session, so those tracks can be chosen', async () => {
+    const fakeSession = {
+      audioTracks: [{ id: 2, codec: 'opus', channels: 2, sampleRate: 48000, isDefault: true, mode: 'copy' }],
+      activeAudio: 2,
+      objectUrl: 'blob:fake',
+      onError: () => () => undefined,
+      onAudioChange: () => () => undefined,
+      dispose: () => undefined,
+      attach: () => undefined,
+    }
+    const supported = vi.spyOn(RemuxSession, 'isSupported').mockReturnValue(true)
+    const open = vi.spyOn(RemuxSession, 'open').mockResolvedValue(fakeSession as unknown as RemuxSession)
+    const options = { locale: 'en', trackName: (n: number) => `Track ${n}` }
+    try {
+      const data = fixture('disabled-audio.mkv')
+      const server = await serve(data)
+      try {
+        const tracks = new EmbeddedTracks({ url: server.url, ...options })
+        await tracks.load(new AbortController().signal)
+        const offsets = open.mock.calls[0][1]?.enabledFlagOffsets ?? []
+        // One disabled audio track (the Japanese one), and the byte there is the FlagEnabled value 0.
+        expect(offsets.length).toBe(1)
+        expect([data[offsets[0] - 2], data[offsets[0] - 1], data[offsets[0]]]).toEqual([0xb9, 0x81, 0x00])
+        tracks.dispose()
+      } finally {
+        await server.close()
+      }
+
+      open.mockClear()
+      const normal = await serve(fixture('multi-track.mkv'))
+      try {
+        const tracks = new EmbeddedTracks({ url: normal.url, ...options })
+        await tracks.load(new AbortController().signal)
+        expect(open.mock.calls[0][1]?.enabledFlagOffsets).toEqual([])
+        tracks.dispose()
+      } finally {
+        await normal.close()
+      }
+    } finally {
+      supported.mockRestore()
+      open.mockRestore()
+    }
+  })
+
+  it('reads what is about to be shown first, then the captions that began just before the playhead, then the rest ahead', async () => {
+    const server = await serve(fixture('long-subs.mkv'))
+    try {
+      const tracks = new EmbeddedTracks({ url: server.url, locale: 'en', trackName: (n) => `Track ${n}` })
+      await tracks.load(new AbortController().signal)
+      // A file whose clusters start at these times; an "offset" here is just the cluster time.
+      const clusters = [780, 785, 790, 795, 800, 803.8, 809, 814, 820, 830, 850, 900, 940, 1000]
+      const scans: { from: number; announced: { time: number; go: boolean }[] }[] = []
+      const mkv = tracks as unknown as { mkv: Record<string, unknown> }
+      mkv.mkv.clusterOffsetFor = async (time: number) => clusters.toReversed().find((c) => c <= time) ?? clusters[0]
+      mkv.mkv.prefetch = () => undefined
+      mkv.mkv.scan = async (
+        offset: number,
+        _wanted: unknown,
+        handlers: { onCluster: (time: number) => boolean | Promise<boolean> },
+      ) => {
+        const scan = { from: offset, announced: [] as { time: number; go: boolean }[] }
+        scans.push(scan)
+        for (const time of clusters.filter((c) => c >= offset)) {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- clusters arrive one after another
+          const go = await handlers.onCluster(time)
+          scan.announced.push({ time, go })
+          if (!go) break
+        }
+        return { endOffset: offset, reachedEnd: false }
+      }
+
+      tracks.setPlayhead(805)
+      tracks.selectSubtitle(2)
+      await settle(tracks)
+
+      // First what is about to be shown, from the cluster that holds one second before the playhead...
+      expect(scans[0].from).toBe(803.8)
+      expect(scans[0].announced.at(-1)?.time).toBeGreaterThan(805 + 10)
+      // ...then back from eight seconds before it, up to but not into what was just read...
+      expect(scans[1].from).toBe(795)
+      expect(scans[1].announced.at(-1)).toEqual({ time: 803.8, go: false })
+      // ...and only then the rest of the lookahead.
+      expect(scans[2].from).toBeGreaterThan(805 + 10 - 6)
+      expect(scans.length).toBe(3)
+      tracks.dispose()
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('starts reading right before the playhead, not seconds earlier', async () => {
+    // Everything read before the first caption can show is waited for, so reading starts as close
+    // as the cue index allows.
+    const server = await serve(fixture('long-subs.mkv'))
+    const spy = vi.spyOn(MatroskaFile.prototype, 'clusterOffsetFor')
+    try {
+      const tracks = new EmbeddedTracks({ url: server.url, locale: 'en', trackName: (n) => `Track ${n}` })
+      await tracks.load(new AbortController().signal)
+      tracks.setPlayhead(300)
+      tracks.selectSubtitle(2)
+      await settle(tracks)
+      expect(spy.mock.calls[0][0]).toBe(299)
+      expect(tracks.getSnapshot().cues.some((cue) => cue.text === 'Cue 30')).toBe(true)
+      tracks.dispose()
+    } finally {
+      spy.mockRestore()
+      await server.close()
+    }
+  })
+
+  it('reads the cue index while loading when there are subtitles to choose from, and only then', async () => {
+    // Choosing a subtitle starts at the index, so it is read before the choice is made.
+    const spy = vi.spyOn(MatroskaFile.prototype, 'loadCues')
+    const options = { locale: 'en', trackName: (n: number) => `Track ${n}` }
+    try {
+      const withSubtitles = await serve(fixture('multi-track.mkv'))
+      try {
+        const tracks = new EmbeddedTracks({ url: withSubtitles.url, ...options })
+        await tracks.load(new AbortController().signal)
+        expect(spy).toHaveBeenCalledTimes(1)
+        tracks.dispose()
+      } finally {
+        await withSubtitles.close()
+      }
+
+      spy.mockClear()
+      const without = await serve(fixture('eac3-only.mkv'))
+      try {
+        const tracks = new EmbeddedTracks({ url: without.url, ...options })
+        await tracks.load(new AbortController().signal)
+        expect(tracks.getSnapshot().subtitles).toEqual([])
+        expect(spy).not.toHaveBeenCalled()
+        tracks.dispose()
+      } finally {
+        await without.close()
+      }
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('stops saying "loading" once what is about to be shown has been read', async () => {
+    const server = await serve(fixture('long-subs.mkv'))
+    try {
+      const tracks = new EmbeddedTracks({ url: server.url, locale: 'en', trackName: (n) => `Track ${n}` })
+      await tracks.load(new AbortController().signal)
+      // A scan that reads clusters at 0 s, 5 s, 20 s and 40 s and then waits, like a slow server.
+      const { promise: gate, resolve: release } = deferred()
+      const seen: number[] = []
+      const mkv = (tracks as unknown as { mkv: { scan: unknown } }).mkv
+      mkv.scan = async (
+        offset: number,
+        _wanted: unknown,
+        handlers: { onCluster: (time: number) => boolean | Promise<boolean> },
+      ) => {
+        for (const time of [0, 5, 20, 40]) {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- clusters arrive one after another
+          await handlers.onCluster(time)
+          seen.push(time)
+        }
+        await gate
+        return { endOffset: offset, reachedEnd: true }
+      }
+
+      tracks.selectSubtitle(2)
+      tracks.setPlayhead(0)
+      await vi.waitFor(() => expect(seen).toEqual([0, 5, 20, 40]))
+      // The next 15 s are covered (20 s and 40 s were read), though reading goes on.
+      expect(tracks.getSnapshot().subtitleStatus).toBe('ready')
+
+      release()
+      await settle(tracks)
+      tracks.dispose()
+    } finally {
+      await server.close()
+    }
+  })
+
   it('lists subtitles and plays the file directly when audio is playable as is', async () => {
     const server = await serve(fixture('single-track.mkv'))
     try {

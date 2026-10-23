@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { languageKey, languageName, trackTitle } from '../embedded-tracks/labels'
 import { MatroskaFile, RangeReader } from '../embedded-tracks/matroska'
@@ -15,6 +15,75 @@ import { fixture, readTrack, round, serve } from './fixtures/helpers'
 // no browser.
 
 describe('Matroska reader', () => {
+  it('starts small after a jump and then reads further and further ahead in one request', async () => {
+    // Servers that fetch from remote storage take over a second to answer the first byte, so
+    // 512 KiB requests were slower than playing the video, while a first read of 4 MiB would
+    // delay the first answer.
+    const size = 24 * 1024 * 1024 + 123
+    const data = Buffer.alloc(size)
+    for (let i = 0; i < size; i += 4099) data[i] = (i / 4099) % 251
+    const server = await serve(data)
+    try {
+      const reader = new RangeReader(server.url)
+      for (let offset = 0; offset < 12 * 1024 * 1024; offset += 100 * 1024) {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- a sequential walk is the point
+        const read = await reader.read(offset, 100 * 1024)
+        expect(Buffer.compare(Buffer.from(read), data.subarray(offset, offset + 100 * 1024))).toBe(0)
+      }
+      const sizes = server.requests.map((r) => (r.end - r.start + 1) / (1024 * 1024))
+      // The first read is one block; later ones ask for several blocks at once.
+      expect(sizes[0]).toBe(1)
+      expect(Math.max(...sizes)).toBeGreaterThanOrEqual(4)
+      // 12 MiB walked sequentially took a handful of requests, not one per block.
+      expect(server.requests.length).toBeLessThanOrEqual(6)
+
+      // A jump starts small again: the request for the block it lands in is one block.
+      const far = await reader.read(20 * 1024 * 1024, 1000)
+      expect(Buffer.compare(Buffer.from(far), data.subarray(20 * 1024 * 1024, 20 * 1024 * 1024 + 1000))).toBe(0)
+      const landing = server.requests.filter((r) => r.start === 20 * 1024 * 1024)
+      expect(landing.map((r) => r.end - r.start + 1)).toEqual([1024 * 1024])
+
+      // The end of the file comes back short, not as an error.
+      const tail = await reader.read(size - 50, 1000)
+      expect(tail.length).toBe(50)
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('warms the first bytes of a scan as a small request and a bigger one at the same time', async () => {
+    const data = Buffer.alloc(16 * 1024 * 1024, 3)
+    const server = await serve(data)
+    try {
+      const reader = new RangeReader(server.url)
+      reader.warm(6 * 1024 * 1024, 5 * 1024 * 1024)
+      // Both requests are out before any answer is waited for.
+      await vi.waitFor(() => expect(server.requests.length).toBe(2))
+      const sizes = server.requests.map((r) => (r.end - r.start + 1) / (1024 * 1024)).toSorted((a, b) => a - b)
+      expect(sizes).toEqual([1, 4])
+      // Reading what was warmed asks for nothing more.
+      const read = await reader.read(6 * 1024 * 1024, 5 * 1024 * 1024)
+      expect(read.length).toBe(5 * 1024 * 1024)
+      expect(server.requests.length).toBe(2)
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('can read more at once than it keeps', async () => {
+    const size = 40 * 1024 * 1024
+    const data = Buffer.alloc(size, 7)
+    const server = await serve(data)
+    try {
+      const reader = new RangeReader(server.url, { blockSize: 1024 * 1024, maxBlocks: 4 })
+      const read = await reader.read(1000, 20 * 1024 * 1024)
+      expect(read.length).toBe(20 * 1024 * 1024)
+      expect(read.every((byte) => byte === 7)).toBe(true)
+    } finally {
+      await server.close()
+    }
+  })
+
   it('lists tracks with their language, title and flags', async () => {
     const server = await serve(fixture('multi-track.mkv'))
     try {

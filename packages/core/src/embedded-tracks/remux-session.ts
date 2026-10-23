@@ -31,6 +31,8 @@ import {
   UrlSource,
 } from 'mediabunny'
 
+import { fetchWithEnabledFlags } from './patched-fetch'
+
 export type AudioMode = 'direct' | 'transcode' | 'unsupported'
 
 export type AudioTrackInfo = {
@@ -51,6 +53,11 @@ export type RemuxSessionOptions = {
    * nothing playable, the default track is used, else the first one that can be played.
    */
   pickAudio?: (tracks: AudioTrackInfo[]) => number | undefined
+  /**
+   * Offsets of FlagEnabled bytes that say 0 for audio tracks, so that those tracks are read as
+   * enabled (Mediabunny would otherwise not see them at all).
+   */
+  enabledFlagOffsets?: readonly number[]
   signal?: AbortSignal
 }
 
@@ -254,6 +261,7 @@ export class RemuxSession {
       source: new UrlSource(url, {
         // Retry transient failures, but give up on errors that will not go away.
         getRetryDelay: (attempt) => (attempt < 4 ? 0.5 * 2 ** attempt : null),
+        ...(options.enabledFlagOffsets?.length ? { fetchFn: fetchWithEnabledFlags(options.enabledFlagOffsets) } : {}),
         // The source reads ahead up to this much. Every open and every seek starts a new read,
         // and the server streams from a remote store, so keep the speculative part modest.
         maxCacheSize: READ_AHEAD_BYTES,

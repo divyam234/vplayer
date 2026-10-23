@@ -105,3 +105,16 @@ ffmpeg -loglevel error -y \
   -c:v libvpx-vp9 -crf 55 -b:v 0 -g 10 -deadline realtime -cpu-used 8 \
   -c:s srt -metadata:s:s:0 language=eng \
   -max_interleave_delta 0 -cluster_time_limit 5000 long-subs.mkv
+
+# disabled-audio.mkv: multi-track.mkv with the second audio track (Japanese) marked FlagEnabled=0, the
+# way some releases hide an alternate-language track. Written by overwriting that track's 3-byte FlagLacing
+# element (9C 81 00) with FlagEnabled=0 (B9 81 00), so nothing in the file moves.
+python3 - <<'PYTHON'
+data = bytearray(open("multi-track.mkv", "rb").read())
+marker = bytes([0x9C, 0x81, 0x00])
+# FlagLacing comes before the Name in a track entry, so take the last one before the name "Japanese"
+start = data.index(b"Japanese")
+at = data.rindex(marker, 0, start)
+data[at:at + 3] = bytes([0xB9, 0x81, 0x00])
+open("disabled-audio.mkv", "wb").write(data)
+PYTHON

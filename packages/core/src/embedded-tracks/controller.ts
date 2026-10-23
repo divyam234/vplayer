@@ -73,6 +73,27 @@ const EMBEDDED_PREFIX = 'embedded:'
 const LOOKAHEAD = 120
 /** A playhead jump bigger than this is a seek, so reading in the old place is abandoned. */
 const SEEK_JUMP = 10
+/**
+ * Subtitles count as ready once the reading has got this far past the playhead, in seconds. A cue
+ * that is on screen now is stored in a cluster that starts before it, so nothing that is shown
+ * now can be missing once the next cluster has begun.
+ */
+const READY_AHEAD = 0
+/**
+ * Reading in a new place (a seek, or choosing a track) is done in two steps, so that the first
+ * caption does not wait for what is behind the playhead. First forward from just before it,
+ * a little way, which is what will be shown next. Then back to `MAX_CUE_SECONDS` before it: a caption that
+ * began before the playhead and is still on screen is stored in an earlier cluster, and shows up
+ * as soon as that is read (a few seconds later), still with time left on it. Only then the rest of
+ * the lookahead. Reading it all back to front took as long as playing that much of the video
+ * from a slow server.
+ */
+const FORWARD_START = 1
+const MAX_CUE_SECONDS = 8
+/** The part ahead that is read before going back: what is about to be shown, in seconds. */
+const NEAR_AHEAD = 10
+/** Bytes asked for at once when reading starts somewhere new, so that the first answers are not a round trip apart. */
+const FIRST_READ_BYTES = 5 * 1024 * 1024
 const RETRY_AFTER_ERROR_MS = 10_000
 
 export const subtitleId = (number: number) => `${EMBEDDED_PREFIX}${number}`
@@ -92,6 +113,8 @@ interface TrackCues {
   seen: Set<string>
   /** Time ranges that have been read completely, sorted and non-overlapping. */
   covered: [number, number][]
+  /** Places where reading backwards was tried, so that a gap that cannot be closed is not retried. */
+  backTried: Set<number>
 }
 
 function addCovered(ranges: [number, number][], from: number, to: number): void {
@@ -116,6 +139,12 @@ function firstGap(ranges: [number, number][], from: number, to: number): number 
     at = end
   }
   return at < to ? at : undefined
+}
+
+/** Where the first covered range after `at` begins, or infinity. */
+function nextCoveredStart(ranges: [number, number][], at: number): number {
+  for (const [start] of ranges) if (start > at) return start
+  return Number.POSITIVE_INFINITY
 }
 
 export class EmbeddedTracks {
@@ -201,6 +230,9 @@ export class EmbeddedTracks {
       })
     }
     this.update({ subtitles })
+    // Choosing a subtitle starts at the cue index (it says where in the file a time is), which
+    // sits at the end of the file and, on a slow server, would otherwise be waited for then.
+    if (subtitles.some((subtitle) => subtitle.supported)) void mkv.loadCues()
 
     const audio = mkv.info.tracks.filter((track) => track.type === 'audio')
     const needsRemux = audio.length >= 2 || (audio.length === 1 && !playsNatively(audio[0].codecId))
@@ -213,8 +245,13 @@ export class EmbeddedTracks {
       const { RemuxSession } = await import('./remux-session')
       if (!RemuxSession.isSupported()) return undefined
       const preferred = this.options.preferredAudioLanguage
+      // Audio tracks the file marks as disabled are still there to be chosen.
+      const enabledFlagOffsets = (this.mkv?.info.tracks ?? [])
+        .filter((track) => track.type === 'audio' && track.disabledFlagOffset !== undefined)
+        .map((track) => track.disabledFlagOffset!)
       const session = await RemuxSession.open(this.options.url, {
         signal,
+        enabledFlagOffsets,
         // Start on the language the viewer chose last time, if this file has it.
         pickAudio: (tracks) =>
           preferred
@@ -334,6 +371,13 @@ export class EmbeddedTracks {
     return mergeOverlapping(this.cues.get(number)?.raw ?? [])
   }
 
+  /** Only while a track is selected, and never over an error. */
+  private setStatus(status: 'loading' | 'ready'): void {
+    const current = this.snapshot
+    if (current.activeSubtitle === undefined || current.subtitleStatus === 'error') return
+    if (current.subtitleStatus !== status) this.update({ subtitleStatus: status })
+  }
+
   private publish(): void {
     if (this.publishTimer) return
     this.publishTimer = setTimeout(() => {
@@ -350,13 +394,34 @@ export class EmbeddedTracks {
       for (;;) {
         const number = this.snapshot.activeSubtitle
         if (number === undefined || this.disposed) break
-        const stored = this.cues.get(number) ?? { raw: [], seen: new Set<string>(), covered: [] }
+        const stored = this.cues.get(number) ?? {
+          raw: [],
+          seen: new Set<string>(),
+          covered: [],
+          backTried: new Set<number>(),
+        }
         this.cues.set(number, stored)
-        const from = Math.max(0, this.playhead - 5)
-        const gap = firstGap(stored.covered, from, this.playhead + LOOKAHEAD / 2)
-        if (gap === undefined) break
-        const finished = await this.fill(number, stored, gap)
-        if (!finished) continue // abandoned for a seek or a new selection: look again
+        const forwardFrom = Math.max(0, this.playhead - FORWARD_START)
+        // 1. What is about to be shown. Reading what is on screen is "loading"; topping up is not.
+        const near = firstGap(stored.covered, forwardFrom, this.playhead + NEAR_AHEAD)
+        if (near !== undefined) {
+          if (near <= this.playhead + READY_AHEAD) this.setStatus('loading')
+          // If this is abandoned for a seek or a new selection, the loop looks again.
+          await this.fill(number, stored, near, { until: this.playhead + NEAR_AHEAD })
+          continue
+        }
+        // 2. The captions that began just before the playhead and are still on screen.
+        const backGap = firstGap(stored.covered, Math.max(0, this.playhead - MAX_CUE_SECONDS), forwardFrom)
+        if (backGap !== undefined && !stored.backTried.has(Math.floor(backGap))) {
+          stored.backTried.add(Math.floor(backGap))
+          const end = nextCoveredStart(stored.covered, backGap)
+          await this.fill(number, stored, backGap, { until: end, quiet: true, stopBefore: true })
+          continue
+        }
+        // 3. The rest of the lookahead.
+        const far = firstGap(stored.covered, forwardFrom, this.playhead + LOOKAHEAD / 2)
+        if (far === undefined) break
+        await this.fill(number, stored, far, { until: this.playhead + LOOKAHEAD, quiet: true })
       }
       if (this.snapshot.activeSubtitle !== undefined && this.snapshot.subtitleStatus !== 'error') {
         this.update({ subtitleStatus: 'ready', cues: this.merged(this.snapshot.activeSubtitle) })
@@ -372,16 +437,26 @@ export class EmbeddedTracks {
     }
   }
 
-  /** Reads clusters from about `from` until the lookahead is filled. False if abandoned. */
-  private async fill(number: number, stored: TrackCues, from: number): Promise<boolean> {
+  /**
+   * Reads clusters from about `from` while their time is within `until` (before it, with
+   * `stopBefore`). `quiet` is for reading behind the playhead: no status change, no read-ahead.
+   * False if abandoned.
+   */
+  private async fill(
+    number: number,
+    stored: TrackCues,
+    from: number,
+    { until, quiet = false, stopBefore = false }: { until: number; quiet?: boolean; stopBefore?: boolean },
+  ): Promise<boolean> {
     const mkv = this.mkv
     const track = this.subtitleTracks.get(number)
     const format = track && subtitleFormat(track)
     if (!mkv || !track || !format) return true
     const controller = new AbortController()
     this.fillAbort = controller
-    const offset = await mkv.clusterOffsetFor(Math.max(0, from - 10))
+    const offset = await mkv.clusterOffsetFor(from)
     if (offset === undefined) return true
+    if (!quiet) mkv.prefetch(offset, FIRST_READ_BYTES)
     let firstCluster: number | undefined
     let lastCluster = from
     try {
@@ -390,7 +465,8 @@ export class EmbeddedTracks {
         onCluster: (time) => {
           firstCluster ??= time
           lastCluster = time
-          return time <= this.playhead + LOOKAHEAD
+          if (!quiet && time > this.playhead + READY_AHEAD) this.setStatus('ready')
+          return stopBefore ? time < until : time <= until
         },
         onBlock: (block) => {
           const cue = blockToCue(block, format)

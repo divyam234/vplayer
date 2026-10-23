@@ -326,6 +326,11 @@
     background: color-mix(in srgb, black 90%, transparent);
     border-color: var(--vplayer-control-border);
     backdrop-filter: blur(18px);
+    /* A long list (a file can carry dozens of subtitle languages) scrolls inside the menu instead of
+       running off the top of the screen. --available-height is set by the positioning code. */
+    max-height: var(--available-height, 70vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
   .vplayer__menu-item {
     @apply flex w-full cursor-default items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors outline-none;
