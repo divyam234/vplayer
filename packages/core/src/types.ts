@@ -233,6 +233,12 @@ export interface PlayerLabels {
   audio: string
   audioUnsupported: string
   subtitleUnsupported: string
+  /** Shown while the file's audio tracks and subtitles are being read, before playback starts. */
+  loadingTracks: string
+  /** Shown while the audio is being prepared (converted, for formats the browser cannot play). */
+  preparingPlayback: string
+  /** Shown from when everything is ready until the first picture is there. */
+  startingPlayback: string
 }
 
 export interface PlayerSystems {

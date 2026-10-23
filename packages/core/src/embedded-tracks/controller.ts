@@ -66,6 +66,12 @@ export interface EmbeddedTracksOptions {
   trackName: (number: number) => string
   /** Language (see languageKey) to start with when the file has an audio track in it. */
   preferredAudioLanguage?: string
+  /**
+   * Told when loading reaches a stage the viewer would otherwise stare at: `preparing` is the audio
+   * being set up for a file whose tracks need it (the first stage, reading the file, is the one
+   * loading starts in).
+   */
+  onStage?: (stage: 'preparing') => void
 }
 
 const EMBEDDED_PREFIX = 'embedded:'
@@ -237,6 +243,7 @@ export class EmbeddedTracks {
     const audio = mkv.info.tracks.filter((track) => track.type === 'audio')
     const needsRemux = audio.length >= 2 || (audio.length === 1 && !playsNatively(audio[0].codecId))
     if (!needsRemux) return direct
+    this.options.onStage?.('preparing')
     return (await this.startRemux(signal)) ?? direct
   }
 

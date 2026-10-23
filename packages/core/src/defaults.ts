@@ -79,4 +79,7 @@ export const defaultPlayerLabels: PlayerLabels = {
   audio: 'Audio',
   audioUnsupported: 'Not supported by this browser',
   subtitleUnsupported: 'Not supported',
+  loadingTracks: 'Reading audio tracks and subtitles…',
+  preparingPlayback: 'Preparing audio…',
+  startingPlayback: 'Starting playback…',
 }

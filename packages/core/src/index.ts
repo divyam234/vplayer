@@ -50,7 +50,7 @@ export {
 } from './media-capabilities'
 export type { MediaCapabilitiesSnapshot } from './media-capabilities'
 export { formatTime } from './utils'
-export type { AudioTrackInfo } from './state/slices'
+export type { AudioTrackInfo, LoadStage } from './state/slices'
 export { defaultPlayerLabels } from './defaults'
 export { createMediaSessionController } from './media-session'
 export type { MediaSessionController } from './media-session'

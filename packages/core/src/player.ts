@@ -26,7 +26,7 @@ import { LocalPlaybackProgressStore } from './playback-progress'
 import type { PlaybackProgress, PlaybackProgressStore } from './playback-progress'
 import type { PluginAPI, PlayerPlugin, ContextMenuItem, FlipState, AspectRatioState, RemoteRef } from './plugin-api'
 import { createResolvedMediaEngine, toPlayerSource } from './source-resolver'
-import { createMediaStore } from './state/slices'
+import { createMediaStore, type LoadStage } from './state/slices'
 import { Storage, STORAGE_KEYS } from './storage'
 import { DEFAULT_CAPTION_SETTINGS, fetchSubtitles, fetchThumbnails } from './subtitle-parser'
 import type { CaptionSettings, SubtitleProviderResult, SubtitleSearchQuery, SubtitleTrack } from './subtitle-parser'
@@ -968,6 +968,10 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
 
       eng.on('subtitlecues', (event: EngineSubtitleCuesEvent) => applyEmbeddedCues(event)),
 
+      eng.on('loadstage', (event: { stage: LoadStage | null } | undefined) => {
+        store.setState((prev) => ({ ...prev, loadStage: event?.stage ?? null }))
+      }),
+
       eng.on('playblocked', (err) => {
         // play() is interrupted whenever the source changes under it (a new load, a fallback to the
         // plain file after the embedded tracks could not be read). That is not a failure of
@@ -1254,6 +1258,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       subtitleCues: prev.activeSubtitle?.embedded ? [] : prev.subtitleCues,
       subtitleStatus: prev.activeSubtitle?.embedded ? 'idle' : prev.subtitleStatus,
       status: 'loading',
+      loadStage: eng.loadStage ?? null,
       source,
       isPlaying: false,
       isPaused: true,
@@ -1441,6 +1446,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
         isPlaying: false,
         isPaused: true,
         isBuffering: false,
+        loadStage: null,
         isEnded: false,
       }))
     },

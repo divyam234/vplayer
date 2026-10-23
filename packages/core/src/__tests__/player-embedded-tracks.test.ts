@@ -79,6 +79,16 @@ function mountPlayer(options: Parameters<typeof createPlayer>[0]) {
 const round = (cues: Array<{ index: number; start: number; end: number; text: string }>) =>
   cues.map((cue) => ({ ...cue, start: Math.round(cue.start * 1000) / 1000, end: Math.round(cue.end * 1000) / 1000 }))
 
+// What the viewer is told while the file is read before playback can start.
+const stagesOf = (player: ReturnType<typeof mountPlayer>) => {
+  const seen: Array<string | null> = [player.store.state.loadStage]
+  player.store.subscribe(() => {
+    const stage = player.store.state.loadStage
+    if (seen.at(-1) !== stage) seen.push(stage)
+  })
+  return seen
+}
+
 describe('embedded tracks (the embeddedTracks option)', () => {
   let server: Served
 
@@ -131,6 +141,61 @@ describe('embedded tracks (the embeddedTracks option)', () => {
       const byExtension = mountPlayer({ src: '/clip.webm?token=1', embeddedTracks: true })
       expect(byExtension.engine).toBeInstanceOf(MatroskaMediaEngine)
       byExtension.destroy()
+    })
+
+    it('says what is being done before playback starts, in order, and stops once there is something to play', async () => {
+      const player = mountPlayer({ src: server.url, type: 'video/x-matroska', embeddedTracks: true })
+      const seen = stagesOf(player)
+      // Reading the file starts at once, so it is already the stage the viewer sees.
+      expect(player.store.state.loadStage).toBe('tracks')
+
+      // This file has several audio tracks, so the audio is prepared before it starts.
+      await vi.waitFor(() => expect(seen).toEqual(['tracks', 'preparing', 'starting']))
+      player.engine?.element.dispatchEvent(new Event('canplay'))
+      await vi.waitFor(() => expect(player.store.state.loadStage).toBeNull())
+      expect(seen).toEqual(['tracks', 'preparing', 'starting', null])
+      player.destroy()
+    })
+
+    it('goes straight from reading to starting when there is nothing to prepare', async () => {
+      const single = await serve(fixture('single-track.mkv'))
+      try {
+        const player = mountPlayer({ src: single.url, type: 'video/x-matroska', embeddedTracks: true })
+        const seen = stagesOf(player)
+        await vi.waitFor(() => expect(seen).toEqual(['tracks', 'starting']))
+        player.engine?.element.dispatchEvent(new Event('playing'))
+        await vi.waitFor(() => expect(player.store.state.loadStage).toBeNull())
+        player.destroy()
+      } finally {
+        await single.close()
+      }
+    })
+
+    it('still ends the stage for a file that cannot be read, and for a failure', async () => {
+      const garbage = await serve(Buffer.from('not a matroska file'))
+      try {
+        const player = mountPlayer({ src: garbage.url, type: 'video/x-matroska', embeddedTracks: true })
+        const seen = stagesOf(player)
+        await vi.waitFor(() => expect(seen).toEqual(['tracks', 'starting']))
+        // A load error also ends it, so a failed start does not leave the viewer waiting.
+        player.engine?.element.dispatchEvent(new Event('error'))
+        await vi.waitFor(() => expect(player.store.state.loadStage).toBeNull())
+        player.destroy()
+      } finally {
+        await garbage.close()
+      }
+    })
+
+    it('shows no stage for an engine that has none, and none after the player is torn down', async () => {
+      const plain = mountPlayer({ src: '/clip.mp4', embeddedTracks: true })
+      expect(plain.store.state.loadStage).toBeNull()
+      plain.destroy()
+
+      const player = mountPlayer({ src: server.url, type: 'video/x-matroska', embeddedTracks: true })
+      expect(player.store.state.loadStage).toBe('tracks')
+      player.unmount()
+      expect(player.store.state.loadStage).toBeNull()
+      player.destroy()
     })
 
     it('lists the embedded subtitles and plays the file', async () => {
