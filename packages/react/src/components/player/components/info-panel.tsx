@@ -3,8 +3,15 @@ import { useEffect, useState, type FC } from 'react'
 import packageMetadata from '../../../../package.json'
 import { usePlayerRemote, usePlayerState, usePlayerContext } from '../context'
 
-const NETWORK_LABELS = ['Empty', 'Idle', 'Loading', 'No Source'] as const
-const READY_LABELS = ['Nothing', 'Metadata', 'Current Data', 'Future Data', 'Enough Data'] as const
+// Technical HTMLMediaElement constants, not untranslated UI descriptions.
+const NETWORK_LABELS = ['NETWORK_EMPTY', 'NETWORK_IDLE', 'NETWORK_LOADING', 'NETWORK_NO_SOURCE'] as const
+const READY_LABELS = [
+  'HAVE_NOTHING',
+  'HAVE_METADATA',
+  'HAVE_CURRENT_DATA',
+  'HAVE_FUTURE_DATA',
+  'HAVE_ENOUGH_DATA',
+] as const
 
 interface VideoMeta {
   width: number
@@ -30,7 +37,7 @@ type VideoWithWebKitMetrics = HTMLVideoElement & {
 export const InfoPanel: FC = () => {
   const state = usePlayerState()
   const infoPanelVisible = usePlayerState('infoPanelVisible')
-  const { videoRef } = usePlayerContext()
+  const { videoRef, i18n, labels } = usePlayerContext()
   const remote = usePlayerRemote()
   const [meta, setMeta] = useState<VideoMeta>({
     width: 0,
@@ -76,30 +83,60 @@ export const InfoPanel: FC = () => {
       <button
         type="button"
         className="vplayer__info-panel-close"
-        aria-label="Close debug stats"
+        aria-label={i18n.t('closeDebugStats')}
         onClick={remote.toggleInfoPanel}
       >
         ×
       </button>
-      <div>Version: {packageMetadata.version}</div>
-      <div>Status: {state.status}</div>
-      <div className="vplayer__info-source" title={state.source?.src}>
-        Source: {state.source?.src ?? 'N/A'}
-      </div>
-      <div>Type: {state.source?.type ?? 'Auto-detect'}</div>
-      <div>Quality: {state.activeQuality || 'N/A'}</div>
-      <div>Duration: {state.duration > 0 ? `${state.duration.toFixed(2)}s` : 'N/A'}</div>
-      <div>Resolution: {meta.width > 0 && meta.height > 0 ? `${meta.width}×${meta.height}` : 'N/A'}</div>
-      <div>Current: {state.currentTime.toFixed(2)}s</div>
-      <div>Buffered: {state.bufferedPercent.toFixed(1)}%</div>
-      <div>Volume: {(state.volume * 100).toFixed(0)}%</div>
-      <div>Rate: {state.playbackRate}x</div>
       <div>
-        Frames: {meta.droppedFrames ?? 'N/A'} dropped / {meta.totalFrames ?? 'N/A'} total
+        {i18n.t('debugVersion')}: {packageMetadata.version}
       </div>
-      <div>Network: {NETWORK_LABELS[meta.networkState] ?? meta.networkState}</div>
-      <div>Ready: {READY_LABELS[meta.readyState] ?? meta.readyState}</div>
-      <div>Fullscreen: {state.isFullscreen ? 'Yes' : 'No'}</div>
+      <div>
+        {i18n.t('debugStatus')}: {state.status}
+      </div>
+      <div className="vplayer__info-source" title={state.source?.src}>
+        {i18n.t('debugSource')}: {state.source?.src ?? '—'}
+      </div>
+      <div>
+        {i18n.t('debugType')}: {state.source?.type ?? i18n.t('autoDetect')}
+      </div>
+      <div>
+        {labels.quality}: {state.activeQuality || '—'}
+      </div>
+      <div>
+        {i18n.t('debugDuration')}: {state.duration > 0 ? `${state.duration.toFixed(2)}s` : '—'}
+      </div>
+      <div>
+        {i18n.t('debugResolution')}: {meta.width > 0 && meta.height > 0 ? `${meta.width}×${meta.height}` : '—'}
+      </div>
+      <div>
+        {i18n.t('debugCurrent')}: {state.currentTime.toFixed(2)}s
+      </div>
+      <div>
+        {i18n.t('debugBuffered')}: {state.bufferedPercent.toFixed(1)}%
+      </div>
+      <div>
+        {i18n.t('volume')}: {(state.volume * 100).toFixed(0)}%
+      </div>
+      <div>
+        {i18n.t('debugRate')}: {state.playbackRate}x
+      </div>
+      <div>
+        {i18n.t('debugFrames')}:{' '}
+        {i18n.t('debugDroppedFrames', undefined, {
+          dropped: meta.droppedFrames ?? '—',
+          total: meta.totalFrames ?? '—',
+        })}
+      </div>
+      <div>
+        {i18n.t('debugNetwork')}: {NETWORK_LABELS[meta.networkState] ?? meta.networkState}
+      </div>
+      <div>
+        {i18n.t('debugReady')}: {READY_LABELS[meta.readyState] ?? meta.readyState}
+      </div>
+      <div>
+        {labels.fullscreen}: {i18n.t(state.isFullscreen ? 'yes' : 'no')}
+      </div>
     </div>
   )
 }

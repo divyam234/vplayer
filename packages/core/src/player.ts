@@ -97,9 +97,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   const events = new EventBus()
   const storage = new Storage()
   const i18n = new I18n(currentOptions.lang)
-  if (currentOptions.translations) {
-    i18n.addTranslations(currentOptions.lang ?? 'en', currentOptions.translations)
-  }
+  i18n.setOverrides(currentOptions.translations)
   const hotkeys = new HotkeyRegistry()
 
   const reconnectMax = currentOptions.reconnectMax ?? 3
@@ -746,6 +744,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       store.setState((prev) => ({ ...prev, captionSettings: { ...DEFAULT_CAPTION_SETTINGS } }))
     },
     saveCaptionSettings: () => {
+      if (currentOptions.captionSettings !== undefined) return
       storage.set(STORAGE_KEYS.CAPTION_SETTINGS, store.state.captionSettings)
     },
     setActiveQuality: (q: string) => {
@@ -1024,8 +1023,15 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   let unsubPersist: ReturnType<typeof store.subscribe> | null = null
 
   function loadSavedCaptionSettings(): void {
+    if (currentOptions.captionSettings !== undefined) {
+      remote.setCaptionSettings({ ...DEFAULT_CAPTION_SETTINGS, ...currentOptions.captionSettings })
+      return
+    }
     const captionSettings = storage.get<CaptionSettings>(STORAGE_KEYS.CAPTION_SETTINGS)
-    if (!captionSettings) return
+    if (!captionSettings) {
+      remote.setCaptionSettings(DEFAULT_CAPTION_SETTINGS)
+      return
+    }
     store.setState((prev) => ({
       ...prev,
       captionSettings: {
@@ -1067,7 +1073,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
       else storage.remove(STORAGE_KEYS.FLIP)
       if (s.aspectRatio !== 'default') storage.set(STORAGE_KEYS.ASPECT_RATIO, s.aspectRatio)
       else storage.remove(STORAGE_KEYS.ASPECT_RATIO)
-      storage.set(STORAGE_KEYS.CAPTION_SETTINGS, s.captionSettings)
+      if (currentOptions.captionSettings === undefined) storage.set(STORAGE_KEYS.CAPTION_SETTINGS, s.captionSettings)
     })
   }
 
@@ -1288,6 +1294,7 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
   }
 
   // ── Player lifecycle ─────────────────────────────────────
+  if (currentOptions.captionSettings !== undefined) loadSavedCaptionSettings()
   const player: PlayerInstance = {
     store,
     remote,
@@ -1315,6 +1322,11 @@ export function createPlayer(options: PlayerOptions): PlayerInstance {
         nextTarget.id !== activeProgressTarget.id || nextTarget.store !== activeProgressTarget.store
       if (srcChanged || progressTargetChanged) flushProgress(activeProgressTarget, engine)
       currentOptions = nextOptions
+      if (Object.hasOwn(opts, 'lang')) i18n.setLanguage(currentOptions.lang ?? 'en')
+      if (Object.hasOwn(opts, 'translations')) i18n.setOverrides(currentOptions.translations)
+      if (Object.hasOwn(opts, 'captionSettings')) {
+        loadSavedCaptionSettings()
+      }
       if (srcChanged || progressTargetChanged) resetProgressGeneration()
 
       if (store.state.isPlaying || mediaSession.hasMetadata) {

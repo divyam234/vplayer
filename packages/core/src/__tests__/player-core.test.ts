@@ -81,6 +81,48 @@ class FakeEngine implements MediaEngine {
 
 describe('createPlayer core contract', () => {
   beforeEach(() => localStorage.clear())
+  it('keeps externally managed captions reactive and independent of browser caption storage', () => {
+    localStorage.setItem('vplayer:captionSettings', JSON.stringify({ fontScale: 180 }))
+    const player = createPlayer({
+      src: '/video.mp4',
+      persistPreferences: true,
+      captionSettings: { fontScale: 120 },
+      engine: (video) => new FakeEngine(video),
+    })
+    player.mount(document.createElement('video'), document.createElement('div'))
+    try {
+      expect(player.store.state.captionSettings.fontScale).toBe(120)
+      player.updateOptions({ captionSettings: { fontFamily: 'serif' } })
+      expect(player.store.state.captionSettings).toMatchObject({ fontFamily: 'serif', fontScale: 100 })
+      player.remote.saveCaptionSettings()
+      expect(JSON.parse(localStorage.getItem('vplayer:captionSettings')!).fontScale).toBe(180)
+      player.updateOptions({ captionSettings: undefined })
+      expect(player.store.state.captionSettings.fontScale).toBe(180)
+    } finally {
+      player.unmount()
+    }
+  })
+  it('updates language and translation options without recreating the engine', async () => {
+    const factory = vi.fn((video: HTMLVideoElement) => new FakeEngine(video))
+    const player = createPlayer({ src: '/video.mp4', lang: 'es', engine: factory })
+    player.mount(document.createElement('video'), document.createElement('div'))
+    try {
+      await player.remote.play()
+      player.remote.seek(42)
+      const engine = player.engine
+      player.updateOptions({ lang: 'de', translations: { settings: 'Custom' } })
+      expect(player.i18n.t('settings')).toBe('Custom')
+      expect(player.i18n.t('volume')).toBe('Lautstärke')
+      player.updateOptions({ lang: 'fr', translations: undefined })
+      expect(player.i18n.t('settings')).toBe('Paramètres')
+      expect(player.engine).toBe(engine)
+      expect(factory).toHaveBeenCalledOnce()
+      expect(player.store.state.currentTime).toBe(42)
+      expect(player.store.state.isPlaying).toBe(true)
+    } finally {
+      player.unmount()
+    }
+  })
   it('mounts with a nullable engine contract and updates state from engine events', async () => {
     const player = createPlayer({ src: '/video.mp4', engine: (video) => new FakeEngine(video) })
     expect(player.engine).toBeNull()

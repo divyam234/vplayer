@@ -51,11 +51,15 @@ export interface PlayerOptions {
   thumbnails?: string
   /** Transform raw thumbnail VTT content before it is parsed. */
   transformThumbnailVTT?: TransformThumbnailVTT
+  /** UI language. Built-ins: en, es, pt-BR, ru, fr, de, zh-CN. Reactive; does not reload media. */
   lang?: string
+  /** Overrides for the selected UI language; replaced when this option changes. */
   translations?: Record<string, string>
   plugins?: PlayerPlugin[]
   playbackProgress?: PlaybackProgressOptions
   persistPreferences?: boolean
+  /** Externally managed caption preferences. Bypasses browser caption storage when provided. */
+  captionSettings?: Partial<CaptionSettings>
   defaultHotkeys?: boolean
   reconnectMax?: number
   reconnectSleep?: number
@@ -274,6 +278,9 @@ export interface PlayerInstance {
         | 'transformThumbnailVTT'
         | 'playbackProgress'
         | 'embeddedTracks'
+        | 'lang'
+        | 'translations'
+        | 'captionSettings'
       >
     >,
   ): void

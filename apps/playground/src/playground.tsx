@@ -36,6 +36,7 @@ type ThemeMode = 'neutral' | 'warm' | 'cyan'
 type MiniPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
 
 type PlaygroundConfig = {
+  lang: string
   src: string
   poster: string
   subtitleUrl: string
@@ -108,6 +109,7 @@ const THEMES: Record<ThemeMode, { accent: string; bg: string; radius: string }> 
 
 const CONFIG_STORAGE_KEY = 'vplayer:playground-config'
 const DEFAULT_CONFIG: PlaygroundConfig = {
+  lang: 'en',
   src: SAMPLE_VIDEO,
   poster: SAMPLE_POSTER,
   subtitleUrl: LOCAL_SUBTITLES,
@@ -147,6 +149,7 @@ export function Playground() {
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
   const {
+    lang,
     src,
     poster,
     subtitleUrl,
@@ -204,6 +207,7 @@ export function Playground() {
   )
 
   const playerProps: PlayerProps = {
+    lang,
     src,
     type: 'video/mp4',
     poster: poster.trim() || undefined,
@@ -228,6 +232,7 @@ export function Playground() {
   } as CSSProperties
 
   const code = buildSnippet({
+    lang,
     src,
     poster,
     autoPlay,
@@ -363,6 +368,23 @@ export function Playground() {
                   ]}
                   onChange={(value) => updateDraft('theme', value as ThemeMode)}
                 />
+                <label className="mt-4 flex flex-col gap-2 text-xs text-zinc-400">
+                  Player language
+                  <select
+                    aria-label="Player language"
+                    value={draftConfig.lang}
+                    onChange={(event) => updateDraft('lang', event.target.value)}
+                    className="rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                  >
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                    <option value="pt-BR">Português (Brasil)</option>
+                    <option value="ru">Русский</option>
+                    <option value="fr">Français</option>
+                    <option value="de">Deutsch</option>
+                    <option value="zh-CN">简体中文</option>
+                  </select>
+                </label>
               </section>
 
               <section className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
@@ -670,6 +692,7 @@ function Range({
 }
 
 function buildSnippet({
+  lang,
   src,
   poster,
   autoPlay,
@@ -683,6 +706,7 @@ function buildSnippet({
   miniWidth,
   thumbnailPreview,
 }: {
+  lang: string
   src: string
   poster: string
   autoPlay: boolean
@@ -700,6 +724,7 @@ function buildSnippet({
 import '@vplayer/react/player.css'
 
 <VideoPlayer
+  lang=${JSON.stringify(lang)}
   src=${JSON.stringify(src)}${poster ? `\n  poster=${JSON.stringify(poster)}` : ''}
   autoPlay={${autoPlay}}${embeddedTracks ? '\n  embeddedTracks' : ''}
   qualities={${JSON.stringify(qualities)}}${subtitles.length ? `\n  subtitles={${JSON.stringify(subtitles, null, 2)}}` : ''}${thumbnails ? `\n  thumbnails=${JSON.stringify(thumbnails)}` : ''}

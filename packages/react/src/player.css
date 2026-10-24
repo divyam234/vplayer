@@ -294,24 +294,33 @@
     @apply flex items-center gap-1.5;
   }
   .vplayer__volume-slider {
-    @apply w-0 overflow-hidden transition-all duration-200;
+    @apply w-0 overflow-hidden transition-[width] duration-200;
   }
-  .vplayer__volume-slider--visible {
+  .vplayer__volume-slider--visible,
+  .vplayer__volume:focus-within .vplayer__volume-slider {
     @apply w-24;
   }
   .vplayer__volume-slider-track {
-    @apply flex h-6 items-center;
+    /* Keep the slider's measurement stable while its wrapper opens/closes. */
+    @apply flex h-8 w-24 shrink-0 items-center px-2;
   }
   .vplayer__volume-slider-track .vplayer__seek-slider-control {
     flex: 1;
-    height: auto;
+    height: 100%;
   }
   .vplayer__volume-fill {
     @apply h-full rounded-full;
     background: var(--vplayer-fg);
   }
   .vplayer__volume-thumb {
-    @apply size-0;
+    @apply z-10 size-3 rounded-full;
+    background: var(--vplayer-fg);
+    inset-block: 0;
+    margin-block: auto;
+  }
+  .vplayer__volume-thumb:focus-visible {
+    outline: 2px solid var(--vplayer-focus-ring);
+    outline-offset: 2px;
   }
 
   .vplayer__menu-positioner {
@@ -334,6 +343,22 @@
   }
   .vplayer__menu-item {
     @apply flex w-full cursor-default items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors outline-none;
+  }
+  /* Track counts can be large. Keep these lists compact relative to both the
+     actual player (including embedded/mini players) and the browser viewport. */
+  .vplayer__menu[data-view='subtitles'],
+  .vplayer__menu[data-view='audio'] {
+    width: min(20rem, calc(100vw - 2rem));
+    max-height: min(var(--available-height, 70vh), var(--vplayer-track-menu-height, 50vh), 50vh, 20rem);
+    scrollbar-width: thin;
+  }
+  .vplayer__menu[data-view='subtitles'] .vplayer__menu-item,
+  .vplayer__menu[data-view='audio'] .vplayer__menu-item {
+    overflow-wrap: anywhere;
+  }
+  .vplayer__menu[data-view='subtitles'] .vplayer__menu-item > span:first-child,
+  .vplayer__menu[data-view='audio'] .vplayer__menu-item > span:first-child {
+    min-width: 0;
   }
   .vplayer__menu-item:hover,
   .vplayer__menu-item[data-focused] {
@@ -447,17 +472,21 @@
     color: color-mix(in srgb, white 45%, transparent);
   }
   .vplayer__caption-panel {
+    width: 100%;
+    min-width: 0;
+  }
+  /* The menu owns scrolling; a second overflow container on the caption panel
+     produced nested scrollbars when the positioner had less available height. */
+  .vplayer__menu:has(> .vplayer__caption-panel) {
     width: min(22rem, calc(100vw - 2rem));
-    max-height: min(58vh, 32rem);
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    max-height: min(var(--available-height, 70vh), var(--vplayer-track-menu-height, 58vh), 58vh, 32rem);
     scrollbar-width: thin;
   }
   .vplayer__caption-panel-header {
-    @apply flex items-center justify-between gap-2 px-1;
+    @apply flex flex-wrap items-center justify-between gap-2 px-1;
   }
   .vplayer__caption-panel-actions {
-    @apply flex items-center gap-1;
+    @apply ml-auto flex items-center gap-1;
   }
   .vplayer__caption-back,
   .vplayer__caption-reset,
@@ -498,7 +527,7 @@
   }
   .vplayer__caption-control,
   .vplayer__caption-delay-stepper {
-    @apply grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-1.5 text-xs;
+    @apply grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-1.5 text-xs;
     color: color-mix(in srgb, white 76%, transparent);
   }
   .vplayer__caption-control-value,
@@ -528,13 +557,17 @@
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--vplayer-accent) 55%, transparent);
   }
   .vplayer__caption-delay-stepper > div {
-    @apply flex items-center rounded-md;
+    @apply col-span-2 flex min-w-0 items-center rounded-md;
     background: color-mix(in srgb, white 8%, transparent);
   }
   .vplayer__caption-delay-stepper button {
     @apply min-h-10 min-w-10 rounded-md text-base;
     transition-property: background-color, scale;
     transition-duration: 120ms;
+  }
+  .vplayer__caption-delay-stepper input {
+    @apply min-w-0 flex-1 text-center;
+    width: 0;
   }
   .vplayer__caption-delay-stepper button:hover {
     background: color-mix(in srgb, white 12%, transparent);
@@ -554,7 +587,8 @@
     @apply grid grid-cols-3 gap-1;
   }
   .vplayer__caption-choice-item {
-    @apply relative flex min-h-10 items-center justify-center rounded-md px-2 text-xs;
+    @apply relative flex min-h-10 min-w-0 items-center justify-center rounded-md px-2 text-center text-xs;
+    overflow-wrap: anywhere;
     color: color-mix(in srgb, white 58%, transparent);
     background: color-mix(in srgb, white 7%, transparent);
     transition-property: background-color, color, scale;

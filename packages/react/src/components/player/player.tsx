@@ -2,7 +2,6 @@
 'use client'
 
 import { useStore } from '@tanstack/react-store'
-import { defaultPlayerLabels } from '@vplayer/core'
 import { clsx } from 'clsx'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
@@ -27,7 +26,7 @@ import type {
   PlayerProps,
   ThumbnailPreviewOptions,
 } from './types'
-import { mergeLabels, mergeIcons } from './utils/merge'
+import { localizedLabels, mergeIcons } from './utils/merge'
 
 function normalizeThumbnailPreviewOptions(
   thumbnailPreview?: boolean | ThumbnailPreviewOptions,
@@ -74,6 +73,10 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const resumePromptTimeout = options.playbackProgress?.resumePromptTimeout
   const plugins = options.plugins
   const embeddedTracks = options.embeddedTracks
+  const lang = options.lang
+  const translations = options.translations
+  const captionSettings = options.captionSettings
+  const captionSettingsMenu = options.captionSettingsMenu
   const labelsProp = options.labels
   const iconsProp = options.icons
   const slots = options.slots ?? {}
@@ -114,6 +117,9 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       qualities,
       thumbnails,
       embeddedTracks,
+      lang,
+      translations,
+      captionSettings,
       transformThumbnailVTT: hasThumbnailVTTTransform ? transformThumbnailVTTRef.current : undefined,
       autoPlay,
       playbackProgress: {
@@ -134,6 +140,9 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
     qualities,
     thumbnails,
     embeddedTracks,
+    lang,
+    translations,
+    captionSettings,
     hasThumbnailVTTTransform,
     autoPlay,
     playbackProgressId,
@@ -178,6 +187,8 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
       if (
+        event.defaultPrevented ||
+        (event.target instanceof Element && event.target.closest('[role="slider"]')) ||
         event.target instanceof HTMLInputElement ||
         event.target instanceof HTMLTextAreaElement ||
         (event.target as HTMLElement).isContentEditable
@@ -190,7 +201,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
   )
 
   // ── Resolve labels, icons ──
-  const labels = useMemo(() => mergeLabels(defaultPlayerLabels, labelsProp), [labelsProp])
+  const labels = useMemo(() => localizedLabels(lang, translations, labelsProp), [lang, translations, labelsProp])
   const iconMap = useMemo(() => mergeIcons(defaultPlayerIcons, iconsProp), [iconsProp])
 
   // ── Video element props ──
@@ -229,6 +240,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       containerRef,
       videoRef,
       labels,
+      captionSettingsMenu,
       subtitleSearchDefaultQuery,
       icons: iconMap,
       slots,
@@ -245,7 +257,17 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
       miniPlayer,
       thumbnailPreview,
     }),
-    [instance, labels, iconMap, slots, controls, miniPlayer, subtitleSearchDefaultQuery, thumbnailPreview],
+    [
+      instance,
+      labels,
+      iconMap,
+      slots,
+      controls,
+      miniPlayer,
+      subtitleSearchDefaultQuery,
+      thumbnailPreview,
+      captionSettingsMenu,
+    ],
   )
 
   const miniPlayerStyle = useMemo(
@@ -265,7 +287,7 @@ export function VideoPlayer({ className = '', children, ...options }: PlayerProp
           ref={containerRef}
           tabIndex={0}
           role="application"
-          aria-label="Video player"
+          aria-label={instance.i18n.t('playerLabel')}
           data-testid="vplayer-root"
           data-mini-player={miniPlayer.active ? 'true' : 'false'}
           data-mini-player-position={miniPlayer.position}

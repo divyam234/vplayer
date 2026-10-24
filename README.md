@@ -67,6 +67,25 @@ export function LessonPlayer() {
 
 The default UI includes playback, seeking, volume, speed, quality labels, captions, mini-player, screenshot, Picture-in-Picture, fullscreen, and keyboard controls.
 
+### Player language
+
+Set `lang` to `en`, `es`, `pt-BR`, `ru`, `fr`, `de`, or `zh-CN`. Changing the prop
+updates controls, menus, caption settings, and accessibility labels without
+restarting playback. The same options work with `PlayerProvider` and the headless
+core's `updateOptions()`.
+
+```tsx
+<VideoPlayer src="/video.mp4" lang={locale} />
+```
+
+Language tags are case-insensitive. Regional variants fall back to their supported
+base language, then English. Subtitle track languages are independent of the UI
+language; track titles and provider-supplied error messages are not translated.
+Use `translations={{ captionSave: 'Save style' }}` for message overrides, or
+`labels={{ settings: 'My settings' }}` for individual React control labels.
+Explicit `labels` take precedence over translations. Removing overrides restores
+the selected language's built-in messages.
+
 ### Controls
 
 | Control            | Behavior                                                                        |
@@ -97,6 +116,18 @@ Keyboard shortcuts run only while focus is inside the player and never intercept
 Set `defaultHotkeys={false}` to disable the built-in bindings.
 
 ## Captions
+
+Applications can own caption styling and persistence:
+
+```tsx
+<VideoPlayer src="/video.mp4" captionSettings={accountCaptionPreferences} captionSettingsMenu={false} />
+```
+
+`captionSettings` is reactive, merges omitted fields with `DEFAULT_CAPTION_SETTINGS`,
+and bypasses VPlayer's browser caption storage, even with `persistPreferences` enabled.
+`captionSettingsMenu={false}` hides only the caption-style editor; subtitle track
+selection, uploads, and search stay available. Both also work with `PlayerProvider`
+(pass caption settings through `options` and the menu flag as a provider prop).
 
 ### URL tracks
 

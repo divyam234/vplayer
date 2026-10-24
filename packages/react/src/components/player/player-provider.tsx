@@ -19,7 +19,6 @@
  * ```
  */
 
-import { defaultPlayerLabels } from '@vplayer/core'
 import type { PlayerLabels } from '@vplayer/core'
 import { useRef, useEffect, useMemo, type FC, type ReactNode } from 'react'
 
@@ -29,10 +28,11 @@ import { usePlayer } from './hooks/use-player'
 import { defaultPlayerIcons, type PlayerIcons } from './icon'
 import { createPluginAPI } from './plugin-api'
 import type { PlayerContextValue, PlayerSlots } from './types'
-import { mergeLabels, mergeIcons } from './utils/merge'
+import { localizedLabels, mergeIcons } from './utils/merge'
 import type { DeepPartial } from './utils/merge'
 
 export interface PlayerProviderProps {
+  captionSettingsMenu?: boolean
   options: Parameters<typeof usePlayer>[0] & { subtitleSearchDefaultQuery?: string }
   labels?: DeepPartial<PlayerLabels>
   icons?: Partial<PlayerIcons>
@@ -46,6 +46,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   icons: iconOverrides,
   slots = {},
   children,
+  captionSettingsMenu,
 }) => {
   const player = usePlayer(options)
   const { instance, attach, detach } = player
@@ -72,6 +73,9 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   const resumePromptTimeout = options.playbackProgress?.resumePromptTimeout
   const plugins = options.plugins
   const embeddedTracks = options.embeddedTracks
+  const lang = options.lang
+  const translations = options.translations
+  const captionSettings = options.captionSettings
 
   // ── Mount/unmount lifecycle ──
   useEffect(() => {
@@ -101,6 +105,9 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
       qualities,
       thumbnails,
       embeddedTracks,
+      lang,
+      translations,
+      captionSettings,
       transformThumbnailVTT: hasThumbnailVTTTransform ? transformThumbnailVTTRef.current : undefined,
       playbackProgress: {
         id: playbackProgressId,
@@ -121,6 +128,9 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
     qualities,
     thumbnails,
     embeddedTracks,
+    lang,
+    translations,
+    captionSettings,
     hasThumbnailVTTTransform,
     playbackProgressId,
     playbackProgressStore,
@@ -135,7 +145,10 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   }, [plugins, instance])
 
   // ── Resolve labels, icons ──
-  const labels = mergeLabels(defaultPlayerLabels, labelOverrides)
+  const labels = useMemo(
+    () => localizedLabels(lang, translations, labelOverrides),
+    [lang, translations, labelOverrides],
+  )
   const icons = mergeIcons(defaultPlayerIcons, iconOverrides)
   const miniPlayer = useMemo(() => createDisabledMiniPlayerState(), [])
   const thumbnailPreview = useMemo(
@@ -144,6 +157,7 @@ export const PlayerProvider: FC<PlayerProviderProps> = ({
   )
 
   const ctx: PlayerContextValue = {
+    captionSettingsMenu,
     containerRef,
     videoRef,
     labels,

@@ -129,6 +129,8 @@ export interface MiniPlayerState {
 }
 
 export interface PlayerProps extends PlayerOptions {
+  /** Hide only caption styling controls; subtitle selection and uploads remain available. */
+  captionSettingsMenu?: boolean
   className?: string
   children?: ReactNode
   /** Initial query shown and searched when the remote subtitle search panel opens. */
@@ -141,6 +143,7 @@ export interface PlayerProps extends PlayerOptions {
 }
 
 export interface PlayerContextValue {
+  captionSettingsMenu?: boolean
   containerRef: RefObject<HTMLDivElement | null>
   videoRef: RefObject<HTMLVideoElement | null>
   labels: PlayerLabels

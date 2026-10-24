@@ -71,7 +71,7 @@ export const Spacer: FC = () => <div className="vplayer__spacer" />
 export const MiniPlayerControls: FC = () => {
   const controlsVisible = usePlayerState('controlsVisible')
   const isPlaying = usePlayerState('isPlaying')
-  const { labels, icons, slots, miniPlayer } = usePlayerContext()
+  const { labels, icons, slots, miniPlayer, i18n } = usePlayerContext()
 
   return (
     <>
@@ -90,7 +90,7 @@ export const MiniPlayerControls: FC = () => {
             <Icon icon={icons.close} width={16} />
           </button>
         </div>
-        <div role="toolbar" aria-label="Mini player controls" className="vplayer__mini-center-controls">
+        <div role="toolbar" aria-label={i18n.t('miniPlayerControls')} className="vplayer__mini-center-controls">
           {slots.playButton ?? <PlayButton size={24} />}
         </div>
         <div className="vplayer__mini-bottom-controls">{slots.seekBar ?? <SeekBar />}</div>
@@ -102,7 +102,7 @@ export const MiniPlayerControls: FC = () => {
 }
 
 export const PlayerControls: FC = () => {
-  const { slots, miniPlayer } = usePlayerContext()
+  const { slots, miniPlayer, i18n } = usePlayerContext()
 
   if (miniPlayer.active) return <MiniPlayerControls />
 
@@ -113,7 +113,7 @@ export const PlayerControls: FC = () => {
 
       <ControlsBar>
         {slots.seekBar ?? <SeekBar />}
-        <div role="toolbar" aria-label="Playback controls" className="vplayer__controls-row">
+        <div role="toolbar" aria-label={i18n.t('playbackControls')} className="vplayer__controls-row">
           {/* Plugin left controls before built-ins */}
           <PluginControlsCenter />
           {slots.playButton ?? <PlayButton />}

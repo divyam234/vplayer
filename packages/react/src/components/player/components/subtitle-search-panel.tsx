@@ -9,7 +9,7 @@ interface SubtitleSearchPanelProps {
 }
 
 export const SubtitleSearchPanel: FC<SubtitleSearchPanelProps> = ({ onBack }) => {
-  const { labels, icons, subtitleSearchDefaultQuery } = usePlayerContext()
+  const { labels, icons, subtitleSearchDefaultQuery, i18n } = usePlayerContext()
   const remote = usePlayerRemote()
   const providers = usePlayerState('subtitleProviders')
   const results = usePlayerState('subtitleSearchResults')
@@ -147,8 +147,10 @@ export const SubtitleSearchPanel: FC<SubtitleSearchPanelProps> = ({ onBack }) =>
                 <span>{result.language}</span>
                 <span>{result.providerLabel}</span>
                 {result.downloads !== undefined && <span>↓ {result.downloads.toLocaleString()}</span>}
-                {result.hearingImpaired && <span>HI</span>}
-                {result.machineTranslated && <span>MT</span>}
+                {result.hearingImpaired && <span title={i18n.t('hearingImpaired')}>{i18n.t('hearingImpaired')}</span>}
+                {result.machineTranslated && (
+                  <span title={i18n.t('machineTranslated')}>{i18n.t('machineTranslated')}</span>
+                )}
               </span>
             </button>
           ))}

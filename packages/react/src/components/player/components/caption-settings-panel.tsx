@@ -84,7 +84,7 @@ const FONT_STACK: Record<CaptionSettings['fontFamily'], string> = {
 }
 
 export const CaptionSettingsPanel: FC<{ onBack: () => void }> = ({ onBack }) => {
-  const { labels, icons } = usePlayerContext()
+  const { labels, icons, i18n } = usePlayerContext()
   const remote = usePlayerRemote()
   const settings = usePlayerState('captionSettings')
   const [colorTarget, setColorTarget] = useState<'textColor' | 'backgroundColor' | 'edgeColor'>('textColor')
@@ -116,12 +116,7 @@ export const CaptionSettingsPanel: FC<{ onBack: () => void }> = ({ onBack }) => 
   return (
     <div className="vplayer__caption-panel">
       <div className="vplayer__caption-panel-header">
-        <button
-          type="button"
-          className="vplayer__caption-back"
-          onClick={onBack}
-          aria-label={`Back to ${labels.subtitles}`}
-        >
+        <button type="button" className="vplayer__caption-back" onClick={onBack} aria-label={i18n.t('backToSubtitles')}>
           <Icon icon={icons.chevronLeft} width={14} className="vplayer__menu-icon" />
           <span>{labels.captionAppearance}</span>
         </button>
@@ -150,8 +145,8 @@ export const CaptionSettingsPanel: FC<{ onBack: () => void }> = ({ onBack }) => 
         {labels.captionPreview}
       </div>
 
-      <section className="vplayer__caption-section" aria-label="Timing and position">
-        <h3>Timing &amp; position</h3>
+      <section className="vplayer__caption-section" aria-label={i18n.t('captionTiming')}>
+        <h3>{i18n.t('captionTiming')}</h3>
         <NumberInput.Root
           className="vplayer__caption-delay-stepper"
           value={settings.delay.toFixed(1)}
@@ -165,9 +160,9 @@ export const CaptionSettingsPanel: FC<{ onBack: () => void }> = ({ onBack }) => 
         >
           <NumberInput.Label>{labels.captionDelay}</NumberInput.Label>
           <NumberInput.Control>
-            <NumberInput.DecrementTrigger aria-label="Decrease subtitle delay">−</NumberInput.DecrementTrigger>
+            <NumberInput.DecrementTrigger aria-label={i18n.t('captionDecreaseDelay')}>−</NumberInput.DecrementTrigger>
             <NumberInput.Input aria-label={labels.captionDelay} />
-            <NumberInput.IncrementTrigger aria-label="Increase subtitle delay">+</NumberInput.IncrementTrigger>
+            <NumberInput.IncrementTrigger aria-label={i18n.t('captionIncreaseDelay')}>+</NumberInput.IncrementTrigger>
           </NumberInput.Control>
         </NumberInput.Root>
         <RangeSetting
@@ -190,15 +185,15 @@ export const CaptionSettingsPanel: FC<{ onBack: () => void }> = ({ onBack }) => 
         />
       </section>
 
-      <section className="vplayer__caption-section" aria-label="Typography">
-        <h3>Typography</h3>
+      <section className="vplayer__caption-section" aria-label={i18n.t('captionTypography')}>
+        <h3>{i18n.t('captionTypography')}</h3>
         <ChoiceSetting
           label={labels.captionFontFamily}
           value={settings.fontFamily}
           choices={[
-            { value: 'sans', label: 'Sans' },
-            { value: 'serif', label: 'Serif' },
-            { value: 'monospace', label: 'Mono' },
+            { value: 'sans', label: i18n.t('captionFontSans') },
+            { value: 'serif', label: i18n.t('captionFontSerif') },
+            { value: 'monospace', label: i18n.t('captionFontMono') },
           ]}
           onChange={(fontFamily) => remote.setCaptionSettings({ fontFamily })}
         />
@@ -222,15 +217,15 @@ export const CaptionSettingsPanel: FC<{ onBack: () => void }> = ({ onBack }) => 
           onChange={(fontScale) => remote.setCaptionSettings({ fontScale })}
         />
       </section>
-      <section className="vplayer__caption-section" aria-label="Color and effects">
-        <h3>Color &amp; effects</h3>
+      <section className="vplayer__caption-section" aria-label={i18n.t('captionColors')}>
+        <h3>{i18n.t('captionColors')}</h3>
         <ChoiceSetting
-          label="Color target"
+          label={i18n.t('captionColorTarget')}
           value={colorTarget}
           choices={[
-            { value: 'textColor', label: 'Text' },
-            { value: 'backgroundColor', label: 'Background' },
-            { value: 'edgeColor', label: 'Edge' },
+            { value: 'textColor', label: i18n.t('captionColorText') },
+            { value: 'backgroundColor', label: i18n.t('captionColorBackground') },
+            { value: 'edgeColor', label: i18n.t('captionColorEdge') },
           ]}
           onChange={setColorTarget}
         />

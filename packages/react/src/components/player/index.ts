@@ -63,6 +63,7 @@ export {
   I18n,
   HotkeyRegistry,
   defaultPlayerLabels,
+  DEFAULT_CAPTION_SETTINGS,
   formatTime,
 } from '@vplayer/core'
 export { defaultPlayerIcons } from './icon'

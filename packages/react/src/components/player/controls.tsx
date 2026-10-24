@@ -4,7 +4,16 @@ import { Slider } from '@ark-ui/react/slider'
 import { Tooltip } from '@ark-ui/react/tooltip'
 import { getThumbnailAtTime, formatTime } from '@vplayer/core'
 import { clsx } from 'clsx'
-import { useCallback, useEffect, useState, type CSSProperties, type FC, type PointerEvent, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FC,
+  type PointerEvent,
+  type ReactNode,
+} from 'react'
 
 import { CaptionSettingsPanel } from './components/caption-settings-panel'
 import { SubtitleSearchPanel } from './components/subtitle-search-panel'
@@ -87,7 +96,7 @@ export const SeekBar: FC = () => {
   const duration = usePlayerState('duration')
   const bufferedPercent = usePlayerState('bufferedPercent')
   const thumbnailCues = usePlayerState('thumbnailCues')
-  const { containerRef, thumbnailPreview } = usePlayerContext()
+  const { containerRef, thumbnailPreview, i18n } = usePlayerContext()
   const remote = usePlayerRemote()
   const [hoverPercent, setHoverPercent] = useState<number | null>(null)
   const [previewPosition, setPreviewPosition] = useState(0)
@@ -160,6 +169,7 @@ export const SeekBar: FC = () => {
       )}
 
       <Slider.Root
+        aria-label={[i18n.t('seek')]}
         value={[displayValue]}
         onValueChange={(d) => setOverrideValue(d.value[0])}
         onValueChangeEnd={(d) => remote.seek(safeDuration ? (d.value[0] / 100) * safeDuration : currentTime)}
@@ -209,11 +219,11 @@ export const PlayButton: FC<{ size?: number }> = ({ size = 20 }) => {
 }
 
 export const SkipButton: FC<{ seconds: number }> = ({ seconds }) => {
-  const { icons } = usePlayerContext()
+  const { icons, i18n } = usePlayerContext()
   const remote = usePlayerRemote()
   const forward = seconds > 0
   const Icon = forward ? icons.skipForward : icons.skipBack
-  const label = forward ? `Skip forward ${seconds}s` : `Skip back ${Math.abs(seconds)}s`
+  const label = i18n.t(forward ? 'skipForward' : 'skipBack', undefined, { seconds: Math.abs(seconds) })
   return (
     <IconButton label={label} tooltip={label} onClick={() => remote.skip(seconds)} className="vplayer__button--skip">
       <Icon width={18} />
@@ -234,13 +244,41 @@ export const TimeDisplay: FC = () => {
 export const VolumeControl: FC = () => {
   const volume = usePlayerState('volume')
   const isMuted = usePlayerState('isMuted')
-  const { labels, icons } = usePlayerContext()
+  const { labels, icons, i18n, controlsVisibility } = usePlayerContext()
   const remote = usePlayerRemote()
   const VolumeIcon = isMuted || volume === 0 ? icons.volumeOff : volume < 0.5 ? icons.volumeLow : icons.volumeHigh
   const [isHovered, setIsHovered] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragReleaseRef = useRef<(() => void) | null>(null)
+
+  const endDrag = useCallback(() => {
+    setIsDragging(false)
+    dragReleaseRef.current?.()
+    dragReleaseRef.current = null
+  }, [])
+
+  useEffect(() => {
+    // A drag can end outside the player or be cancelled by the browser.
+    window.addEventListener('pointerup', endDrag)
+    window.addEventListener('pointercancel', endDrag)
+    window.addEventListener('blur', endDrag)
+    return () => {
+      window.removeEventListener('pointerup', endDrag)
+      window.removeEventListener('pointercancel', endDrag)
+      window.removeEventListener('blur', endDrag)
+      dragReleaseRef.current?.()
+    }
+  }, [endDrag])
 
   return (
-    <div className="vplayer__volume" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+    <div
+      className="vplayer__volume"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onTouchStart={(event) => event.stopPropagation()}
+      onTouchMove={(event) => event.stopPropagation()}
+      onTouchEnd={(event) => event.stopPropagation()}
+    >
       <IconToggle
         selected={!isMuted}
         onChange={remote.toggleMute}
@@ -250,10 +288,19 @@ export const VolumeControl: FC = () => {
       >
         <VolumeIcon width={16} />
       </IconToggle>
-      <div className={clsx('vplayer__volume-slider', isHovered && 'vplayer__volume-slider--visible')}>
+      <div
+        className={clsx('vplayer__volume-slider', (isHovered || isDragging) && 'vplayer__volume-slider--visible')}
+        onPointerDownCapture={(event) => {
+          if (event.button !== 0) return
+          dragReleaseRef.current ??= controlsVisibility.pinControls()
+          setIsDragging(true)
+        }}
+      >
         <Slider.Root
+          aria-label={[i18n.t('volume')]}
           value={[isMuted ? 0 : volume * 100]}
           onValueChange={(d) => remote.setVolume(d.value[0] / 100)}
+          onValueChangeEnd={endDrag}
           min={0}
           max={100}
           step={1}
@@ -285,7 +332,7 @@ function getAspectRatioLabel(labels: PlayerLabels, value: (typeof ASPECT_RATIO_O
 }
 
 export const SettingsTrigger: FC = () => {
-  const { labels, icons, controlsVisibility } = usePlayerContext()
+  const { labels, icons, controlsVisibility, containerRef, i18n, captionSettingsMenu } = usePlayerContext()
   const remote = usePlayerRemote()
   const qualities = usePlayerState('qualities')
   const activeQuality = usePlayerState('activeQuality')
@@ -300,7 +347,8 @@ export const SettingsTrigger: FC = () => {
   const flip = usePlayerState('flip')
   const aspectRatio = usePlayerState('aspectRatio')
   const [isOpen, setIsOpen] = useState(false)
-  const [view, setView] = useState<
+  const [trackMenuHeight, setTrackMenuHeight] = useState<number>()
+  const [requestedView, setView] = useState<
     | 'main'
     | 'speed'
     | 'quality'
@@ -311,12 +359,26 @@ export const SettingsTrigger: FC = () => {
     | 'flip'
     | 'aspectRatio'
   >('main')
+  const view = captionSettingsMenu === false && requestedView === 'captionAppearance' ? 'subtitles' : requestedView
   const speeds = [0.5, 1, 1.25, 1.5, 2]
 
   useEffect(() => {
     if (!isOpen) return
     return controlsVisibility.pinControls()
   }, [controlsVisibility, isOpen])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!isOpen || !container) return
+    const resize = () => {
+      const height = container.clientHeight
+      if (height > 0) setTrackMenuHeight(Math.floor(height * 0.7))
+    }
+    resize()
+    const observer = new ResizeObserver(resize)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [containerRef, isOpen])
 
   const handleMenuSelect = (value: string) => {
     if (value === 'back') {
@@ -401,6 +463,10 @@ export const SettingsTrigger: FC = () => {
       <Menu.Positioner className="vplayer__menu-positioner">
         <Menu.Content
           className="vplayer__menu-popover vplayer__menu"
+          data-view={view}
+          style={
+            { '--vplayer-track-menu-height': trackMenuHeight ? `${trackMenuHeight}px` : undefined } as CSSProperties
+          }
           onClick={(event) => {
             const item = (event.target as HTMLElement).closest<HTMLElement>(
               '[data-scope="menu"][data-part="item"][data-value]',
@@ -581,7 +647,7 @@ export const SettingsTrigger: FC = () => {
                       activeSubtitle?.id === track.id ? 'vplayer__menu-value--active' : 'vplayer__menu-value--inactive'
                     }
                   >
-                    {track.local ? `Local: ${track.label}` : track.label}
+                    {track.local ? i18n.t('localSubtitle', undefined, { label: track.label }) : track.label}
                   </span>
                   {track.unsupported && <span className="vplayer__menu-value">{labels.subtitleUnsupported}</span>}
                   {activeSubtitle?.id === track.id && (
@@ -630,15 +696,17 @@ export const SettingsTrigger: FC = () => {
                   </span>
                 </Menu.Item>
               )}
-              <Menu.Item value="appearance" className="vplayer__menu-item">
-                <span className="vplayer__menu-label">{labels.captionAppearance}</span>
-                <span className="vplayer__menu-check" aria-hidden="true">
-                  ›
-                </span>
-              </Menu.Item>
+              {captionSettingsMenu !== false && (
+                <Menu.Item value="appearance" className="vplayer__menu-item">
+                  <span className="vplayer__menu-label">{labels.captionAppearance}</span>
+                  <span className="vplayer__menu-check" aria-hidden="true">
+                    ›
+                  </span>
+                </Menu.Item>
+              )}
               {subtitleStatus === 'loading' && (
                 <div className="vplayer__menu-status" role="status">
-                  Loading…
+                  {i18n.t('loading')}
                 </div>
               )}
               {subtitleError && (

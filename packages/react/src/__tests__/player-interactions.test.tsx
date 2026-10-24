@@ -1,10 +1,10 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { PlaybackProgressStore, SubtitleSearchItem, SubtitleSearchQuery } from '@vplayer/core'
 import { useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { DefaultVideoLayout, SeekBar, usePlayerContext } from '../components/player'
+import { DefaultVideoLayout, PlayerProvider, SeekBar, VideoPlayer, usePlayerContext } from '../components/player'
 import { renderTestPlayer } from './test-utils/render-player'
 
 let latestCtx: ReturnType<typeof usePlayerContext> | null = null
@@ -30,6 +30,15 @@ function ContextProbe() {
 
 function DefaultLayoutForTest() {
   return <DefaultVideoLayout />
+}
+
+function LocalizedLabelsProbe() {
+  const { labels, i18n } = usePlayerContext()
+  return (
+    <div>
+      {labels.settings} · {i18n.t('volume')}
+    </div>
+  )
 }
 
 function ThumbnailFixture() {
@@ -58,6 +67,15 @@ function ThumbnailFixture() {
 }
 
 describe('VideoPlayer interactions', () => {
+  it('hides caption styling without removing subtitle selection or upload', async () => {
+    const user = userEvent.setup()
+    renderTestPlayer({ captionSettingsMenu: false, captionSettings: { fontScale: 125 } })
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByText('Subtitles', { exact: true }))
+    expect(screen.queryByText('Caption appearance')).not.toBeInTheDocument()
+    expect(screen.getByText('Off', { exact: true })).toBeVisible()
+    expect(screen.getByText('Load subtitle file…')).toBeVisible()
+  })
   afterEach(() => {
     latestCtx = null
     vi.useRealTimers()
@@ -65,6 +83,71 @@ describe('VideoPlayer interactions', () => {
     restoreProperty(document, 'fullscreenElement', fullscreenElementDescriptor)
     restoreProperty(HTMLElement.prototype, 'requestFullscreen', requestFullscreenDescriptor)
     restoreProperty(document, 'exitFullscreen', exitFullscreenDescriptor)
+  })
+
+  it.each([
+    ['en', 'Settings', 'Subtitles', 'Caption appearance', 'Typography'],
+    ['es', 'Ajustes', 'Subtítulos', 'Aspecto de los subtítulos', 'Tipografía'],
+    ['pt-BR', 'Configurações', 'Legendas', 'Aparência das legendas', 'Tipografia'],
+    ['ru', 'Настройки', 'Субтитры', 'Оформление субтитров', 'Типографика'],
+    ['fr', 'Paramètres', 'Sous-titres', 'Apparence des sous-titres', 'Typographie'],
+    ['de', 'Einstellungen', 'Untertitel', 'Untertiteldarstellung', 'Typografie'],
+    ['zh-CN', '设置', '字幕', '字幕外观', '文字样式'],
+  ])(
+    'localizes the player and caption controls through lang=%s',
+    async (lang, settings, subtitles, appearance, typography) => {
+      const user = userEvent.setup()
+      renderTestPlayer({ lang })
+      await user.click(screen.getByRole('button', { name: settings }))
+      await user.click(screen.getByText(subtitles, { exact: true }))
+      await user.click(screen.getByText(appearance, { exact: true }))
+      expect(screen.getByRole('heading', { name: typography })).toBeVisible()
+    },
+  )
+
+  it('switches lang and translation props without replacing the video or resetting playback', async () => {
+    const { engine, rerender } = renderTestPlayer({ lang: 'en' })
+    const video = screen.getByTestId('vplayer-root').querySelector('video')
+    await act(async () => {
+      await engine.play()
+      engine.seek(42)
+      engine.setVolume(0.35)
+    })
+    rerender(<VideoPlayer src="/video.mp4" lang="de" />)
+    expect(screen.getByRole('button', { name: 'Einstellungen' })).toBeVisible()
+    expect(screen.getByTestId('vplayer-root').querySelector('video')).toBe(video)
+    expect(engine.currentTime).toBe(42)
+    expect(engine.volume).toBe(0.35)
+    expect(engine.playCalls).toBe(1)
+    expect(engine.pauseCalls).toBe(0)
+    rerender(
+      <VideoPlayer
+        src="/video.mp4"
+        lang="fr"
+        translations={{ settings: 'Préférences' }}
+        labels={{ settings: 'My menu' }}
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'My menu' })).toBeVisible()
+    rerender(<VideoPlayer src="/video.mp4" lang="fr" translations={{ settings: 'Préférences' }} />)
+    expect(screen.getByRole('button', { name: 'Préférences' })).toBeVisible()
+    rerender(<VideoPlayer src="/video.mp4" lang="fr" />)
+    expect(screen.getByRole('button', { name: 'Paramètres' })).toBeVisible()
+  })
+
+  it('updates localized labels and plugin translations in the standalone provider', () => {
+    const { rerender } = render(
+      <PlayerProvider options={{ src: '/video.mp4', lang: 'es' }}>
+        <LocalizedLabelsProbe />
+      </PlayerProvider>,
+    )
+    expect(screen.getByText('Ajustes · Volumen')).toBeVisible()
+    rerender(
+      <PlayerProvider options={{ src: '/video.mp4', lang: 'de' }}>
+        <LocalizedLabelsProbe />
+      </PlayerProvider>,
+    )
+    expect(screen.getByText('Einstellungen · Lautstärke')).toBeVisible()
   })
 
   it('calls an inline thumbnail VTT transform without repeatedly restarting the request', async () => {
@@ -248,6 +331,56 @@ describe('VideoPlayer interactions', () => {
 
     expect(engine.volume).toBeCloseTo(0.8)
     expect(engine.muted).toBe(true)
+  })
+
+  it('adjusts the focused volume slider without triggering player seek shortcuts', async () => {
+    const user = userEvent.setup()
+    const { engine } = renderTestPlayer()
+    await user.hover(screen.getByRole('button', { name: 'Mute' }))
+    const slider = screen.getByRole('slider', { name: 'Volume' })
+    act(() => slider.focus())
+    await user.keyboard('{Home}')
+    await waitFor(() => expect(engine.volume).toBe(0))
+    await user.keyboard('{ArrowRight}')
+    await waitFor(() => expect(engine.volume).toBeCloseTo(0.01))
+    await user.keyboard('{End}')
+    await waitFor(() => expect(engine.volume).toBe(1))
+    await user.keyboard('{ArrowLeft}')
+    await waitFor(() => expect(engine.volume).toBeCloseTo(0.99))
+    expect(engine.seekCalls).toEqual([])
+  })
+
+  it.each(['pointerup', 'pointercancel', 'blur'] as const)(
+    'keeps the volume slider expanded and controls pinned until %s ends the drag',
+    async (endEvent) => {
+      vi.useFakeTimers()
+      const { engine, container } = renderTestPlayer()
+      const root = screen.getByTestId('vplayer-root')
+      const volume = container.querySelector('.vplayer__volume')!
+      const slider = container.querySelector('.vplayer__volume-slider')!
+      await act(async () => engine.play())
+      fireEvent.mouseEnter(volume)
+      fireEvent.pointerDown(slider, { button: 0, pointerId: 1 })
+      fireEvent.mouseLeave(volume)
+      fireEvent.mouseLeave(root)
+      await act(async () => vi.advanceTimersByTime(4000))
+      expect(slider).toHaveClass('vplayer__volume-slider--visible')
+      expect(root).not.toHaveClass('vplayer--controls-hidden')
+
+      fireEvent(window, new Event(endEvent))
+      await act(async () => vi.advanceTimersByTime(4000))
+      expect(slider).not.toHaveClass('vplayer__volume-slider--visible')
+      expect(root).toHaveClass('vplayer--controls-hidden')
+    },
+  )
+
+  it('does not turn touches on the volume control into media seek gestures', () => {
+    const { engine, container } = renderTestPlayer()
+    const volume = container.querySelector('.vplayer__volume')!
+    fireEvent.touchStart(volume, { touches: [{ clientX: 100, clientY: 100 }] })
+    fireEvent.touchMove(volume, { touches: [{ clientX: 200, clientY: 100 }] })
+    fireEvent.touchEnd(volume, { changedTouches: [{ clientX: 200, clientY: 100 }] })
+    expect(engine.seekCalls).toEqual([])
   })
 
   it('forwards title and poster to browser media controls when playback starts', async () => {
@@ -653,6 +786,42 @@ describe('VideoPlayer interactions', () => {
       expect.objectContaining({ id: 'provider:custom:english-web', lang: 'en' }),
     )
     expect(latestCtx?.mediaStore.state.subtitleCues[0]?.text).toBe('Provider caption')
+  })
+
+  it('bounds long subtitle menus to the player while preserving selection and caption navigation', async () => {
+    const clientHeight = Object.getOwnPropertyDescriptor(Element.prototype, 'clientHeight')?.get
+    vi.spyOn(Element.prototype, 'clientHeight', 'get').mockImplementation(function (this: Element) {
+      return this.classList.contains('vplayer') ? 400 : (clientHeight?.call(this) ?? 0)
+    })
+    const user = userEvent.setup()
+    renderTestPlayer({
+      subtitles: Array.from({ length: 40 }, (_, index) => ({
+        id: `embedded:${index}`,
+        label: `Language ${index + 1}`,
+        lang: 'en',
+        content: 'WEBVTT\n\n00:00:01.000 --> 00:00:03.000\nCaption',
+      })),
+      children: (
+        <>
+          <DefaultLayoutForTest />
+          <ContextProbe />
+        </>
+      ),
+    })
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByText('Subtitles'))
+    const menu = screen.getByRole('menu')
+    expect(menu).toHaveAttribute('data-view', 'subtitles')
+    expect(menu).toHaveStyle({ '--vplayer-track-menu-height': '280px' })
+    expect(screen.getAllByText(/^Language \d+$/)).toHaveLength(40)
+    await user.click(screen.getByText('Language 40'))
+    expect(latestCtx?.mediaStore.state.activeSubtitle?.id).toBe('embedded:39')
+    await user.click(screen.getByText('Caption appearance'))
+    expect(menu).toHaveAttribute('data-view', 'captionAppearance')
+    await user.click(screen.getByRole('button', { name: 'Back to Subtitles' }))
+    expect(menu).toHaveAttribute('data-view', 'subtitles')
+    await user.click(screen.getByText('Off', { exact: true }))
+    expect(latestCtx?.mediaStore.state.activeSubtitle).toBeNull()
   })
 
   it('offers VLC-style caption typography, effects, position, and delay controls', async () => {
